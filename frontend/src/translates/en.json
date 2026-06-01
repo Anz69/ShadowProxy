@@ -1,0 +1,673 @@
+{
+  "common": {
+    "logo": "Shadow Proxy",
+    "logoAlt": "Logo",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "copy": "Copy",
+    "copied": "Copied"
+  },
+  "header": {
+    "logo": "Shadow Proxy",
+    "nav": {
+      "catalog": "Proxy Catalog",
+      "prices": "Prices",
+      "dashboard": "Dashboard",
+      "payment": "Payment",
+      "api": "API System",
+      "referral": "Referral System",
+      "trial": "Trial Period"
+    },
+    "userMenu": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Logout"
+    },
+    "balance": "Balance",
+    "login": "Login",
+    "register": "Register"
+  },
+  "footer": {
+    "copyright": "© 2026 ShadowProxy. All rights reserved.",
+    "links": {
+      "about": "About",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "support": "Support"
+    },
+    "nav": {
+      "catalog": "Catalog",
+      "api": "API System",
+      "dashboard": "Dashboard",
+      "support": "Support",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
+    }
+  },
+  "main": {
+    "hero": {
+      "title": "<span>ShadowProxy</span> — reliable proxy servers for any tasks",
+      "description": "We work only with verified suppliers and provide stable, fast and rotating IPs worldwide",
+      "cta": {
+        "primary": "Trial Period",
+        "secondary": "API System"
+      }
+    },
+    "features": {
+      "title": "Why choose us",
+      "items": {
+        "verified": "Clean and verified IPs",
+        "uptime": "99.99% Uptime",
+        "stability": "High stability",
+        "auto": "Automatic proxy issuance",
+        "transparent": "Transparent traffic billing",
+        "geo": "Support for 200+ geos",
+        "api": "Convenient API system"
+      }
+    },
+    "steps": {
+      "title": "How ShadowProxy works",
+      "items": {
+        "step1": {
+          "title": "Choose proxy type",
+          "alt": "Choose proxy type"
+        },
+        "step2": {
+          "title": "Top up balance or activate key",
+          "alt": "Top up balance"
+        },
+        "step3": {
+          "title": "Get access automatically",
+          "alt": "Get access"
+        },
+        "step4": {
+          "title": "Use via control panel or API",
+          "alt": "Usage"
+        }
+      }
+    },
+    "proxyTypes": {
+      "title": "Available proxy types",
+      "more": "More details",
+      "resident": {
+        "title": "Residential Proxy",
+        "description": "Premium residential IPs with minimal usage.<br/>Best choice for anti-detect, ADS, social networks and complex systems.<br/>Pool 90M+, constantly cleaned. 200+ countries",
+        "features": {
+          "blocks": "Low risk of blocks",
+          "speed": "Maximum speed",
+          "connection": "Stable connection"
+        },
+        "price": "from $1.2/gb"
+      },
+      "premiumResidential": {
+        "title": "Premium Residential",
+        "description": "Premium residential proxies by ProxyEmpire.<br/>Precise geo-targeting: country, region, city, ISP.<br/>Sticky/Random/Custom rotation. 200+ countries.",
+        "features": {
+          "geo": "Country, region, city and ISP selection",
+          "countries": "200+ countries worldwide",
+          "rotation": "Sticky/Random/Custom rotation"
+        },
+        "price": "from $1.5/gb"
+      },
+      "mobile": {
+        "title": "Mobile Proxy",
+        "description": "4G/5G proxies with link rotation.<br/>Suitable for TikTok, Instagram, ADS and anti-detect.<br/>Maximum flexible pricing.",
+        "features": {
+          "real": "Real mobile IPs",
+          "speed": "High speed",
+          "geo": "Geolocation by countries"
+        },
+        "price": "from $2.5/gb"
+      },
+      "mobileGb": {
+        "title": "Mobile Proxy",
+        "description": "Pay only for used traffic.<br/>Best option for API tasks and automation.",
+        "features": {
+          "speed": "Maximum speed",
+          "unlimited": "Unlimited traffic",
+          "cheap": "Cheap rates"
+        },
+        "price": "from $0.5/gb"
+      },
+      "ipv6": {
+        "title": "IPv6 Proxy",
+        "description": "Server IPv6 with high speed and minimal price.<br/>Ideal for parsing and SEO.",
+        "features": {
+          "fixed": "Fixed IP address",
+          "reputation": "High reputation",
+          "longterm": "Long-term rental"
+        },
+        "price": "from $0.00 / GB"
+      },
+      "comingSoon": "Coming soon",
+      "standardSubtitle": "Reliable base tariffs for everyday tasks — stable and affordable.",
+      "premiumSubtitle": "Enhanced pools and precision geo-targeting for the most demanding workloads.",
+      "premiumMobile": {
+        "title": "Premium Mobile",
+        "description": "Mobile 4G/5G proxies with precise geo-targeting, link rotation and top-tier uptime.<br/>Ideal for anti-detect, ADS, social and complex systems.",
+        "features": {
+          "geo": "Precise geo by country and carrier",
+          "rotation": "Link / timer rotation",
+          "uptime": "99.9% uptime, low block risk"
+        },
+        "price": "Coming soon"
+      },
+      "standardTitle": "Standard proxies",
+      "premiumTitle": "Premium proxies"
+    },
+    "trust": {
+      "label": "How ShadowProxy works",
+      "title": "We don't use \"gray\" sources. Only verified<br/>(<img src=\"/steps-visual.svg\" alt=\"Verified sources icons\" />) networks and <span>quality</span> solutions",
+      "text": "Each pool undergoes manual and automated testing: speed, anonymity, IP history, abuse level and stability.",
+      "cta": "Test it"
+    },
+    "apiSystem": {
+      "title": "Convenient API System",
+      "steps": {
+        "step1": "Proxy Creation",
+        "step2": "Balance Check",
+        "step3": "Top Up<br/>GB",
+        "step4": "Traffic Statistics"
+      },
+      "cta": "API Documentation"
+    }
+  },
+  "dashboard": {
+    "trialButton": "Trial",
+    "title": "Dashboard",
+    "balance": {
+      "label": "Balance",
+      "currency": "USD",
+      "replenish": "Replenish",
+      "buyProxy": "Buy proxy"
+    },
+    "traffic": {
+      "title": "Traffic",
+      "resident": "Resident",
+      "premium": "Premium"
+    },
+    "proxies": {
+      "title": "Proxies",
+      "active": "Active",
+      "create": "Create Proxy"
+    },
+    "user": {
+      "title": "User",
+      "id": "ID",
+      "telegramLogin": "Telegram login"
+    },
+    "actions": {
+      "title": "Actions",
+      "logout": "Logout",
+      "logoutInProgress": "Logging out..."
+    },
+    "packagesList": {
+      "title": "List of purchased packages",
+      "empty": "You have no active packages"
+    },
+    "trafficStats": {
+      "remainingTraffic": "Remaining traffic",
+      "resident": "Residential Proxy",
+      "premiumResidential": "Premium Residential",
+      "mobile": "Mobile GB",
+      "mobileNew": "Mobile Proxy",
+      "ipv6": "IPv6"
+    },
+    "proxyPackage": {
+      "quality": "IP Quality",
+      "type": "Proxy Type",
+      "trafficRemaining": "Traffic Remaining",
+      "manage": "Manage"
+    },
+    "discountBanner": {
+      "title": "30% discount active",
+      "subtitle": "Applies automatically to any package purchase.",
+      "cta": "Buy with discount"
+    },
+    "reviewBanner": {
+      "title": "Leave a review — get 30% off",
+      "subtitle": "We grant a discount on your next purchase.",
+      "cta": "Leave a review"
+    }
+  },
+  "auth": {
+    "subtitle": "Welcome",
+    "login": {
+      "title": "Login",
+      "formTitle": "Sign In",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "register": "Register",
+      "telegram": "Login with Telegram",
+      "google": "Login with Google",
+      "or": "or",
+      "termsPrefix": "I confirm my agreement with ",
+      "termsLink": "Terms of Service and Privacy Policy",
+      "termsRequired": "You must accept the terms of service",
+      "captchaFailed": "Captcha not passed",
+      "googleCanceled": "Google authorization was canceled. Please try again."
+    },
+    "register": {
+      "title": "Registration",
+      "email": "Email",
+      "password": "Password",
+      "passwordRepeat": "Repeat password",
+      "submit": "Register",
+      "hasAccount": "Already have an account?",
+      "login": "Login",
+      "telegram": "Register with Telegram",
+      "google": "Register with Google",
+      "or": "or",
+      "termsPrefix": "I confirm my agreement with ",
+      "termsLink": "Terms of Service and Privacy Policy",
+      "termsRequired": "You must accept the terms of service",
+      "captchaFailed": "Captcha not passed"
+    },
+    "resetPassword": {
+      "title": "Password Recovery",
+      "newPasswordTitle": "New Password",
+      "email": "Email",
+      "newPassword": "New password",
+      "passwordRepeat": "Repeat password",
+      "submit": "Send instructions",
+      "savePassword": "Save password",
+      "backToLogin": "← Back to login",
+      "emailSentTitle": "Password recovery instructions have been sent to your email.",
+      "emailSentMessage": "Please check your email and follow the instructions.",
+      "tokenMissing": "Recovery token is missing",
+      "captchaFailed": "Captcha not passed"
+    },
+    "emailVerification": {
+      "title": "Email Verification",
+      "message": "Please wait",
+      "enterTokenTitle": "Enter verification code",
+      "enterTokenPlaceholder": "Code from email",
+      "submit": "Verify",
+      "noTokenMessage": "Click the link in the email or enter the code manually"
+    },
+    "mailSent": {
+      "emailConfirmationTitle": "Please confirm your email address",
+      "emailConfirmationMessage": "We have sent a verification email to your email address:",
+      "passwordResetTitle": "Password recovery email sent successfully",
+      "passwordResetMessage": "We have sent a password reset email to your email address:",
+      "goToMail": "Go to mail"
+    }
+  },
+  "payment": {
+    "pageTitle": "Payment",
+    "balanceReplenishTitle": "Balance Replenish",
+    "title": "Replenish",
+    "amount": "Amount",
+    "currency": "Currency",
+    "method": "Payment Method",
+    "submit": "Pay",
+    "history": "Payment History",
+    "tariffTypes": {
+      "resident": "Residential Proxy",
+      "premiumResidential": "Premium Residential",
+      "mobile": "Mobile Proxy",
+      "mobileGb": "Mobile Proxy GB",
+      "ipv6": "IPv6"
+    },
+    "descriptions": {
+      "resident": "Premium residential IPs. Low block risk, high speed. Suitable for anti-detect, ADS and social networks.",
+      "premiumResidential": "Premium residential proxies with geo-targeting. Country, region, city and ISP selection. Sticky/Random/Custom rotation.",
+      "mobile": "Pay only for used traffic. Best option for API tasks and automation.",
+      "mobileGb": "Mobile proxies with pay-per-GB. Rotation on request or by time. Ideal for automation and API tasks.",
+      "ipv6": "Server IPv6 with high speed and minimal price. Ideal for parsing and SEO."
+    },
+    "select": "Select",
+    "traffic": "Traffic",
+    "trafficPlaceholder": "Enter traffic value",
+    "replenish": "Replenish",
+    "replenishPlaceholder": "Enter amount in dollars",
+    "currentBalance": "Current balance",
+    "balanceAfterReplenish": "Balance after replenish",
+    "packages": "Packages",
+    "merchant": "Merchant",
+    "balance": "Balance",
+    "referralBalance": "Referral Balance",
+    "total": "Total",
+    "buy": "Buy",
+    "loading": "Loading...",
+    "successMessage": "Payment successfully created. You will be redirected to the payment page",
+    "statuses": {
+      "paid": "Paid",
+      "waiting": "Waiting",
+      "cancelled": "Cancelled"
+    },
+    "copyId": "Click to copy full ID",
+    "copied": "Copied!",
+    "unknown": "Unknown",
+    "unknownPackage": "Unknown package",
+    "units": {
+      "gb": "GB",
+      "ip": "IP",
+      "sec": "sec",
+      "min": "min"
+    },
+    "from": "from",
+    "tariffType": "Tariff Type",
+    "country": "Country",
+    "selectCountry": "Select country",
+    "rentTime": "Rent Time",
+    "selectRentTime": "Select rent time",
+    "redirectWarning": "You will be redirected to the payment page",
+    "successBalance": "Payment successful — your package is being activated.",
+    "selectTariff": "Select Tariff",
+    "selectRegion": "Select Region",
+    "selectedRegion": "Selected Region",
+    "package": "Package",
+    "packageLoadError": "Error loading package data",
+    "operator": "Operator",
+    "rentTimeTitle": "Rent Time",
+    "selectCountryAndOperator": "Select country and operator",
+    "discountLabel": "Discount"
+  },
+  "package": {
+    "title": "Package Management",
+    "type": "Type",
+    "time": "Time",
+    "manage": "Manage",
+    "quality": "Quality",
+    "mobileRent": "Modem rental by time",
+    "mobileGb": "By GB",
+    "ipv6Rotation": "Rotation on request",
+    "ispFixed": "Fixed lifetime",
+    "trafficLeft": "Traffic Left",
+    "ipCount": "IP Count",
+    "status": "Status",
+    "active": "Active",
+    "finished": "Package finished",
+    "replenishGb": "Replenish GB",
+    "replenishTime": "Replenish Time",
+    "activateKey": "Activate Key",
+    "timeExpired": "Time expired",
+    "timeLeft": "Remaining rental time",
+    "extendRent": "extend rental",
+    "proxyFormat": "Proxy Format",
+    "ipRotation": "IP Rotation",
+    "download": "Download",
+    "proxyList": "Proxy List",
+    "showProxies": "Show proxies",
+    "refreshProxies": "Refresh proxies",
+    "findProxies": "Find proxies",
+    "quantity": "Quantity",
+    "generating": "Generating...",
+    "generate": "Generate",
+    "noProxiesAvailable": "No proxies available",
+    "copy": "Copy",
+    "notSpecified": "Not specified",
+    "quantityError": "Quantity must be between 1 and 1000",
+    "generationError": "Error generating proxy",
+    "rotationError": "Error rotating IP",
+    "rotationSuccess": "IP addresses successfully updated",
+    "rotating": "Rotating...",
+    "notFound": "Package not found",
+    "timeLeftLabel": "Time",
+    "days": "d",
+    "hours": "h",
+    "minutes": "min",
+    "seconds": "sec",
+    "daysShort": "d",
+    "hoursShort": "h",
+    "minutesShort": "min",
+    "secondsShort": "sec",
+    "rentTime5Minutes": "5 min",
+    "from": "from",
+    "perGb": "/ GB",
+    "packageTypes": {
+      "resident": "Residential Proxy",
+      "premiumResidential": "Premium Residential",
+      "mobile": "Mobile Proxy",
+      "isp": "ISP Proxy",
+      "ipv6": "IPv6 Proxy",
+      "default": "Proxy Package"
+    },
+    "trafficChart": {
+      "title": "Traffic Usage Chart",
+      "gb": "Gb",
+      "week": "Week",
+      "dateRangeFormat": {
+        "_comment": "Date range formats. Placeholders: {{day}} — day number, {{month}} — month name, {{year}} — year. sameMonth: single month; differentMonths: different months, same year; differentYears: different years.",
+        "sameMonth": {
+          "start": "{{day}}",
+          "end": "{{month}} {{day}}, {{year}}"
+        },
+        "differentMonths": {
+          "start": "{{month}} {{day}}",
+          "end": "{{month}} {{day}}, {{year}}"
+        },
+        "differentYears": {
+          "start": "{{month}} {{day}}, {{year}}",
+          "end": "{{month}} {{day}}, {{year}}"
+        }
+      },
+      "averageWeekLines": {
+        "_comment": "Lines for «average per week» block. sameMonth — 4 lines; other — 3 lines.",
+        "line1": "On average",
+        "line2": "Per week",
+        "sameMonth": {
+          "line3": "{{start}}–{{end}}",
+          "line4": "{{month}} {{year}}"
+        },
+        "other": "From {{start}} to {{end}}"
+      },
+      "averageWeek": "Average per week from December 15 to 21, 2025",
+      "averageWeekWithDates": "Average per week from {{start}} to {{end}}",
+      "days": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
+    },
+    "proxyGenerator": {
+      "title": "Proxy Generator",
+      "inputData": "Input Data",
+      "country": "Country",
+      "searchCountry": "Search country...",
+      "enterCountryName": "Enter name",
+      "noCountries": "No countries found",
+      "onRequest": "Rotation on Request",
+      "byTime": "By Time",
+      "quantity": "Number of ports",
+      "generate": "Generate",
+      "generating": "Generating...",
+      "yourProxies": "Your Proxies",
+      "proxiesPlaceholder": "Your proxies will be shown here after generation",
+      "copy": "Copy",
+      "download": "Download",
+      "selectCountry": "Select country",
+      "enterQuantity": "Enter quantity (minimum 1)",
+      "generationError": "Error generating proxy",
+      "search": "Search...",
+      "region": "Region",
+      "city": "City",
+      "isp": "ISP",
+      "any": "— Any —",
+      "noOptions": "No options"
+    },
+    "leaveReview": "Leave a review"
+  },
+  "trialModal": {
+    "title": "Get Trial",
+    "description": "Choose a tariff to get trial traffic",
+    "traffic": "Traffic",
+    "trafficValue": "100 MB",
+    "getButton": "Get",
+    "tariffs": {
+      "resident": "Residential Proxy",
+      "premiumResidential": "Premium Residential",
+      "mobile": "Mobile Proxy",
+      "mobileGb": "Mobile GB",
+      "ipv6": "IPv6 Proxy"
+    },
+    "requireLinkTitle": "To activate the trial",
+    "requireLinkDescription": "Link a Google or Telegram account. This protects against abuse.",
+    "linkGoogle": "Link Google",
+    "linkTelegram": "Link Telegram",
+    "successToast": "Trial activated!",
+    "errors": {
+      "alreadyReceived": "Trial already received",
+      "invalidTariff": "This tariff is not available for trial",
+      "requireLink": "Link Google or Telegram to activate the trial",
+      "identityUsed": "This Google/Telegram has already used the trial on another account",
+      "packageNotCreated": "Package not created, contact support",
+      "generic": "Failed to activate trial"
+    }
+  },
+  "validation": {
+    "invalidEmail": "Invalid email",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "passwordsMismatch": "Passwords do not match",
+    "telegramAuthError": "Telegram authorization error"
+  },
+  "keys": {
+    "redeem": {
+      "title": "Activate Key",
+      "description": "After activating the key, please reload the page",
+      "button": "Activate",
+      "placeholder": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+    }
+  },
+  "api": {
+    "title": "API Documentation",
+    "key": {
+      "label": "API Key",
+      "loading": "Loading...",
+      "notGenerated": "API key not generated. Click the button below to create a key.",
+      "generate": "Generate New Key",
+      "generating": "Generating...",
+      "copy": "Copy",
+      "tokenCopied": "Token copied",
+      "tokenRegenerated": "Token regenerated"
+    },
+    "docs": {
+      "title": "API Documentation",
+      "copyCode": "Copy code",
+      "codeCopied": "Code copied",
+      "codeNotAdded": "Code for this method has not been added yet"
+    },
+    "unauthorized": {
+      "message": "You need to log in to get an API key",
+      "login": "Login"
+    },
+    "requiredMethods": {
+      "title": "Required Methods",
+      "methods": {
+        "balance": "Get Balance",
+        "referral-balance": "Get Referral Balance",
+        "countries": "Get List of Available Countries",
+        "tariffs": "Get List of Tariffs with Prices",
+        "purchase-traffic": "Top Up GB Traffic from Balance or Referral Balance",
+        "packages": "Get List of Active Packages",
+        "create-package": "Create Package",
+        "create-proxy": "Create Proxy on Package",
+        "traffic": "Get Traffic History",
+        "error": "Error Handling in Unified JSON Format"
+      }
+    }
+  },
+  "termsPage": {
+    "title": "Terms of Service",
+    "section1": {
+      "title": "1. General Provisions",
+      "content": "These Terms of Service govern the relationship between the Shadow Proxy service (hereinafter — \"Service\") and the User when using proxy services. By registering in the Service or using it, you confirm your agreement with these terms. The Service provides access to residential, mobile, and IPv6 proxies for legal use. It is prohibited to use proxies for illegal activities, spam, fraud, or bypassing blocks for the purpose of violating the rights of third parties."
+    },
+    "section2": {
+      "title": "2. Payment and Refunds",
+      "content": "Payment for services is made in accordance with the tariffs specified on the website. Prices are indicated in US dollars. After payment, funds are credited to the user's balance and can be used to purchase proxies. Refunds are not provided after successful proxy issuance. In case of a technical error or inability to provide the service, the administration reserves the right to make a refund at its discretion."
+    }
+  },
+  "referral": {
+    "title": "Referral System",
+    "earnings": {
+      "label": "total",
+      "sublabel": "earnings",
+      "currency": "USD"
+    },
+    "count": {
+      "label": "number",
+      "sublabel": "invited users"
+    },
+    "link": {
+      "title": "Referral link for invitation",
+      "copy": "Copy",
+      "copied": "Text copied"
+    },
+    "table": {
+      "title": "Earnings Table",
+      "source": "Source",
+      "purchase": "Purchase",
+      "amount": "Amount",
+      "date": "Date",
+      "empty": "No data"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "items": {
+      "review_request": {
+        "title": "Leave a review and get 30% off",
+        "body": "Thanks for your purchase! Share your experience — leave a review and get 30% off your next purchase of any package."
+      },
+      "review_discount": {
+        "title": "Your 30% review discount is active",
+        "body": "Thanks for your review! The 30% discount will be applied automatically to your next package purchase."
+      }
+    },
+    "readAll": "Mark all read"
+  },
+  "reviews": {
+    "thanksTitle": "Thanks for your review!",
+    "formTitle": "Leave a review",
+    "formSubtitle": "Get 30% off your next purchase of any package.",
+    "ratingLabel": "Rating",
+    "textLabel": "Review text",
+    "textPlaceholder": "Share your experience (min 20 characters)",
+    "minChars": "characters",
+    "minOk": "Looks good",
+    "widgetPhrase": "On your next\npurchase\nfor a review",
+    "submit": "Submit",
+    "submitted": "Review submitted!",
+    "errorNoRating": "Please set a rating",
+    "errorShort": "Review text must be at least 20 characters",
+    "close": "Close"
+  },
+  "profile": {
+    "linkedAccounts": {
+      "title": "Linked accounts",
+      "description": "Link Google or Telegram — required to activate the trial and prevent abuse.",
+      "linked": "Linked",
+      "notLinked": "Not linked",
+      "link": "Link",
+      "unlink": "Unlink",
+      "unlinked": "Account unlinked",
+      "cannotUnlinkLast": "Cannot unlink the only sign-in method",
+      "linkSuccess": "Account linked successfully",
+      "errorAlreadyLinked": "This account is already linked to another user",
+      "errorGeneric": "Failed to link account",
+      "linkCanceled": "Linking canceled",
+      "statusLabel": "Status",
+      "loginLabel": "Account"
+    }
+  }
+}

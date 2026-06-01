@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Environment variables — keep secrets out of version control
+.env
+.env.*
+*/.env
+*/.env.*
+
+# Build output
+/dist
+*/dist/
+.next/
+*/.next/
+/generated/prisma
+
+# Logs
+/logs
+*/logs/
+*.log
+
+# OS / editor
+.DS_Store
+**/.DS_Store
+sftp-config.json
+
+# Local tooling / agent state (not part of the project)
+.claude/
+.agents/
+skills-lock.json
+
+# Local project backup snapshot (contains a full copy incl. env)
+copyParty2/
+copyParty/
+Архив*/
+
+# Archives & scratch notes
+*.zip
+ProxyEmpaer.md
+proxyEmpare.txt

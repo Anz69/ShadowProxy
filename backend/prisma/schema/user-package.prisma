@@ -1,0 +1,25 @@
+model UserPackage {
+  id String @id @default(uuid(4))
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  // Тип прокси (тариф) - используется для определения шаблона страницы и отображения трафика
+  type ProxyType @map("type")
+
+  // Для мобильных прокси: время аренды в секундах с момента создания
+  rentTime Int? @map("rent_time")
+
+  // Для мобильных прокси: ID плана провайдера (для отображения страны и провайдера, генерации прокси)
+  planId String? @map("plan_id")
+
+  proxies     Proxy[]
+  trafficLogs TrafficLog[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, type])
+  @@index([rentTime])
+  @@map("user_packages")
+}

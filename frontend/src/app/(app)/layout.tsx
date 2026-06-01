@@ -1,0 +1,32 @@
+import type { ReactNode } from "react"
+
+import { getUser } from "@/shared/server/getUser"
+import { getLocale } from "@/shared/server/getLocale"
+import Footer from "@/shared/components/widgets/Footer"
+import Header from "@/shared/components/widgets/Header/Header"
+
+/**
+ * Persistent app shell. Lives at the route-group level so Header/Footer DO NOT
+ * remount when navigating between content pages (this kills the "reload" flash).
+ * Page content animates via (app)/template.tsx; the chrome here stays mounted.
+ */
+export default async function AppLayout({
+	children
+}: {
+	children: ReactNode
+}) {
+	const user = await getUser()
+	const locale = await getLocale()
+
+	return (
+		<div className="layout-root flex w-full flex-col">
+			<div className="max-md:static md:sticky md:top-0 z-[100] pt-[32px]">
+				<Header user={user} locale={locale} />
+			</div>
+			<div className="flex flex-1 w-full flex-col layout-content pt-[24px] pb-8">
+				{children}
+			</div>
+			<Footer locale={locale} />
+		</div>
+	)
+}

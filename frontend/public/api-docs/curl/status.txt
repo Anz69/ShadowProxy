@@ -1,0 +1,4 @@
+curl -X GET "https://shadowproxy.io/api/user-api/status" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+

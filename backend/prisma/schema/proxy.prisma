@@ -1,0 +1,79 @@
+enum ProxyType {
+  RESIDENT
+  RESIDENT_PREMIUM
+  MOBILE
+  MOBILE_GB
+  IPV6_GB
+  PREMIUM_RESIDENTIAL
+}
+
+enum ProxyRotation {
+  AUTO
+  BY_REQUEST
+  BY_TIME
+}
+
+enum ProxyProtocol {
+  HTTP
+  SOCKS5
+}
+
+enum ProxyStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Proxy {
+  id String @id @default(uuid(4))
+
+  // Данные провайдера (внешний прокси)
+  host     String
+  port     Int
+  username String
+  password String
+  type     ProxyType
+
+  country          String
+  rotation         ProxyRotation
+  rotationInterval Int?          @map("rotation_interval")
+  rentTime         Int?          @map("rent_time")
+
+  status      ProxyStatus @default(ACTIVE)
+  trafficUsed String      @default("0") @map("traffic_used")
+
+  // Данные пользователя (доступ к порту)
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @map("user_id")
+  sub    String?
+
+  // Данные прокси-сервера
+  serverHost String? @map("server_host")
+
+	// К какому пользовательскому пакету привязан
+	userPackageId String?      @map("user_package_id")
+	userPackage   UserPackage? @relation(fields: [userPackageId], references: [id], onDelete: SetNull)
+
+  // Данные для подключения пользователя (на нашем сервере)
+  userPort     Int?    @map("user_port")
+  userLogin    String? @map("user_login")
+  userPassword String? @map("user_password")
+
+  // Session ID для ротации по времени
+  sessionId String? @map("session_id")
+
+  // Время последней активности
+  lastActivityAt DateTime @default(now()) @map("last_activity_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+	// V2: один порт на сервер, уникальность по login
+	@@unique([serverHost, userLogin])
+	@@index([serverHost, userPort])
+	@@index([userId])
+	@@index([serverHost])
+	@@index([userPackageId])
+	@@index([lastActivityAt])
+	@@index([userPort])
+	@@map("proxies")
+}

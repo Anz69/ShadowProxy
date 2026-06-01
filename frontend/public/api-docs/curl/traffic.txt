@@ -1,0 +1,47 @@
+# Получение истории трафика
+# GET /user-api/traffic?packageId=package-uuid (по пакету за неделю)
+# GET /user-api/traffic (по всему аккаунту)
+
+# По пакету за неделю:
+curl -X GET "https://shadowproxy.io/api/user-api/traffic?packageId=package-uuid&week=1" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# По всему аккаунту:
+curl -X GET "https://shadowproxy.io/api/user-api/traffic" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# Успешный ответ (по пакету):
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": [
+#     {
+#       "date": "2026-02-05T00:00:00.000Z",
+#       "inBytes": "1073741824",
+#       "outBytes": "536870912",
+#       "totalBytes": "1610612736"
+#     }
+#   ]
+# }
+
+# Успешный ответ (по аккаунту):
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": {
+#     "hour": "1073741824",
+#     "day": "8589934592",
+#     "week": "64424509440",
+#     "month": "274877906944"
+#   }
+# }
+
+# Ошибка (пакет не найден):
+# {
+#   "status": "error",
+#   "code": "PACKAGE_NOT_FOUND",
+#   "message": "Пакет не найден"
+# }
+

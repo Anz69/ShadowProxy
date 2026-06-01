@@ -1,0 +1,29 @@
+// Пополнение ГБ трафика (премиум резидент / мобильные ГБ / IPv6 ГБ) с основного или реферального баланса
+// POST /user-api/purchase-traffic
+//
+// Тело: type (RESIDENT_PREMIUM | MOBILE_GB | IPV6_GB), amountGb (целое число ≥ 1), balanceSource (BALANCE | REFERRAL_BALANCE)
+// Если в каталоге пакетов есть запись с тем же type и тем же объёмом трафика в байтах — списывается цена пакета (как при покупке бонусного пакета),
+// иначе — amountGb × цена за ГБ из тарифов (GET /user-api/tariffs).
+
+const apiKey = 'YOUR_API_KEY';
+const url = 'https://shadowproxy.io/api/user-api/purchase-traffic';
+
+fetch(url, {
+  method: "POST",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    type: "MOBILE_GB",
+    amountGb: 5,
+    balanceSource: "BALANCE"
+  })
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Result:', data);
+  // message.purchased.pricing: "catalog_package" | "per_gb"
+  // message.debitedFrom: "BALANCE" | "REFERRAL_BALANCE"
+})
+.catch(error => console.error('Request failed:', error));

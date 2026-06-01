@@ -1,0 +1,37 @@
+# Создание прокси на пакет
+# POST /user-api/packages/:packageId/proxies
+# Максимум 1000 активных прокси на аккаунт
+
+import requests
+
+api_key = 'YOUR_API_KEY'
+package_id = 'package-uuid-here'
+url = f'https://shadowproxy.io/api/user-api/packages/{package_id}/proxies'
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+# Ротация по запросу
+payload = {
+    "location": "US",
+    "quantity": 1,
+    "rotation": "BY_REQUEST"
+}
+
+response = requests.post(url, headers=headers, json=payload)
+data = response.json()
+print('Response:', data)
+
+# Ротация по времени
+payload_time = {
+    "location": "US",
+    "quantity": 1,
+    "rotation": "BY_TIME",
+    "rotationInterval": 30  # от 5 до 120 минут
+}
+
+response_time = requests.post(url, headers=headers, json=payload_time)
+data_time = response_time.json()
+print('Response:', data_time)

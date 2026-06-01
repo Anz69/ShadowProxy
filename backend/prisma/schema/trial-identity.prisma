@@ -1,0 +1,15 @@
+// Антифрод триала: фиксирует, что конкретный Google/Telegram уже использовал триал,
+// независимо от того, к какой учётке он сейчас привязан.
+// providerKey = Account.providerAccountId (Google sub / Telegram numeric id) — неизменяемый ID.
+model TrialIdentity {
+  id String @id @default(uuid(4))
+
+  provider     String // "GOOGLE" | "TELEGRAM"
+  providerKey  String @map("provider_key")
+  usedByUserId String @map("used_by_user_id")
+
+  usedAt DateTime @default(now()) @map("used_at")
+
+  @@unique([provider, providerKey])
+  @@map("trial_identity")
+}

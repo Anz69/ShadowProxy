@@ -1,0 +1,22 @@
+// Получение списка доступных стран для пакета
+// GET /user-api/countries?packageType=RESIDENT
+// Для MOBILE типа возвращает также список операторов по странам
+
+const apiKey = 'YOUR_API_KEY';
+const packageType = 'RESIDENT';
+const url = `https://shadowproxy.io/api/user-api/countries?packageType=${packageType}`;
+
+fetch(url, {
+  method: "GET",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Response:', data);
+  // Для типов кроме MOBILE: массив стран
+  // Для MOBILE: объект с countries и operators
+})
+.catch(error => console.error('Request failed:', error));

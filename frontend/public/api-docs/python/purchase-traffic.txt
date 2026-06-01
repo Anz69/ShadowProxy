@@ -1,0 +1,25 @@
+# Пополнение ГБ трафика с баланса или реферального баланса
+# POST /user-api/purchase-traffic
+
+import requests
+
+api_key = 'YOUR_API_KEY'
+url = 'https://shadowproxy.io/api/user-api/purchase-traffic'
+
+payload = {
+    'type': 'IPV6_GB',
+    'amountGb': 1,
+    'balanceSource': 'BALANCE'
+}
+
+response = requests.post(
+    url,
+    headers={
+        'api-key': api_key,
+        'Content-Type': 'application/json'
+    },
+    json=payload
+)
+print(response.json())
+# amountGb — целое число, не меньше 1
+# Ошибки: INSUFFICIENT_BALANCE, INSUFFICIENT_REFERRAL_BALANCE (см. GET /user-api/error-codes)

@@ -1,0 +1,17 @@
+enum TokenType {
+  VERIFICATION
+  PASSWORD_RESET
+}
+
+model Token {
+  id String @id @default(uuid(4))
+
+  email     String
+  token     String    @unique
+  type      TokenType
+  expiresIn DateTime  @map("expires_in")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("tokens")
+}

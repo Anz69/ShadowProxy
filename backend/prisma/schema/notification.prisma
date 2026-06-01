@@ -1,0 +1,17 @@
+model Notification {
+  id String @id @default(uuid(4))
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  type  String // review_request | trial_link_required | trial_discount | review_discount
+  title String
+  body  String
+  link  String?
+
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}

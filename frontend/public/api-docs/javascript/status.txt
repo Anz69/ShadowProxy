@@ -1,0 +1,21 @@
+const apiKey = 'YOUR_API_KEY';
+const url = 'https://shadowproxy.io/api/user-api/status';
+
+fetch(url, {
+  method: "GET",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Response:', data);
+  if (data.status === 'ok') {
+    console.log('API key is active:', data.message.active);
+  } else {
+    console.error('Error:', data.message);
+  }
+})
+.catch(error => console.error('Request failed:', error));
+

@@ -1,0 +1,57 @@
+# Обработка ошибок в едином формате JSON
+# GET /user-api/error-codes
+
+import requests
+
+api_key = 'YOUR_API_KEY'
+url = 'https://shadowproxy.io/api/user-api/error-codes'
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+print('Error codes:', data['message'])
+
+# Формат всех ошибок:
+# {
+#   "status": "error",
+#   "code": "ERROR_CODE",
+#   "message": "Описание ошибки"
+# }
+
+# Пример обработки ошибки:
+try:
+    response = requests.post(
+        'https://shadowproxy.io/api/user-api/packages/invalid-id/proxies',
+        headers=headers,
+        json={
+            "location": "US",
+            "quantity": 1
+        }
+    )
+    data = response.json()
+    if data['status'] == 'error':
+        error_code = data['code']
+        error_message = data['message']
+        print(f'Error: {error_code} - {error_message}')
+        # Обработка ошибки по коду
+        if error_code == 'PACKAGE_NOT_FOUND':
+            # Пакет не найден
+            pass
+        elif error_code == 'INVALID_COUNTRY':
+            # Неверная страна
+            pass
+        elif error_code == 'INSUFFICIENT_BALANCE':
+            # Недостаточно на основном балансе (purchase-traffic и др.)
+            pass
+        elif error_code == 'INSUFFICIENT_REFERRAL_BALANCE':
+            # Недостаточно на реферальном балансе (purchase-traffic)
+            pass
+        elif error_code == 'PROXY_LIMIT_REACHED':
+            # Превышен лимит прокси
+            pass
+except requests.exceptions.RequestException as e:
+    print(f'Request failed: {e}')

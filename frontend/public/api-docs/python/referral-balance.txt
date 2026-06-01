@@ -1,0 +1,18 @@
+# Получение реферального баланса
+# GET /user-api/balance
+# Примечание: реферальный баланс возвращается вместе с основным балансом в поле referralBalance
+
+import requests
+
+api_key = 'YOUR_API_KEY'
+url = 'https://shadowproxy.io/api/user-api/balance'
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+print('Balance:', data['message']['balance'])
+print('Referral Balance:', data['message']['referralBalance'])

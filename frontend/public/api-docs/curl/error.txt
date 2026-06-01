@@ -1,0 +1,63 @@
+# Обработка ошибок в едином формате JSON
+# GET /user-api/error-codes
+
+# Получение списка всех кодов ошибок:
+curl -X GET "https://shadowproxy.io/api/user-api/error-codes" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# Успешный ответ:
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": {
+#     "API_KEY_NOT_FOUND": "API ключ не найден в заголовках запроса",
+#     "INVALID_API_KEY": "Недействительный или неверный API ключ",
+#     "INVALID_COUNTRY": "Указанная страна недоступна для данного типа пакета",
+#     "INVALID_PACKAGE_TYPE": "Неизвестный или неверный тип пакета",
+#     "INVALID_ROTATION_TYPE": "Неверный тип ротации (должен быть BY_REQUEST или BY_TIME)",
+#     "INVALID_ROTATION_INTERVAL": "Неверный интервал ротации (должен быть от 5 до 120 минут)",
+#     "MISSING_REQUIRED_FIELD": "Отсутствует обязательное поле в запросе",
+#     "INSUFFICIENT_BALANCE": "Недостаточно средств на основном балансе (пополнение ГБ через API)",
+#     "INSUFFICIENT_REFERRAL_BALANCE": "Недостаточно средств на реферальном балансе (пополнение ГБ через API)",
+#     "TRAFFIC_LIMIT_REACHED": "Достигнут лимит трафика",
+#     "PACKAGE_NOT_FOUND": "Пакет с указанным ID не найден",
+#     "PACKAGE_ALREADY_EXISTS": "Пакет этого типа уже существует",
+#     "PACKAGE_NOT_OWNED": "Пакет не принадлежит текущему пользователю",
+#     "PROXY_LIMIT_REACHED": "Превышен лимит активных прокси (максимум 1000)",
+#     "PROXY_CREATION_FAILED": "Ошибка при создании прокси на стороне провайдера",
+#     "PROXY_NOT_FOUND": "Прокси с указанным ID не найден",
+#     "INTERNAL_SERVER_ERROR": "Внутренняя ошибка сервера",
+#     "BAD_REQUEST": "Неверный формат запроса",
+#     "NOT_FOUND": "Ресурс не найден"
+#   }
+# }
+
+# Формат всех ошибок:
+# {
+#   "status": "error",
+#   "code": "ERROR_CODE",
+#   "message": "Описание ошибки"
+# }
+
+# Примеры ошибок:
+# {
+#   "status": "error",
+#   "code": "INVALID_COUNTRY",
+#   "message": "Страна XX недоступна для типа пакета RESIDENT"
+# }
+# {
+#   "status": "error",
+#   "code": "INSUFFICIENT_BALANCE",
+#   "message": "Недостаточно средств на основном балансе..."
+# }
+# {
+#   "status": "error",
+#   "code": "INSUFFICIENT_REFERRAL_BALANCE",
+#   "message": "Недостаточно средств на реферальном балансе..."
+# }
+# {
+#   "status": "error",
+#   "code": "PROXY_LIMIT_REACHED",
+#   "message": "Превышен лимит активных прокси. Максимум 1000, текущее количество: 1000"
+# }

@@ -1,0 +1,35 @@
+name: Deploy Project
+
+on:
+  push:
+    branches:
+      - develope
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        
+      - name: Add SSH private key to agent
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} 
+
+      - name: Deploy to Server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          ssh -o StrictHostKeyChecking=no "$DEPLOY_HOST" "
+          if [[ ! -d server ]]; then
+            git clone -b develope https://x-access-token:${DEPLOY_TOKEN}@github.com/${REPO}.git server && cd server
+          else
+            cd server && git pull origin develope
+          fi
+          cd .. &&
+          docker compose up -d --build
+          "

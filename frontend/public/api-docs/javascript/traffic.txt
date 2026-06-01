@@ -1,0 +1,39 @@
+// Получение истории трафика
+// GET /user-api/traffic?packageId=package-uuid (по пакету за неделю)
+// GET /user-api/traffic (по всему аккаунту)
+
+const apiKey = 'YOUR_API_KEY';
+
+// По пакету за неделю
+const packageId = 'package-uuid';
+const urlPackage = `https://shadowproxy.io/api/user-api/traffic?packageId=${packageId}&week=1`;
+
+fetch(urlPackage, {
+  method: "GET",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Traffic by package:', data.message);
+})
+.catch(error => console.error('Request failed:', error));
+
+// По всему аккаунту
+const urlAccount = 'https://shadowproxy.io/api/user-api/traffic';
+
+fetch(urlAccount, {
+  method: "GET",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Traffic by account:', data.message);
+})
+.catch(error => console.error('Request failed:', error));
+

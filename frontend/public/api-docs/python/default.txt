@@ -1,0 +1,17 @@
+import requests
+
+api_key = 'YOUR_API_KEY'
+url = 'https://shadowproxy.io/api/user-api/status'
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+print('Response:', data)
+if data.get('status') == 'ok':
+    print('API key is active:', data['message']['active'])
+else:
+    print('Error:', data['message'])

@@ -1,0 +1,10 @@
+model SubAccount {
+  id String @id @default(uuid(4))
+
+  username String @unique
+  password String
+
+  ipLeft Int @default(0)
+
+  @@map("sub_accounts")
+}

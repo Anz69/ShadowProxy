@@ -1,0 +1,32 @@
+import { AvailableAssets } from "../../../types/available-assets.type";
+import { HeleketInvoiceStatus } from "./heleket-invoice-status.type";
+
+export type HeleketInvoice = {
+    uuid: string;
+    order_id: string;
+    amount: string;
+    payment_amount: number | string;
+    payment_amount_usd: number | string;
+    payer_amount: string;
+    payer_amount_exchange_rate: number;
+    discount_percent: number;
+    discount: string;
+    payer_currency: AvailableAssets;
+    currency: AvailableAssets;
+    comments: any;
+    merchant_amount: string;
+    network: string;
+    address: string;
+    from: string;
+    txid: any;
+    payment_status: HeleketInvoiceStatus;
+    url: string;
+    expired_at: number;
+    status: HeleketInvoiceStatus;
+    is_final: boolean;
+    additional_data: any;
+    created_at: string;
+    updated_at: string;
+    commission: string;
+    address_qr_code: string;
+};

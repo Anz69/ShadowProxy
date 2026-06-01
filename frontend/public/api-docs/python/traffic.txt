@@ -1,0 +1,28 @@
+# Получение истории трафика
+# GET /user-api/traffic?packageId=package-uuid (по пакету за неделю)
+# GET /user-api/traffic (по всему аккаунту)
+
+import requests
+
+api_key = 'YOUR_API_KEY'
+
+# По пакету за неделю
+package_id = 'package-uuid'
+url_package = f'https://shadowproxy.io/api/user-api/traffic?packageId={package_id}&week=1'
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+response_package = requests.get(url_package, headers=headers)
+data_package = response_package.json()
+print('Traffic by package:', data_package['message'])
+
+# По всему аккаунту
+url_account = 'https://shadowproxy.io/api/user-api/traffic'
+
+response_account = requests.get(url_account, headers=headers)
+data_account = response_account.json()
+print('Traffic by account:', data_account['message'])
+

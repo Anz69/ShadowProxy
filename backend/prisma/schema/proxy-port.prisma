@@ -1,0 +1,46 @@
+// Модель для прокси-серверов
+model ProxyServer {
+  id String @id @default(uuid(4))
+
+  host String // IP адрес сервера
+
+  token String? @unique // Токен аутентификации сервера
+
+  status ProxyServerStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([host])
+  @@map("proxy_servers")
+}
+
+enum ProxyServerStatus {
+  ACTIVE
+  OFFLINE
+}
+
+// Модель для логирования трафика
+model TrafficLog {
+  id String @id @default(uuid(4))
+
+  userPackageId String      @map("user_package_id")
+  userPackage   UserPackage @relation(fields: [userPackageId], references: [id], onDelete: Cascade)
+
+  inBytes  BigInt @map("in_bytes")
+  outBytes BigInt @map("out_bytes")
+
+  // Дата и час для группировки (без минут и секунд)
+  date DateTime @map("date")
+  hour Int      @map("hour") // 0-23
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([userPackageId, date, hour])
+  @@index([userPackageId])
+  @@index([date])
+  @@index([userPackageId, date])
+  @@map("traffic_logs")
+}

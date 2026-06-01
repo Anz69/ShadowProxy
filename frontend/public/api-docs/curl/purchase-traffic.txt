@@ -1,0 +1,11 @@
+# Пополнение ГБ трафика с баланса или реферального баланса
+# POST /user-api/purchase-traffic
+#
+# amountGb: целое число, минимум 1
+# balanceSource: BALANCE — основной баланс, REFERRAL_BALANCE — реферальный
+# При совпадении type и объёма трафика (в байтах) с пакетом из каталога применяется цена пакета
+
+curl -X POST "https://shadowproxy.io/api/user-api/purchase-traffic" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"type\":\"RESIDENT_PREMIUM\",\"amountGb\":10,\"balanceSource\":\"REFERRAL_BALANCE\"}"
