@@ -36,7 +36,7 @@ const Footer: FC<FooterProps> = ({ locale: localeProp }) => {
 						priority
 						className="h-7 w-7"
 					/>
-					<span className="text-white text-xl font-semibold font-struve">Shadow Proxy</span>
+					<span className="font-struve text-xl font-semibold text-white">Shadow<span className="text-[#8b93a7]">Proxy</span></span>
 				</Link>
 
 				{/* Центральная часть: навигационные кнопки */}
@@ -95,7 +95,7 @@ const Footer: FC<FooterProps> = ({ locale: localeProp }) => {
 							priority
 							className="h-7 w-7"
 						/>
-						<span className="text-white text-xl font-semibold font-struve">Shadow Proxy</span>
+						<span className="font-struve text-xl font-semibold text-white">Shadow<span className="text-[#8b93a7]">Proxy</span></span>
 					</Link>
 				</div>
 

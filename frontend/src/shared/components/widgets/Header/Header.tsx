@@ -129,7 +129,7 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 						priority
 						className="h-7 w-7 transition-transform duration-200 group-hover:scale-110"
 					/>
-					<span className="font-struve text-xl font-semibold text-white">Shadow Proxy</span>
+					<span className="font-struve text-xl font-semibold text-white">Shadow<span className="text-[#8b93a7]">Proxy</span></span>
 				</Link>
 
 				{/* Навигация (десктоп) */}
@@ -211,7 +211,7 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 						<div className="flex h-[72px] items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.04] px-5 backdrop-blur-xl">
 							<Link href={getLocalizedLink("/")} className="flex items-center gap-3" onClick={() => setIsMobileMenuOpened(false)}>
 								<Image src="/logo.svg" alt={T("common.logoAlt")} width={28} height={28} priority className="h-7 w-7" />
-								<span className="font-struve text-xl font-semibold text-white">Shadow Proxy</span>
+								<span className="font-struve text-xl font-semibold text-white">Shadow<span className="text-[#8b93a7]">Proxy</span></span>
 							</Link>
 							<button className={iconBtn} onClick={() => setIsMobileMenuOpened(false)} aria-label="close">
 								<X className="h-6 w-6" />
