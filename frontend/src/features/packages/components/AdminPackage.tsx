@@ -24,7 +24,9 @@ const AdminPackage: FC<AdminPackageProps> = ({ _package }) => {
 		resolver: zodResolver(packageSchema),
 		defaultValues: {
 			type: _package.type,
-			traffic: Number(BigInt(_package.traffic)) / 1024 ** 3,
+			// Округляем, иначе из байтов вылезает длинный float (1.400000000372529)
+			// и ломает инпут/форму.
+			traffic: parseFloat((Number(BigInt(_package.traffic)) / 1024 ** 3).toFixed(4)),
 			price: _package.price
 		}
 	})
@@ -50,6 +52,20 @@ const AdminPackage: FC<AdminPackageProps> = ({ _package }) => {
 				<Input
 					rightLabel="Гб"
 					{...register("traffic", {
+						valueAsNumber: true
+					})}
+				/>
+			</div>
+			<div className="flex w-full flex-col gap-1">
+				<span className="text-body/50 text-base font-medium">
+					Цена
+				</span>
+				<Input
+					type="number"
+					step={0.01}
+					min={0}
+					rightLabel="$"
+					{...register("price", {
 						valueAsNumber: true
 					})}
 				/>

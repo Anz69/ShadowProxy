@@ -50,7 +50,8 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 		resolver: zodResolver(packageSchema),
 		defaultValues: {
 			type: (initialType as RechargeableProxyType) ?? "RESIDENT_PREMIUM",
-			traffic: 1
+			traffic: 1,
+			price: 0
 		}
 	})
 	const { createPackage, isLoading } = useCreatePackage()
@@ -62,9 +63,9 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 
 	const onSubmit = (dto: PackageDto) => {
 		const trafficGb = unit === "МБ" ? dto.traffic / 1024 : dto.traffic
-		// Цена больше не хранится в пакете — берётся из тарификации.
-		// Пакет = быстрый объём (пресет оплаты). Отправляем price: 0.
-		createPackage({ ...dto, traffic: trafficGb, price: 0 }, {
+		// Цена задаётся вручную (оптовая цена пакета). Если не указана — 0.
+		const price = Number.isFinite(dto.price) ? (dto.price as number) : 0
+		createPackage({ ...dto, traffic: trafficGb, price }, {
 			onSuccess: () => {
 				reset()
 				close()
@@ -83,7 +84,7 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 				Создание пакета
 			</h2>
 			<p className="text-body/40 w-full text-center text-xs">
-				Пакет — это быстрый объём (пресет) на странице оплаты. Цена считается из тарификации.
+				Пакет — это быстрый объём (пресет) на странице оплаты с заданной ценой.
 			</p>
 			<SegmentedControl
 				options={["Residential", "Premium Residential", "Mobile", "Mobile ГБ", "IPv6 ГБ"]}
@@ -122,6 +123,24 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 				/>
 				<span className="text-body/40 text-xs">
 					{unit === "МБ" ? "Напр. 100, 250, 500 МБ" : "Можно дробное, напр. 0.5 ГБ"}
+				</span>
+			</div>
+			<div className="flex w-full flex-col gap-1">
+				<span className="text-body/50 text-base font-medium">
+					Цена
+				</span>
+				<Input
+					type="number"
+					step={0.01}
+					min={0}
+					rightLabel="$"
+					error={errors.price?.message}
+					{...register("price", {
+						valueAsNumber: true
+					})}
+				/>
+				<span className="text-body/40 text-xs">
+					Оптовая цена пакета. 0 — взять из тарификации.
 				</span>
 			</div>
 			{errors.root?.message && (
