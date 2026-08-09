@@ -5,7 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { ConfigService } from "@nestjs/config";
 import { LoggerService } from "../logger/logger.service";
 import { LteSocksProvider } from "./providers/services/lte-socks.provider";
-import { ProxyType, ProxyStatus, User } from "@prisma/client";
+import { ProxyType, ProxyStatus, User, LogType } from "@prisma/client";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { OnEvent } from "@nestjs/event-emitter";
 import { MobileProxyPlan } from "./providers/types/mobile-proxy-plan.type";
@@ -1039,6 +1039,124 @@ export class ProxyService implements OnModuleInit {
             if (i < attempts - 1) await sleep(2000);
         }
         return false;
+    }
+
+    /**
+     * Прокси юзера + история генераций (ТЗ 2.2в) для админ-диалога поддержки.
+     * Прокси — из таблицы Proxy; история — из логов действий (USER_ACTION/PROXY_GENERATE).
+     */
+    async getUserProxiesForAdmin(userId: string, limit: number = 100) {
+        const [proxies, genLogs] = await Promise.all([
+            this.prisma.proxy.findMany({
+                where: { userId },
+                orderBy: { createdAt: "desc" },
+                take: limit,
+                select: {
+                    id: true,
+                    type: true,
+                    country: true,
+                    status: true,
+                    rotation: true,
+                    serverHost: true,
+                    userPort: true,
+                    userLogin: true,
+                    userPassword: true,
+                    trafficUsed: true,
+                    createdAt: true,
+                    lastActivityAt: true,
+                },
+            }),
+            this.prisma.log.findMany({
+                where: { userId, type: LogType.USER_ACTION },
+                orderBy: { createdAt: "desc" },
+                take: 50,
+            }),
+        ]);
+
+        const generations = genLogs
+            .filter((l) => (l.metadata as { actionType?: string })?.actionType === "PROXY_GENERATE")
+            .map((l) => {
+                const m = (l.metadata || {}) as Record<string, unknown>;
+                return {
+                    id: l.id,
+                    createdAt: l.createdAt,
+                    packageType: m.packageType ?? null,
+                    quantity: m.quantity ?? null,
+                    location: m.location ?? null,
+                    rotation: m.rotation ?? null,
+                    rotationInterval: m.rotationInterval ?? null,
+                };
+            });
+
+        return { proxies, generations };
+    }
+
+    /**
+     * Диагностика прокси для поддержки (ТЗ 2.3): реальный запрос через клиентские
+     * креды прокси → отдаём works/exitIp/country/ping. Один прокси, быстрый ответ.
+     */
+    async checkProxyForSupport(proxyId: string): Promise<{
+        works: boolean;
+        exitIp: string | null;
+        country: string | null;
+        pingMs: number | null;
+        error: string | null;
+    }> {
+        const proxy = await this.prisma.proxy.findUnique({ where: { id: proxyId } });
+        if (!proxy) throw new NotFoundException("errors.proxy_not_found");
+
+        // Клиентские креды (через наш гейтвей); если их нет — старый прямой формат апстрима.
+        const host = proxy.serverHost || proxy.host;
+        const port = proxy.userPort || proxy.port;
+        const login = proxy.userLogin || proxy.username;
+        const password = proxy.userPassword || proxy.password;
+        if (!host || !port || !login) {
+            return { works: false, exitIp: null, country: null, pingMs: null, error: "нет данных подключения" };
+        }
+
+        const proxyUrl = `http://${encodeURIComponent(login)}:${encodeURIComponent(password || "")}@${host}:${port}`;
+        const agent = new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+
+        // 1) exit-IP + ping через api.ipify.org (то же, что делает proxy-test.js)
+        const t0 = Date.now();
+        let exitIp: string | null = null;
+        try {
+            const res = await axios.get("https://api.ipify.org", {
+                httpsAgent: agent,
+                proxy: false,
+                timeout: 15000,
+                responseType: "text",
+                validateStatus: () => true,
+                headers: { "User-Agent": "ShadowProxy-SupportChecker/1.0" },
+            });
+            if (res.status >= 200 && res.status < 400 && typeof res.data === "string") {
+                exitIp = res.data.trim().slice(0, 45);
+            } else {
+                return { works: false, exitIp: null, country: null, pingMs: null, error: `HTTP ${res.status}` };
+            }
+        } catch (err: unknown) {
+            const msg = err && typeof err === "object" && "message" in err ? String((err as Error).message) : String(err);
+            return { works: false, exitIp: null, country: null, pingMs: null, error: msg.slice(0, 100) };
+        }
+        const pingMs = Date.now() - t0;
+
+        // 2) страна по exit-IP (ip-api.com — уже используется в auth.service для гео)
+        let country: string | null = null;
+        if (exitIp) {
+            try {
+                const geo = await axios.get(`http://ip-api.com/json/${exitIp}?fields=status,country,countryCode`, {
+                    timeout: 8000,
+                    validateStatus: () => true,
+                });
+                if (geo.data?.status === "success") {
+                    country = geo.data.countryCode ? `${geo.data.country} (${geo.data.countryCode})` : geo.data.country;
+                }
+            } catch {
+                /* гео не критично — прокси всё равно рабочий */
+            }
+        }
+
+        return { works: true, exitIp, country, pingMs, error: null };
     }
 }
 
