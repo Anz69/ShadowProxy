@@ -29,6 +29,7 @@ import { ProxyServerModule } from "./proxy-server/proxy-server.module";
 import { ProxyNodeModule } from "./proxy-node/proxy-node.module";
 import { HealthModule } from "./health/health.module";
 import { NotificationModule } from "./notification/notification.module";
+import { SupportModule } from "./support/support.module";
 import { ReviewModule } from "./review/review.module";
 import { RentedIpModule } from "./rented-ip/rented-ip.module";
 
@@ -97,6 +98,7 @@ import { RentedIpModule } from "./rented-ip/rented-ip.module";
         NotificationModule,
         ReviewModule,
         RentedIpModule,
+        SupportModule,
     ],
     providers: [SubService],
 })

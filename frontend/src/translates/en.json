@@ -25,6 +25,7 @@
 			"dashboard": "Dashboard",
 			"payment": "Payment",
 			"api": "API System",
+			"support": "Support",
 			"referral": "Referral System",
 			"trial": "Trial Period"
 		},
@@ -327,6 +328,7 @@
 		},
 		"actions": {
 			"title": "Actions",
+			"support": "Support",
 			"logout": "Logout",
 			"logoutInProgress": "Logging out..."
 		},
@@ -773,9 +775,35 @@
 			"review_discount": {
 				"title": "Your 30% review discount is active",
 				"body": "Thanks for your review! The 30% discount will be applied automatically to your next package purchase."
+			},
+			"support_reply": {
+				"title": "Support replied",
+				"body": "Your ticket got a reply. Open the support chat to read it."
 			}
 		},
 		"readAll": "Mark all read"
+	},
+	"support": {
+		"title": "Support",
+		"subtitle": "Describe your issue — we'll reply right here in the chat",
+		"statusWaiting": "Awaiting reply",
+		"statusAnswered": "Answered",
+		"statusClosed": "Closed",
+		"inputPlaceholder": "Type a message…",
+		"attach": "Attach file",
+		"send": "Send",
+		"sending": "Sending…",
+		"empty": "Message us — we'll help with setup, payments and any proxy questions",
+		"you": "You",
+		"supportLabel": "Support",
+		"fileTooBig": "File is larger than 50 MB",
+		"fileTypeBad": "Unsupported file type (PNG, JPG, WebP, MP4, MOV, WebM)",
+		"tooManyFiles": "Max 5 files per message",
+		"banner": {
+			"title": "Need help?",
+			"subtitle": "Support is online — we'll answer in the chat",
+			"cta": "Contact support"
+		}
 	},
 	"reviews": {
 		"thanksTitle": "Thanks for your review!",

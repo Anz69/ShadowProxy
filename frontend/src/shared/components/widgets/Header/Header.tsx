@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown, ChevronRight, Monitor, User, X, Menu, Layers, Users, Code2, LayoutDashboard, Zap } from "lucide-react"
+import { ChevronDown, ChevronRight, LifeBuoy, Monitor, User, X, Menu, Layers, Users, Code2, LayoutDashboard, Zap } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -202,6 +202,10 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 					<Link href={getLocalizedLink("/u-api")} className={navCls("/u-api")}>
 						{T("header.nav.api")}
 					</Link>
+					{/* ТЗ 1.1: «Поддержка» — справа от «API система», слева от «Дашборд» */}
+					<Link href={getLocalizedLink("/support")} className={navCls("/support")}>
+						{T("header.nav.support")}
+					</Link>
 					<Link href={getLocalizedLink("/dashboard")} className={`${navCls("/dashboard")} whitespace-nowrap`}>
 						{currentUser ? T("header.nav.dashboard") : T("header.nav.trial")}
 					</Link>
@@ -305,14 +309,20 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 							<span className="flex-1 text-left">{T("header.nav.api")}</span>
 							<ChevronRight className={mChevron} />
 						</Link>
-						<Link href={getLocalizedLink("/dashboard")} className={`${mItem} [animation:sp-rise_.3s_ease_both] [animation-delay:120ms]`} onClick={() => setIsMobileMenuOpened(false)}>
+						{/* ТЗ 1.1: «Поддержка» между «API система» и «Дашборд» */}
+						<Link href={getLocalizedLink("/support")} className={`${mItem} [animation:sp-rise_.3s_ease_both] [animation-delay:120ms]`} onClick={() => setIsMobileMenuOpened(false)}>
+							<span className={mIconBox}><LifeBuoy className="h-[18px] w-[18px]" /></span>
+							<span className="flex-1 text-left">{T("header.nav.support")}</span>
+							<ChevronRight className={mChevron} />
+						</Link>
+						<Link href={getLocalizedLink("/dashboard")} className={`${mItem} [animation:sp-rise_.3s_ease_both] [animation-delay:160ms]`} onClick={() => setIsMobileMenuOpened(false)}>
 							<span className={mIconBox}>{currentUser ? <LayoutDashboard className="h-[18px] w-[18px]" /> : <Zap className="h-[18px] w-[18px]" />}</span>
 							<span className="flex-1 text-left">{currentUser ? T("header.nav.dashboard") : T("header.nav.trial")}</span>
 							<ChevronRight className={mChevron} />
 						</Link>
 
 						{shouldShowAdminButton && (
-							<Link href={adminLink} className={`${mItem} [animation:sp-rise_.3s_ease_both] [animation-delay:160ms]`} onClick={() => setIsMobileMenuOpened(false)}>
+							<Link href={adminLink} className={`${mItem} [animation:sp-rise_.3s_ease_both] [animation-delay:200ms]`} onClick={() => setIsMobileMenuOpened(false)}>
 								<span className={mIconBox}><Monitor className="h-[18px] w-[18px]" /></span>
 								<span className="flex-1 text-left">{adminLabel}</span>
 								<ChevronRight className={mChevron} />
@@ -321,7 +331,7 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 
 						<div className="my-1.5 h-px w-full bg-white/10 light:bg-black/[0.08]" />
 
-						<div className="[animation:sp-rise_.3s_ease_both] [animation-delay:200ms]">
+						<div className="[animation:sp-rise_.3s_ease_both] [animation-delay:240ms]">
 							<LanguageDropdown block onPicked={() => setIsMobileMenuOpened(false)} />
 						</div>
 

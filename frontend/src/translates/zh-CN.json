@@ -25,6 +25,7 @@
 			"dashboard": "控制台",
 			"payment": "付款",
 			"api": "API系统",
+			"support": "客服支持",
 			"referral": "推荐系统",
 			"trial": "试用期",
 			"admin": "管理后台"
@@ -328,6 +329,7 @@
 		},
 		"actions": {
 			"title": "操作",
+			"support": "客服支持",
 			"logout": "退出",
 			"logoutInProgress": "退出中..."
 		},
@@ -777,9 +779,35 @@
 			"review_discount": {
 				"title": "评价折扣30%已激活",
 				"body": "感谢您的评价！下次购买任意套餐时将自动应用30%折扣。"
+			},
+			"support_reply": {
+				"title": "客服已回复",
+				"body": "您的工单收到了回复。打开客服聊天查看。"
 			}
 		},
 		"readAll": "全部标为已读"
+	},
+	"support": {
+		"title": "客服支持",
+		"subtitle": "描述您的问题 — 我们会在此聊天中回复",
+		"statusWaiting": "等待回复",
+		"statusAnswered": "已回复",
+		"statusClosed": "已关闭",
+		"inputPlaceholder": "输入消息…",
+		"attach": "附加文件",
+		"send": "发送",
+		"sending": "发送中…",
+		"empty": "给我们留言 — 我们将帮助您解决设置、付款及任何代理问题",
+		"you": "我",
+		"supportLabel": "客服",
+		"fileTooBig": "文件超过 50 MB",
+		"fileTypeBad": "不支持的文件类型（PNG、JPG、WebP、MP4、MOV、WebM）",
+		"tooManyFiles": "每条消息最多 5 个文件",
+		"banner": {
+			"title": "需要帮助？",
+			"subtitle": "客服在线 — 我们会在聊天中回复",
+			"cta": "联系客服"
+		}
 	},
 	"reviews": {
 		"thanksTitle": "感谢您的评价！",

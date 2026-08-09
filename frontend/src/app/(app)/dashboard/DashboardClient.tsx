@@ -307,6 +307,20 @@ export default function DashboardClient({ user, prices, plans }: { user: User | 
 									</svg>
 									<span>{T("header.nav.referral")}</span>
 								</button>
+								{/* ТЗ 1.2: кнопка «Поддержка» в дашборде */}
+								<button
+									className="flex w-full items-center gap-3 rounded-[12px] border border-white/10 light:border-[#e2e4ea] bg-white/[0.04] light:bg-[#f4f6fa] px-4 py-2.5 text-[15px] font-medium text-white light:text-[#0e1019] transition-colors hover:bg-white/[0.08] light:hover:bg-[#eef1f6]"
+									type="button"
+									aria-label={T("dashboard.actions.support")}
+									onClick={() => router.push(getLocalizedLink('/support'))}
+								>
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+										<circle cx="12" cy="12" r="10.875" fill="#0067FF" />
+										<path d="M12 6.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Zm0 2a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z" fill="white" />
+										<path d="M8.5 5.6 10 8.1M15.5 5.6 14 8.1M8.5 18.4 10 15.9M15.5 18.4 14 15.9" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
+									</svg>
+									<span>{T("dashboard.actions.support")}</span>
+								</button>
 								<button
 									className="flex w-full items-center justify-center gap-3 rounded-[12px] border border-red-400/20 bg-red-500/[0.06] px-4 py-2.5 text-[15px] font-medium text-red-300 transition-colors hover:bg-red-500/[0.12] disabled:opacity-50"
 									type="button"

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { AlertCircle, Plus, KeyRound } from "lucide-react"
+import Link from "next/link"
+import { AlertCircle, Plus, KeyRound, LifeBuoy } from "lucide-react"
 import PageBackground from "@/shared/components/widgets/PageBackground"
 import { getLocaleFromPath, addLocaleToPath } from "@/shared/utils/getLocaleFromPath"
 import { t } from "@/shared/utils/i18n"
@@ -315,6 +316,30 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 					<TrafficChart packageId={packageData.id} />
 					<ProxyGenerator packageId={packageData.id} existingProxies={activeProxies} packageType={packageType} />
 				</div>
+
+				{/* ТЗ 1.3: баннер «Нужна помощь?» на странице генерации — glass, ненавязчиво */}
+				<Link
+					href={getLocalizedPath("/support")}
+					className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-[20px] border border-[#6aa5ff]/25 bg-[radial-gradient(120%_140%_at_0%_0%,rgba(59,130,246,0.14),transparent_55%),linear-gradient(180deg,#0e1830,#0a1020)] p-5 shadow-[0_24px_60px_-44px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[#6aa5ff]/45 light:border-[#2f6bff]/20 light:bg-none light:bg-white"
+				>
+					<span aria-hidden className="pointer-events-none absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(47,107,255,0.4),transparent_70%)] blur-[50px]" />
+					<div className="relative z-[1] flex items-center gap-4">
+						<span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#6aa5ff]/30 bg-[#6aa5ff]/10 text-[#6aa5ff]">
+							<LifeBuoy className="h-6 w-6" />
+						</span>
+						<div className="flex flex-col">
+							<span className="font-[TalosDisplay] text-[17px] font-semibold text-white light:text-[#0e1019]">
+								{T("support.banner.title")}
+							</span>
+							<span className="text-[13px] text-white/45 light:text-[#8a93a3]">
+								{T("support.banner.subtitle")}
+							</span>
+						</div>
+					</div>
+					<span className="relative z-[1] inline-flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-b from-[#4f8dff] to-[#2f6bff] px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_14px_40px_-12px_rgba(59,130,246,0.8)] transition-transform group-hover:-translate-y-0.5">
+						{T("support.banner.cta")}
+					</span>
+				</Link>
 			</div>
 		</main>
 	)

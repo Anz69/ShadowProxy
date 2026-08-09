@@ -44,6 +44,9 @@ services:
     ports:
       - "8080:8080"
       - "8081:8081"
+    volumes:
+      # Вложения поддержки (скриншоты/видео) — переживают rebuild контейнера
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,6 +95,7 @@ volumes:
   redis_data:
   pgdata:
   pgadmin-data:
+  uploads_data:
 
 networks:
   server:

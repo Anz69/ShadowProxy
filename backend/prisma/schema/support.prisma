@@ -1,0 +1,51 @@
+// Система поддержки (ТЗ «Система поддержки и оптимизация админ-панели», п.1-2).
+// Один диалог (тикет) на пользователя — как чат с саппортом в мессенджере.
+
+enum SupportTicketStatus {
+  NEW // новое / ожидает ответа
+  IN_PROGRESS // в работе
+  ANSWERED // отвечено
+  CLOSED // закрыто
+}
+
+enum SupportAuthor {
+  USER
+  ADMIN
+}
+
+model SupportTicket {
+  id     String @id @default(uuid(4))
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @map("user_id")
+
+  status        SupportTicketStatus @default(NEW)
+  lastMessageAt DateTime            @default(now()) @map("last_message_at")
+
+  messages SupportMessage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status, lastMessageAt])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id       String        @id @default(uuid(4))
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId String        @map("ticket_id")
+
+  authorRole SupportAuthor @map("author_role")
+  text       String        @default("")
+  /// Вложения: [{ url, name, mime, size }] — файлы лежат в uploads-volume, раздаются статикой
+  attachments Json @default("[]")
+
+  /// Прочитано ПРОТИВОПОЛОЖНОЙ стороной (юзер читает ADMIN-сообщения и наоборот)
+  readAt DateTime? @map("read_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ticketId, createdAt])
+  @@index([ticketId, authorRole, readAt])
+  @@map("support_messages")
+}

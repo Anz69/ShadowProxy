@@ -7,7 +7,8 @@ export type NotificationType =
     | "trial_link_required"
     | "trial_discount"
     | "rented_ip_expiring"
-    | "rented_ip_expired";
+    | "rented_ip_expired"
+    | "support_reply";
 
 @Injectable()
 export class NotificationService {

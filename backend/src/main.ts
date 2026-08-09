@@ -14,6 +14,7 @@ import { createClient } from "redis";
 import { isDev } from "./shared/utils/is-dev";
 import process from "node:process";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import { UPLOADS_ROOT } from "./support/support-upload";
 
 // Build URLs if they contain interpolation (for local dev when .env has ${...})
 function buildPostgresUrl(): string {
@@ -106,6 +107,15 @@ async function bootstrap() {
     );
 
     app.setGlobalPrefix("api");
+
+    // Вложения поддержки (скриншоты/видео): лежат в uploads-volume, раздаются
+    // статикой под /api/uploads/* — тот же nginx-маршрут, что и API.
+    app.useStaticAssets(UPLOADS_ROOT, {
+        prefix: "/api/uploads/",
+        maxAge: "30d",
+        index: false,
+        dotfiles: "deny",
+    });
 
     await app.listen(process.env.PORT ?? 3000);
 }

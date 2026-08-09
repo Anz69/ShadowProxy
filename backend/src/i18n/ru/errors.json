@@ -56,5 +56,8 @@
     "rented_ip_not_available": "Аренда IP временно недоступна",
     "rented_ip_not_found": "Арендованный IP не найден",
     "rented_ip_replace_limit": "Достигнут лимит замен IP для этой аренды",
-    "proxy_type_unavailable": "Этот тип прокси временно недоступен"
+    "proxy_type_unavailable": "Этот тип прокси временно недоступен",
+    "support_file_type": "Недопустимый тип файла. Разрешены: PNG, JPG, WebP, MP4, MOV, WebM",
+    "support_empty_message": "Сообщение пустое: добавьте текст или файл",
+    "support_ticket_not_found": "Обращение не найдено"
 }
