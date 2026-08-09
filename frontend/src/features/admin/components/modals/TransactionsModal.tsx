@@ -35,7 +35,7 @@ const fetchUserPayments = async (userId: string): Promise<Invoice[]> => {
 }
 
 const TransactionsModal: FC<TransactionsModalProps> = ({ userId }) => {
-	const { data: transactions, isLoading } = useQuery({
+	const { data: transactions, isLoading, isError } = useQuery({
 		queryKey: ["admin-user-payments", userId],
 		queryFn: () => fetchUserPayments(userId)
 	})
@@ -49,6 +49,8 @@ const TransactionsModal: FC<TransactionsModalProps> = ({ userId }) => {
 				<div className="flex w-full items-center justify-center py-8">
 					<Loader weight={4} size={44} />
 				</div>
+			) : isError ? (
+				<p className="py-6 text-[14px] text-error">Не удалось загрузить транзакции</p>
 			) : !transactions?.length ? (
 				<p className="py-6 text-[14px] text-white/45">Транзакций нет</p>
 			) : (

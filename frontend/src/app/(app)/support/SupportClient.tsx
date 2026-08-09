@@ -32,9 +32,10 @@ const ALLOWED_MIME = new Set([
 const fmtSize = (bytes: number): string =>
 	bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`
 
-const fmtTime = (iso: string): string => {
+const fmtTime = (iso: string, locale: string): string => {
+	const bcp = locale === "ru" ? "ru-RU" : locale === "zh-CN" ? "zh-CN" : "en-US"
 	const d = new Date(iso)
-	return `${d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })} ${d
+	return `${d.toLocaleDateString(bcp, { day: "2-digit", month: "2-digit" })} ${d
 		.getHours()
 		.toString()
 		.padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
@@ -71,7 +72,7 @@ const AttachmentView = ({ att }: { att: SupportAttachment }) => {
 	)
 }
 
-const MessageBubble = ({ msg, youLabel, supportLabel }: { msg: SupportMessage; youLabel: string; supportLabel: string }) => {
+const MessageBubble = ({ msg, youLabel, supportLabel, locale }: { msg: SupportMessage; youLabel: string; supportLabel: string; locale: string }) => {
 	const isUser = msg.authorRole === "USER"
 	return (
 		<div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
@@ -94,7 +95,7 @@ const MessageBubble = ({ msg, youLabel, supportLabel }: { msg: SupportMessage; y
 					</div>
 				)}
 				<span className={`text-[11px] ${isUser ? "text-white/55" : "text-white/35 light:text-[#8a93a3]"}`}>
-					{fmtTime(msg.createdAt)}
+					{fmtTime(msg.createdAt, locale)}
 				</span>
 			</div>
 		</div>
@@ -223,7 +224,7 @@ const SupportClient = () => {
 							</div>
 						) : (
 							messages.map(m => (
-								<MessageBubble key={m.id} msg={m} youLabel={T("support.you")} supportLabel={T("support.supportLabel")} />
+								<MessageBubble key={m.id} msg={m} youLabel={T("support.you")} supportLabel={T("support.supportLabel")} locale={locale} />
 							))
 						)}
 					</div>

@@ -15,7 +15,7 @@ type StatisticsProps = {
 }
 
 const Statistics: FC<StatisticsProps> = ({ userId }) => {
-	const { data: stats, isLoading } = useQuery({
+	const { data: stats, isLoading, isError, refetch } = useQuery({
 		queryKey: ["admin-user-stats", userId],
 		queryFn: () => userService.getUserStatsAdmin(userId)
 	})
@@ -23,7 +23,14 @@ const Statistics: FC<StatisticsProps> = ({ userId }) => {
 	return (
 		<div className="flex w-full flex-col items-center gap-4">
 			<h2 className="font-[TalosDisplay] text-2xl font-semibold text-white">Статистика</h2>
-			{isLoading || !stats ? (
+			{isError ? (
+				<div className="flex w-full flex-col items-center gap-2 py-8">
+					<span className="text-[14px] text-white/60">Не удалось загрузить статистику</span>
+					<button type="button" onClick={() => refetch()} className="text-[13px] text-white underline">
+						Повторить
+					</button>
+				</div>
+			) : isLoading || !stats ? (
 				<div className="flex w-full items-center justify-center py-8">
 					<Loader weight={4} size={44} />
 				</div>

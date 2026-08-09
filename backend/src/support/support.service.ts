@@ -28,14 +28,19 @@ export class SupportService {
         if (!ticket) return { ticket: null, messages: [] };
 
         const afterDate = after ? new Date(after) : null;
+        const hasAfter = !!afterDate && !isNaN(afterDate.getTime());
+        // Первичная загрузка: последние 500 (desc+reverse), иначе в длинном тикете
+        // показались бы 500 САМЫХ СТАРЫХ и новые ответы не отображались бы.
+        // Polling с ?after= — только новые по возрастанию.
         const messages = await this.prisma.supportMessage.findMany({
             where: {
                 ticketId: ticket.id,
-                ...(afterDate && !isNaN(afterDate.getTime()) ? { createdAt: { gt: afterDate } } : {}),
+                ...(hasAfter ? { createdAt: { gt: afterDate } } : {}),
             },
-            orderBy: { createdAt: "asc" },
+            orderBy: { createdAt: hasAfter ? "asc" : "desc" },
             take: 500,
         });
+        if (!hasAfter) messages.reverse();
         return { ticket, messages };
     }
 
@@ -178,11 +183,13 @@ export class SupportService {
         });
         if (!ticket) throw new NotFoundException("errors.support_ticket_not_found");
 
+        // Последние 500 (desc+reverse) — чтобы в длинном тикете админ видел свежие сообщения.
         const messages = await this.prisma.supportMessage.findMany({
             where: { ticketId },
-            orderBy: { createdAt: "asc" },
+            orderBy: { createdAt: "desc" },
             take: 500,
         });
+        messages.reverse();
         return { ticket, messages };
     }
 
@@ -214,24 +221,33 @@ export class SupportService {
         });
 
         // Уведомление в центре сайта (ТЗ 1.4). Email — best-effort, не блокирует ответ.
+        // Дедуп: если у юзера уже есть НЕПРОЧИТАННОЕ уведомление о новом ответе — не плодим
+        // ещё одно и не шлём письмо (иначе 4 быстрых реплики админа = 4 уведомления + 4 письма).
+        // Как только юзер прочитает — следующий ответ снова уведомит.
         try {
-            await this.notificationService.create({
-                userId: ticket.user.id,
-                type: "support_reply",
-                title: "Поддержка ответила",
-                body: "На ваше обращение поступил ответ. Откройте чат поддержки, чтобы прочитать.",
-                link: "/support",
+            const pending = await this.prisma.notification.findFirst({
+                where: { userId: ticket.user.id, type: "support_reply", readAt: null },
+                select: { id: true },
             });
+            if (!pending) {
+                await this.notificationService.create({
+                    userId: ticket.user.id,
+                    type: "support_reply",
+                    title: "Поддержка ответила",
+                    body: "На ваше обращение поступил ответ. Откройте чат поддержки, чтобы прочитать.",
+                    link: "/support",
+                });
+                void this.mailingService
+                    .sendMail(
+                        ticket.user.email,
+                        "Ответ поддержки ShadowProxy",
+                        `<p>На ваше обращение в поддержку поступил ответ.</p><p><a href="${process.env.HOST || "https://shadowproxy.io"}/support">Открыть чат поддержки</a></p>`,
+                    )
+                    .catch(() => {});
+            }
         } catch (e) {
             await this.logger.error(`support: не удалось создать уведомление для ${ticket.user.id}: ${e}`);
         }
-        void this.mailingService
-            .sendMail(
-                ticket.user.email,
-                "Ответ поддержки ShadowProxy",
-                `<p>На ваше обращение в поддержку поступил ответ.</p><p><a href="${process.env.HOST || "https://shadowproxy.io"}/support">Открыть чат поддержки</a></p>`,
-            )
-            .catch(() => {});
 
         return message;
     }
