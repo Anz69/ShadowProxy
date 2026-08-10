@@ -1,0 +1,878 @@
+{
+	"common": {
+		"logo": "Shadow Proxy",
+		"logoAlt": "Логотип",
+		"loading": "Загрузка...",
+		"error": "Ошибка",
+		"success": "Успешно",
+		"cancel": "Отмена",
+		"confirm": "Подтвердить",
+		"save": "Сохранить",
+		"delete": "Удалить",
+		"edit": "Редактировать",
+		"close": "Закрыть",
+		"back": "Назад",
+		"next": "Далее",
+		"submit": "Отправить",
+		"copy": "Копировать",
+		"copied": "Скопировано"
+	},
+	"header": {
+		"logo": "Shadow Proxy",
+		"nav": {
+			"catalog": "Каталог прокси",
+			"prices": "Цены",
+			"dashboard": "Дашборд",
+			"payment": "Пополнение",
+			"api": "API система",
+			"referral": "Реферальная система",
+			"trial": "Пробный период",
+			"admin": "Админка"
+		},
+		"userMenu": {
+			"profile": "Профиль",
+			"settings": "Настройки",
+			"logout": "Выйти"
+		},
+		"balance": "Баланс",
+		"login": "Войти",
+		"register": "Регистрация",
+		"languageLabel": "Язык интерфейса"
+	},
+	"footer": {
+		"copyright": "© 2026 ShadowProxy. Все права защищены.",
+		"links": {
+			"about": "О нас",
+			"terms": "Условия использования",
+			"privacy": "Политика конфиденциальности",
+			"support": "Поддержка"
+		},
+		"nav": {
+			"catalog": "Каталог",
+			"api": "API система",
+			"dashboard": "Личный кабинет",
+			"support": "Поддержка",
+			"terms": "Условия использования",
+			"privacy": "Политика конфиденциальности"
+		},
+		"cta": {
+			"title": "Готовы запустить прокси?",
+			"subtitle": "Активируйте пробный период за минуту — без привязки карты.",
+			"trial": "Пробный период",
+			"apiDocs": "Документация API"
+		},
+		"brand": {
+			"tagline": "Стабильные, быстрые и ротационные прокси по всему миру — для арбитража, антидетекта, ADS и парсинга."
+		},
+		"columns": {
+			"product": "Продукт",
+			"platform": "Платформа",
+			"help": "Помощь"
+		},
+		"product": {
+			"residential": "Residential Proxy",
+			"mobile": "Mobile Proxy",
+			"ipv6": "IPv6 Proxy",
+			"premiumMobile": "Premium Mobile",
+			"premiumResidential": "Premium Residential",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"platform": {
+			"catalog": "Каталог",
+			"api": "API система",
+			"dashboard": "Личный кабинет",
+			"referral": "Реферальная система"
+		},
+		"help": {
+			"support": "Поддержка",
+			"terms": "Условия использования",
+			"privacy": "Политика конфиденциальности"
+		},
+		"soon": "СКОРО",
+		"status": "Все системы работают · 99.99% uptime",
+		"legal": {
+			"terms": "Условия",
+			"privacy": "Конфиденциальность"
+		}
+	},
+	"main": {
+		"hero": {
+			"title": "<span>ShadowProxy</span> — надежные прокси-сервера для любых задач",
+			"description": "Работаем только с проверенными поставщиками и предоставляем стабильные, быстрые и ротационные IP по всему миру",
+			"cta": {
+				"primary": "Пробный период",
+				"secondary": "API система"
+			},
+			"eyebrow": "Прокси-сервис",
+			"stats": {
+				"countries": "стран",
+				"pool": "IP в пуле",
+				"uptime": "аптайм"
+			}
+		},
+		"features": {
+			"title": "Почему выбирают нас",
+			"items": {
+				"verified": "Чистые и проверенные IP",
+				"uptime": "99.99% Uptime",
+				"stability": "Высокая стабильность",
+				"auto": "Автоматическая выдача прокси",
+				"transparent": "Прозрачное списание трафика",
+				"geo": "Поддержка 200+ гео",
+				"api": "Удобная API система"
+			},
+			"eyebrow": "Преимущества"
+		},
+		"steps": {
+			"title": "Как работает ShadowProxy",
+			"items": {
+				"step1": {
+					"title": "Выбираете тип прокси",
+					"alt": "Выбор типа прокси"
+				},
+				"step2": {
+					"title": "Пополняете баланс или активируете ключ",
+					"alt": "Пополнение баланса"
+				},
+				"step3": {
+					"title": "Получаете доступ автоматически",
+					"alt": "Получение доступа"
+				},
+				"step4": {
+					"title": "Используете через панель управления или API",
+					"alt": "Использование"
+				}
+			},
+			"eyebrow": "Как начать"
+		},
+		"proxyTypes": {
+			"title": "Доступные типы прокси",
+			"more": "Подробнее",
+			"resident": {
+				"title": "Residential Proxy",
+				"description": "Премиальные резидентские IP с минимальной заюзанностью.<br/>Лучший выбор для антидетекта, ADS, соцсетей и сложных систем.<br/>Пул 90млн+, постоянно очищается. 200+ стран",
+				"features": {
+					"blocks": "Низкий риск блокировок",
+					"speed": "Максимальная скорость",
+					"connection": "Стабильное соединение"
+				},
+				"price": "от 1.2$/gb"
+			},
+			"premiumResidential": {
+				"title": "Premium Residential",
+				"description": "Премиум резидентские прокси от ProxyEmpire.<br/>Точный гео-таргетинг: страна, регион, город, ISP.<br/>Sticky/Random/Custom ротация. 200+ стран.",
+				"features": {
+					"geo": "Выбор страны, региона, города и ISP",
+					"countries": "200+ стран мира",
+					"rotation": "Sticky/Random/Custom rotation"
+				},
+				"price": "от 1.5$/gb"
+			},
+			"mobile": {
+				"title": "Mobile Proxy",
+				"description": "4G/5G прокси с ротацией по ссылке.<br/>Подходят для TikTok, Instagram, ADS и антидетекта.<br/>Максимально гибкая тарификация.",
+				"features": {
+					"real": "Реальные мобильные IP",
+					"speed": "Высокая скорость",
+					"geo": "Геолокация по странам"
+				},
+				"price": "от 2.5$/gb"
+			},
+			"mobileGb": {
+				"title": "Mobile Proxy",
+				"description": "Оплата только за использованный трафик.<br/>Лучший вариант для API-задач и автоматизации.",
+				"features": {
+					"speed": "Максимальная скорость",
+					"unlimited": "Неограниченный трафик",
+					"cheap": "Дешевые тарифы"
+				},
+				"price": "от 0.5$/gb"
+			},
+			"ipv6": {
+				"title": "IPv6 Proxy",
+				"description": "Серверные IPv6 с высокой скоростью и минимальной ценой.<br/>Идеальны для парсинга и SEO.",
+				"features": {
+					"fixed": "Постоянный IP адрес",
+					"reputation": "Высокая репутация",
+					"longterm": "Долгосрочная аренда"
+				},
+				"price": "от 0.00$ / ГБ"
+			},
+			"comingSoon": "Скоро",
+			"standardSubtitle": "Базовые тарифы для стандартных задач — надёжно, стабильно, по доступной цене.",
+			"premiumSubtitle": "Усиленные пулы и геотаргетинг для самых требовательных задач.",
+			"premiumMobile": {
+				"title": "Premium Mobile",
+				"description": "Мобильные 4G/5G прокси с точным геотаргетингом, ротацией по ссылке и максимальным аптаймом.<br/>Идеально для антидетекта, ADS, соцсетей и сложных систем.",
+				"features": {
+					"geo": "Точная геолокация по странам и операторам",
+					"rotation": "Ротация по ссылке / по таймеру",
+					"uptime": "Аптайм 99.9%, низкий риск блоков"
+				},
+				"price": "Скоро"
+			},
+			"standardTitle": "Стандартные прокси",
+			"premiumTitle": "Премиум прокси",
+			"eyebrow": "Тарифы",
+			"ispUsa": {
+				"title": "ISP USA",
+				"description": "Статичные ISP-прокси из США. Скорость и стабильность дата-центра при доверии резидентских IP. Оплата за ГБ.",
+				"features": {
+					"speed": "Высокая скорость",
+					"stable": "Стабильные статичные IP",
+					"rotation": "Ротация по времени до 24ч"
+				}
+			},
+			"ispEu": {
+				"title": "ISP EU",
+				"description": "Статичные ISP-прокси Европы. Мультигео — выбор нескольких стран сразу. Высокая скорость, оплата за ГБ.",
+				"features": {
+					"multigeo": "Мультигео — несколько стран",
+					"speed": "Высокая скорость",
+					"rotation": "Ротация по времени до 24ч"
+				}
+			},
+			"residentialLite": {
+				"title": "Residential Lite",
+				"description": "Резидентские прокси по доступной цене. Любая страна, оплата за ГБ. Отличный баланс цены и качества.",
+				"features": {
+					"price": "Доступная цена",
+					"geo": "Любая страна",
+					"rotation": "Ротация по запросу/времени"
+				}
+			}
+		},
+		"trust": {
+			"label": "Как работает ShadowProxy",
+			"title": "Не используем «серые» источники. Только проверенные сети и <span>качественные</span> решения",
+			"text": "Каждый пул проходит ручное и автоматическое тестирование по ключевым параметрам:",
+			"cta": "Протестировать",
+			"points": {
+				"speed": "Скорость",
+				"anon": "Анонимность",
+				"ip": "История IP",
+				"abuse": "Уровень абьюзов",
+				"stability": "Стабильность"
+			},
+			"titlePre": "Не используем «серые» источники. Только проверенные сети и ",
+			"titleAccent": "качественные",
+			"titlePost": " решения"
+		},
+		"apiSystem": {
+			"title": "Удобная API-система",
+			"steps": {
+				"step1": "Создание прокси",
+				"step2": "Проверка баланса",
+				"step3": "Пополнение<br/>GB",
+				"step4": "Статистика трафика"
+			},
+			"cta": "Документация API",
+			"eyebrow": "API"
+		},
+		"globe": {
+			"eyebrow": "Глобальная сеть",
+			"title": "Работаем по <span>всему миру</span>",
+			"subtitle": "Резидентские, премиум-резидентские и мобильные IP в 200+ странах. Точный гео-таргетинг, минимальная задержка и стабильные соединения для арбитража, антидетекта, ADS и парсинга — где бы ни был ваш проект.",
+			"cta": "Начать бесплатно",
+			"points": {
+				"countries": "Стран и регионов",
+				"pool": "IP в пуле",
+				"uptime": "Аптайм сети"
+			}
+		},
+		"faq": {
+			"eyebrow": "FAQ",
+			"title": "Частые вопросы",
+			"subtitle": "Коротко о том, как устроен ShadowProxy и чем мы отличаемся.",
+			"items": {
+				"q1": "Что такое ShadowProxy?",
+				"a1": "ShadowProxy — сервис аренды прокси: резидентские, премиум-резидентские и мобильные IP. Чистые проверенные адреса, 200+ гео и мгновенная автоматическая выдача через панель или API.",
+				"q2": "Какие типы прокси доступны?",
+				"a2": "Residential и Premium Residential с точным гео-таргетингом по стране, региону, городу и ISP и ротацией Sticky/Random/Custom, а также мобильные 4G/5G с ротацией по ссылке. Premium Mobile — скоро.",
+				"q3": "Как происходит оплата?",
+				"a3": "Оплата за трафик — вы платите только за использованные гигабайты. Пополняете баланс удобным способом или активируете ключ, списание прозрачное и по факту.",
+				"q4": "Насколько чистые у вас IP?",
+				"a4": "Работаем только с проверенными поставщиками. Каждый пул проходит ручное и автоматическое тестирование: скорость, анонимность, история IP, уровень абьюзов и стабильность.",
+				"q5": "Есть ли API?",
+				"a5": "Да, полноценная API-система: создание прокси, проверка баланса, пополнение и статистика трафика. Документация — в разделе «API система».",
+				"q6": "Есть ли пробный период?",
+				"a6": "Да, можно активировать пробный период и протестировать сервис. Условия возврата описаны в пользовательском соглашении."
+			}
+		}
+	},
+	"dashboard": {
+		"trialButton": "Триал",
+		"trafficStats": {
+			"remainingTraffic": "Оставшийся трафик",
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile GB",
+			"mobileNew": "Mobile Proxy",
+			"ipv6": "IPv6",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"title": "Личный кабинет",
+		"balance": {
+			"label": "Баланс",
+			"currency": "USD",
+			"replenish": "Пополнить баланс",
+			"buyProxy": "Купить прокси"
+		},
+		"traffic": {
+			"title": "Трафик",
+			"resident": "Резидентный",
+			"premium": "Премиум"
+		},
+		"proxies": {
+			"title": "Прокси",
+			"active": "Активные",
+			"create": "Создать прокси"
+		},
+		"user": {
+			"title": "Пользователь",
+			"id": "ID",
+			"telegramLogin": "Telegram login"
+		},
+		"actions": {
+			"title": "Действия",
+			"logout": "Выход",
+			"logoutInProgress": "Выход..."
+		},
+		"packagesList": {
+			"title": "Список купленных пакетов",
+			"empty": "У вас нет активных пакетов"
+		},
+		"proxyPackage": {
+			"quality": "Качество IP",
+			"type": "Тип прокси",
+			"trafficRemaining": "Остаток трафика",
+			"manage": "Управлять"
+		},
+		"discountBanner": {
+			"title": "Скидка 30% активна",
+			"subtitle": "Применится автоматически к покупке любого пакета.",
+			"cta": "Купить со скидкой"
+		},
+		"reviewBanner": {
+			"title": "Оставьте отзыв — получите скидку 30%",
+			"subtitle": "За отзыв дарим скидку на следующую покупку.",
+			"cta": "Оставить отзыв"
+		}
+	},
+	"auth": {
+		"subtitle": "Добро пожаловать",
+		"login": {
+			"title": "Авторизация",
+			"tabLogin": "Вход",
+			"tabRegister": "Регистрация",
+			"formTitle": "Вход",
+			"email": "Электронная почта",
+			"password": "Пароль",
+			"submit": "Войти",
+			"forgotPassword": "Забыли пароль?",
+			"noAccount": "Ещё нет аккаунта?",
+			"register": "Зарегистрируйтесь",
+			"telegram": "Войти через Telegram",
+			"google": "Войти через Google",
+			"or": "или",
+			"termsPrefix": "Подтверждаю согласие с ",
+			"termsLink": "Условиями использования и Политикой конфиденциальности (Terms of Service / Privacy Policy)",
+			"termsRequired": "Необходимо принять условия использования",
+			"captchaFailed": "Не пройдена капча",
+			"googleCanceled": "Авторизация через Google отменена. Попробуйте ещё раз.",
+			"asideEyebrow": "Глобальная сеть",
+			"asideHeadline": "Прокси по всему миру",
+			"asideSubtext": "200+ стран, 90M+ IP-адресов"
+		},
+		"register": {
+			"title": "Регистрация",
+			"email": "Электронная почта",
+			"password": "Пароль",
+			"passwordRepeat": "Повторите пароль",
+			"submit": "Зарегистрироваться",
+			"hasAccount": "Уже есть аккаунт?",
+			"login": "Войти",
+			"telegram": "Регистрация через Telegram",
+			"google": "Регистрация через Google",
+			"or": "или",
+			"termsPrefix": "Подтверждаю согласие с ",
+			"termsLink": "Условиями использования и Политикой конфиденциальности (Terms of Service / Privacy Policy)",
+			"termsRequired": "Необходимо принять условия использования",
+			"captchaFailed": "Не пройдена капча"
+		},
+		"resetPassword": {
+			"title": "Восстановление пароля",
+			"newPasswordTitle": "Новый пароль",
+			"email": "Электронная почта",
+			"newPassword": "Новый пароль",
+			"passwordRepeat": "Повторите пароль",
+			"submit": "Отправить инструкции",
+			"savePassword": "Сохранить пароль",
+			"backToLogin": "← Вернуться ко входу",
+			"emailSentTitle": "Письмо с инструкциями по восстановлению пароля отправлено на вашу почту.",
+			"emailSentMessage": "Проверьте вашу почту и следуйте инструкциям.",
+			"tokenMissing": "Отсутствует токен восстановления",
+			"captchaFailed": "Не пройдена капча"
+		},
+		"emailVerification": {
+			"title": "Подтверждение почты",
+			"message": "Пожалуйста, подождите",
+			"enterTokenTitle": "Введите код подтверждения",
+			"enterTokenPlaceholder": "Код из письма",
+			"submit": "Подтвердить",
+			"noTokenMessage": "Перейдите по ссылке из письма или введите код вручную"
+		},
+		"mailSent": {
+			"emailConfirmationTitle": "Осталось подтвердить адрес электроной почты",
+			"emailConfirmationMessage": "Мы отправили письмо для верификации на ваш адрес электронной почты:",
+			"passwordResetTitle": "Письмо для восстановления успешно отправлено",
+			"passwordResetMessage": "Мы отправили письмо для сброса пароля на ваш адрес электронной почты:",
+			"goToMail": "Перейти к почте"
+		}
+	},
+	"payment": {
+		"pageTitle": "Оплата",
+		"balanceReplenishTitle": "Пополнение баланса",
+		"title": "Пополнение",
+		"amount": "Сумма",
+		"currency": "Валюта",
+		"method": "Способ оплаты",
+		"submit": "Оплатить",
+		"history": "История платежей",
+		"tariffTypes": {
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile Proxy",
+			"mobileGb": "Mobile Proxy GB",
+			"ipv6": "IPv6",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"descriptions": {
+			"resident": "Премиальные резидентские IP. Низкий риск блокировок, высокая скорость. Подходят для антидетекта, ADS и соцсетей.",
+			"premiumResidential": "Премиум резидентские прокси с гео-таргетингом. Выбор страны, региона, города и ISP. Sticky/Random/Custom ротация.",
+			"mobile": "Оплата только за использованный трафик. Лучший вариант для API-задач и автоматизации.",
+			"mobileGb": "Мобильные прокси с оплатой за ГБ. Ротация по запросу или по времени. Идеально для автоматизации и API-задач.",
+			"ipv6": "Серверные IPv6 с высокой скоростью и минимальной ценой. Идеальны для парсинга и SEO.",
+			"ispUsa": "Статичные ISP-прокси США. Высокая скорость и стабильность, оплата за ГБ.",
+			"ispEu": "Статичные ISP-прокси Европы. Мультигео — несколько стран сразу. Оплата за ГБ.",
+			"residentialLite": "Резидентские прокси по доступной цене. Любая страна, оплата за ГБ."
+		},
+		"select": "Выбрать",
+		"traffic": "Трафик",
+		"trafficPlaceholder": "Укажите значение трафика",
+		"replenish": "Пополнить",
+		"replenishPlaceholder": "Введите сумму в долларах",
+		"currentBalance": "Текущий баланс",
+		"balanceAfterReplenish": "Баланс после пополнения",
+		"packages": "Пакеты",
+		"merchant": "Мерчант",
+		"balance": "Баланс",
+		"referralBalance": "Реферальный баланс",
+		"total": "Итого",
+		"buy": "Купить",
+		"loading": "Загрузка...",
+		"successMessage": "Платёж успешно сформирован. Вы будете перенаправлены на страницу оплаты",
+		"statuses": {
+			"paid": "Оплачено",
+			"waiting": "В ожидании",
+			"cancelled": "Отменен"
+		},
+		"copyId": "Нажмите, чтобы скопировать полный ID",
+		"copied": "Скопировано!",
+		"unknown": "Неизвестно",
+		"unknownPackage": "Неизвестный пакет",
+		"units": {
+			"gb": "ГБ",
+			"ip": "IP",
+			"sec": "сек",
+			"min": "мин"
+		},
+		"from": "от",
+		"tariffType": "Тип тарифа",
+		"country": "Страна",
+		"selectCountry": "Выберите страну",
+		"rentTime": "Срок аренды",
+		"selectRentTime": "Выберите срок аренды",
+		"redirectWarning": "Вы будете перенаправлены на страницу оплаты",
+		"successBalance": "Оплата прошла успешно — пакет активируется.",
+		"selectTariff": "Выберите тариф",
+		"selectRegion": "Выберите регион",
+		"selectedRegion": "Выбранный регион",
+		"package": "Пакет",
+		"packageLoadError": "Ошибка загрузки данных пакета",
+		"operator": "Оператор",
+		"rentTimeTitle": "Время аренды",
+		"selectCountryAndOperator": "Выберите страну и оператора",
+		"discountLabel": "Скидка"
+	},
+	"package": {
+		"title": "Управление пакетом",
+		"type": "Тип",
+		"time": "Время",
+		"manage": "Управлять",
+		"quality": "Качество",
+		"mobileRent": "Аренда модема по времени",
+		"mobileGb": "По GB",
+		"ipv6Rotation": "С ротацией по запросу",
+		"ispFixed": "Фиксированное время жизни",
+		"trafficLeft": "Остаток трафика",
+		"ipCount": "Количество IP",
+		"status": "Статус",
+		"active": "Активен",
+		"finished": "Пакет закончился",
+		"replenishGb": "Пополнить GB",
+		"replenishTime": "Пополнить время",
+		"activateKey": "Активировать ключ",
+		"timeExpired": "Время истекло",
+		"timeLeft": "Оставшееся время аренды",
+		"extendRent": "продлить аренду",
+		"proxyFormat": "Формат прокси",
+		"ipRotation": "Ротация IP",
+		"download": "Скачать",
+		"proxyList": "Список прокси",
+		"showProxies": "Показать прокси",
+		"refreshProxies": "Обновить прокси",
+		"findProxies": "Найти прокси",
+		"quantity": "Количество",
+		"generating": "Генерация...",
+		"generate": "Сгенерировать",
+		"noProxiesAvailable": "Нет доступных прокси",
+		"copy": "Скопировать",
+		"notSpecified": "Не указано",
+		"quantityError": "Количество должно быть от 1 до 1000",
+		"generationError": "Ошибка при генерации прокси",
+		"rotationError": "Ошибка при ротации IP",
+		"rotationSuccess": "IP адреса успешно обновлены",
+		"rotating": "Ротация...",
+		"notFound": "Пакет не найден",
+		"timeLeftLabel": "Время",
+		"days": "дн",
+		"hours": "ч",
+		"minutes": "мин",
+		"seconds": "сек",
+		"daysShort": "дн",
+		"hoursShort": "ч",
+		"minutesShort": "мин",
+		"secondsShort": "сек",
+		"rentTime5Minutes": "5 минут",
+		"from": "от",
+		"perGb": "/ Гб",
+		"packageTypes": {
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile Proxy",
+			"isp": "ISP Proxy",
+			"ipv6": "IPv6 Proxy",
+			"default": "Proxy Package",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"trafficChart": {
+			"title": "График расхода трафика",
+			"gb": "Gb",
+			"week": "Неделя",
+			"dateRangeFormat": {
+				"_comment": "Форматы диапазона дат. Плейсхолдеры: {{day}} — число, {{month}} — месяц (декабря, ноября), {{year}} — год. sameMonth: один месяц; differentMonths: разные месяцы, один год; differentYears: разные годы.",
+				"sameMonth": {
+					"start": "{{day}}",
+					"end": "{{day}} {{month}} {{year}}"
+				},
+				"differentMonths": {
+					"start": "{{day}} {{month}}",
+					"end": "{{day}} {{month}} {{year}}"
+				},
+				"differentYears": {
+					"start": "{{day}} {{month}} {{year}}",
+					"end": "{{day}} {{month}} {{year}}"
+				}
+			},
+			"averageWeekLines": {
+				"_comment": "Строки блока «в среднем за неделю». sameMonth — 4 строки; other — 3 строки. Пишутся как одно предложение с пробелами.",
+				"line1": "В среднем",
+				"line2": "за неделю",
+				"sameMonth": {
+					"line3": "с {{start}} по {{end}}",
+					"line4": "{{month}} {{year}}"
+				},
+				"other": "с {{start}} по {{end}}"
+			},
+			"averageWeek": "В среднем за неделю с 15 по 21 декабря 2025",
+			"averageWeekWithDates": "В среднем за неделю с {{start}} по {{end}}",
+			"days": {
+				"mon": "Пн",
+				"tue": "Вт",
+				"wed": "Ср",
+				"thu": "Чт",
+				"fri": "Пт",
+				"sat": "Сб",
+				"sun": "Вс"
+			}
+		},
+		"proxyGenerator": {
+			"title": "Генератор прокси",
+			"inputData": "Вводные данные",
+			"country": "Страна",
+			"searchCountry": "Поиск страны...",
+			"enterCountryName": "Введите название",
+			"noCountries": "Страны не найдены",
+			"onRequest": "Ротация по запросу",
+			"byTime": "По времени",
+			"quantity": "Кол-во портов",
+			"generate": "Сгенерировать",
+			"generating": "Генерация...",
+			"yourProxies": "Ваши прокси",
+			"proxiesPlaceholder": "Здесь будут показаны ваши прокси после генерации",
+			"copy": "Скопировать",
+			"download": "Скачать",
+			"selectCountry": "Выберите страну",
+			"enterQuantity": "Введите количество (минимум 1)",
+			"generationError": "Ошибка при генерации прокси",
+			"rotationTime": "Время жизни прокси",
+			"generationSuccess": "Прокси успешно сгенерированы",
+			"copySuccess": "Скопировано в буфер обмена",
+			"search": "Поиск...",
+			"region": "Регион",
+			"city": "Город",
+			"isp": "ISP",
+			"any": "— Любой —",
+			"noOptions": "Нет вариантов",
+			"minutesShort": "мин",
+			"selectRotationTime": "Выберите время жизни прокси, мин"
+		},
+		"leaveReview": "Оставить отзыв"
+	},
+	"trialModal": {
+		"title": "Получить триал",
+		"description": "Выберите тариф для получения пробного трафика",
+		"traffic": "Трафик",
+		"trafficValue": "100 МБ",
+		"getButton": "Получить",
+		"tariffs": {
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile Proxy",
+			"mobileGb": "Mobile GB",
+			"ipv6": "IPv6 прокси",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"requireLinkTitle": "Чтобы активировать пробный период",
+		"requireLinkDescription": "Привяжите Google или Telegram аккаунт. Это нужно для защиты от злоупотреблений.",
+		"linkGoogle": "Привязать Google",
+		"linkTelegram": "Привязать Telegram",
+		"successToast": "Триал успешно получен!",
+		"errors": {
+			"alreadyReceived": "Триал уже получен",
+			"invalidTariff": "Этот тариф недоступен для триала",
+			"requireLink": "Для активации триала привяжите Google или Telegram аккаунт",
+			"identityUsed": "Этот Google/Telegram уже использовал триал на другом аккаунте",
+			"packageNotCreated": "Пакет не создан, обратитесь в поддержку",
+			"generic": "Не удалось активировать триал"
+		}
+	},
+	"validation": {
+		"invalidEmail": "Некорректная почта",
+		"passwordMinLength": "Пароль не может быть короче 6 символов",
+		"passwordsMismatch": "Пароли не совпадают",
+		"telegramAuthError": "Ошибка авторизации через Telegram"
+	},
+	"keys": {
+		"redeem": {
+			"title": "Активировать ключ",
+			"description": "После активации ключа, пожалуйста, перезагрузите страницу",
+			"button": "Активировать",
+			"placeholder": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+		}
+	},
+	"api": {
+		"title": "API документация",
+		"key": {
+			"label": "API-ключ",
+			"loading": "Загрузка...",
+			"notGenerated": "API-ключ не сгенерирован. Нажмите кнопку ниже, чтобы создать ключ.",
+			"generate": "Сгенерировать новый ключ",
+			"generating": "Генерация...",
+			"copy": "Скопировать",
+			"tokenCopied": "Токен скопирован",
+			"tokenRegenerated": "Токен пересоздан"
+		},
+		"docs": {
+			"title": "Документацию по API",
+			"copyCode": "Копировать код",
+			"codeCopied": "Код скопирован",
+			"codeNotAdded": "Код для этого метода пока не добавлен"
+		},
+		"unauthorized": {
+			"message": "Для получения API ключа необходимо авторизоваться",
+			"login": "Войти"
+		},
+		"requiredMethods": {
+			"title": "Обязательные методы",
+			"methods": {
+				"balance": "Получение баланса",
+				"referral-balance": "Получение реферального баланса",
+				"countries": "Получение списка доступных стран",
+				"tariffs": "Получение списка тарифов с ценами",
+				"purchase-traffic": "Пополнение ГБ трафика с баланса или реф. баланса",
+				"packages": "Получение списка активных пакетов",
+				"create-package": "Создание пакета",
+				"create-proxy": "Создание прокси на пакет",
+				"traffic": "Получение истории трафика",
+				"error": "Обработка ошибок в едином формате JSON"
+			}
+		}
+	},
+	"termsPage": {
+		"title": "Условия использования",
+		"section1": {
+			"title": "1. Общие положения",
+			"content": "Настоящие Условия использования регулируют отношения между сервисом Shadow Proxy (далее — «Сервис») и Пользователем при использовании прокси-сервисов. Регистрируясь в Сервисе или используя его, вы подтверждаете своё согласие с настоящими условиями. Сервис предоставляет доступ к резидентным, мобильным и IPv6 прокси для легального использования. Запрещается использовать прокси для незаконной деятельности, спама, мошенничества, обхода блокировок с целью нарушения прав третьих лиц."
+		},
+		"section2": {
+			"title": "2. Оплата и возвраты",
+			"content": "Оплата услуг производится в соответствии с тарифами, указанными на сайте. Цены указаны в долларах США. После оплаты средства зачисляются на баланс пользователя и могут быть использованы для приобретения прокси. Возврат средств не предусмотрен после успешной выдачи прокси. В случае технической ошибки или невозможности предоставить услугу администрация оставляет за собой право произвести возврат по усмотрению."
+		}
+	},
+	"referral": {
+		"title": "Реферальная система",
+		"earnings": {
+			"label": "сумма",
+			"sublabel": "заработанных средств",
+			"currency": "USD"
+		},
+		"count": {
+			"label": "количество",
+			"sublabel": "приглашенных пользователей"
+		},
+		"link": {
+			"title": "Реферальная ссылка для приглашения",
+			"copy": "Копировать",
+			"copied": "Текст скопирован"
+		},
+		"table": {
+			"title": "Таблица начислений",
+			"source": "Источник",
+			"purchase": "Покупка",
+			"amount": "Поступления",
+			"date": "Дата",
+			"empty": "Нет данных"
+		}
+	},
+	"notifications": {
+		"title": "Уведомления",
+		"empty": "Уведомлений пока нет",
+		"items": {
+			"review_request": {
+				"title": "Оставьте отзыв и получите скидку 30%",
+				"body": "Спасибо за покупку! Поделитесь впечатлением — за отзыв дарим скидку 30% на следующую покупку любого пакета."
+			},
+			"review_discount": {
+				"title": "Скидка 30% за отзыв активна",
+				"body": "Спасибо за отзыв! Скидка 30% применится автоматически к следующей покупке любого пакета."
+			}
+		},
+		"readAll": "Прочитать все"
+	},
+	"reviews": {
+		"thanksTitle": "Спасибо за отзыв!",
+		"formTitle": "Оставьте отзыв",
+		"formSubtitle": "За отзыв — скидка 30% на следующую покупку любого пакета.",
+		"ratingLabel": "Оценка",
+		"textLabel": "Текст отзыва",
+		"textPlaceholder": "Поделитесь впечатлением (минимум 20 символов)",
+		"minChars": "символов",
+		"minOk": "Готово",
+		"widgetPhrase": "На следующую\nпокупку\nза отзыв",
+		"submit": "Отправить",
+		"submitted": "Отзыв отправлен!",
+		"errorNoRating": "Поставьте оценку",
+		"errorShort": "Текст отзыва — минимум 20 символов",
+		"close": "Закрыть"
+	},
+	"profile": {
+		"linkedAccounts": {
+			"title": "Привязанные аккаунты",
+			"description": "Привяжите Google или Telegram — это нужно для активации пробного периода и защиты от злоупотреблений.",
+			"linked": "Привязан",
+			"notLinked": "Не привязан",
+			"link": "Привязать",
+			"unlink": "Отвязать",
+			"unlinked": "Аккаунт отвязан",
+			"cannotUnlinkLast": "Нельзя отвязать единственный способ входа",
+			"linkSuccess": "Аккаунт успешно привязан",
+			"errorAlreadyLinked": "Этот аккаунт уже привязан к другому пользователю",
+			"errorGeneric": "Не удалось привязать аккаунт",
+			"linkCanceled": "Привязка отменена",
+			"statusLabel": "Статус",
+			"loginLabel": "Аккаунт"
+		}
+	},
+	"errors": {
+		"email_already_exists": "Пользователь с такой почтой уже существует",
+		"user_not_found": "Пользователь не найден",
+		"wrong_credentials": "Неверно указана почта и/или пароль",
+		"authorization_unexpected_error": "Произошла неизвестная ошибка при авторизации",
+		"logout_unexpected_error": "Произошла неизвестная ошибка при выходе из системы",
+		"not_enough_rights": "У вас недостаточно прав для выполнения этого действия",
+		"not_authorized": "Недостаточно прав. Для выполнения этого действия вы должны быть авторизованы.",
+		"captcha_error": "Ошибка при валидации капчи",
+		"oauth_error": "Не удалось получить пользователя, попробуйте ещё раз!",
+		"oauth_unknown_provider": "Такой провайдер не найден. Пожалуйста, проверьте правильность введённых данных",
+		"oauth_authorization_code_not_provided": "Ошибка авторизации. Не предоставлен код авторизации",
+		"token_not_found": "Токен подтверждения не найден",
+		"token_expired": "Токен подтверждения истёк. Пожалуйста, попробуйте ещё раз",
+		"email_sending_error": "Ошибка при отправке письма. Попробуйте ещё раз",
+		"cooldown_active": "Вы отправляете коды слишком часто. Пожалуйста, попробуйте снова позже",
+		"email_unverified": "Ваша почта не подтверждена. Пожалуйста, перейдите по ссылке в письме для подтверждения почты",
+		"wrong_signature": "Неверная подпись",
+		"proxy_gb_price_not_set": "Ошибка сервера. Не задана стоимость трафика",
+		"payment_provider_server_error": "Возникла ошибка на стороне мерчанта, попробуйте позже",
+		"too_small_amount": "Слишком маленькая сумма для этого мерчанта.",
+		"unknown_error_payment": "Неизвестная ошибка при создании платежа, попробуйте позже.",
+		"package_not_found": "Пакет не найден",
+		"wrong_number": "Некорректное число",
+		"proxy_unknown_error": "Неизвестная ошибка при создании прокси, попробуйте позже",
+		"insufficient_balance": "Баланс слишком мал для выполнения этого действия",
+		"unknown_mobile_proxy_plan": "Неизвестный оператор",
+		"unknown_mobile_proxy_rent_time": "Некорректное время аренды",
+		"rotation_time_on_auto_mode": "Вы не можете указать время ротации при выбранном типе ротации",
+		"too_many_refresh_requests": "Вы обновляете IP слишком часто. Повторите попытку позже",
+		"proxy_not_found": "Прокси не найден",
+		"key_not_found": "Ключ не найден",
+		"key_already_activated": "Этот ключ уже активирован",
+		"package_already_activated": "Этот пакет уже активирован",
+		"no_such_server": "Сервер для данной локации сейчас недоступен",
+		"node_insufficient_resources": "Не можем сейчас выпустить столько прокси. Попробуйте позже",
+		"payment_not_found": "Платёж не найден",
+		"package_not_created": "Не удалось создать пакет",
+		"trial_already_received": "Триал уже получен",
+		"invalid_tariff_for_trial": "Этот тариф недоступен для триала",
+		"cannot_use_balance_for_replenish": "Нельзя пополнять баланс с самого баланса",
+		"sub_account_not_exists": "Sub-аккаунт не существует",
+		"sub_account_username_taken": "Этот username уже занят",
+		"telegram_auth_expired": "Сессия Telegram истекла, попробуйте снова",
+		"telegram_auth_invalid": "Неверные данные авторизации через Telegram",
+		"telegram_bot_not_configured": "Бот Telegram не настроен",
+		"legacy_mobile_gb_disabled": "Этот endpoint устарел. Используйте новый Mobile-тариф (ProxyEmpire).",
+		"account_already_linked": "Этот аккаунт уже привязан к другому пользователю",
+		"account_not_found": "Привязанный аккаунт не найден",
+		"cannot_unlink_last_auth": "Нельзя отвязать единственный способ входа",
+		"trial_requires_linked_account": "Для активации пробного периода привяжите Google или Telegram аккаунт",
+		"trial_identity_already_used": "Этот аккаунт уже использовал пробный период",
+		"review_already_exists": "Вы уже оставили отзыв",
+		"review_text_too_short": "Текст отзыва должен содержать минимум 20 символов",
+		"review_invalid_rating": "Оценка должна быть от 1 до 5",
+		"rented_ip_not_available": "Аренда IP временно недоступна",
+		"rented_ip_not_found": "Арендованный IP не найден",
+		"rented_ip_replace_limit": "Достигнут лимит замен IP для этой аренды",
+		"proxy_type_unavailable": "Этот тип прокси временно недоступен"
+	}
+}

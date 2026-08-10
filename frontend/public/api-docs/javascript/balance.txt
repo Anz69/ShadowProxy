@@ -1,0 +1,26 @@
+// Получение баланса и реферального баланса
+// GET /user-api/balance
+
+const apiKey = 'YOUR_API_KEY';
+const url = 'https://shadowproxy.io/api/user-api/balance';
+
+fetch(url, {
+  method: "GET",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Response:', data);
+  // {
+  //   "status": "ok",
+  //   "code": "200",
+  //   "message": {
+  //     "balance": "100.50",
+  //     "referralBalance": "25.00"
+  //   }
+  // }
+})
+.catch(error => console.error('Request failed:', error));

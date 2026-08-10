@@ -1,0 +1,32 @@
+// Создание пакета по типу
+// POST /user-api/packages
+// Пакеты по ГБ создаются бесплатно, мобильные по времени требуют оплаты
+
+const apiKey = 'YOUR_API_KEY';
+const url = 'https://shadowproxy.io/api/user-api/packages';
+
+fetch(url, {
+  method: "POST",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    type: "RESIDENT"
+  })
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Response:', data);
+  // {
+  //   "status": "ok",
+  //   "code": "200",
+  //   "message": {
+  //     "id": "uuid-here",
+  //     "userId": "user-uuid",
+  //     "type": "RESIDENT",
+  //     ...
+  //   }
+  // }
+})
+.catch(error => console.error('Request failed:', error));

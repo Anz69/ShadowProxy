@@ -1,0 +1,18 @@
+enum KeyStatus {
+  NEW
+  ACTIVATED
+}
+
+model Key {
+  id String @id @default(uuid(4))
+
+  key         String      @unique @default(uuid(4))
+  status      KeyStatus   @default(NEW)
+  activatedBy String?
+  type        PackageType
+  contents    Float
+
+  createdAt DateTime @default(now())
+
+  @@map("keys")
+}

@@ -1,0 +1,59 @@
+# Создание прокси на пакет
+# POST /user-api/packages/:packageId/proxies
+# Максимум 1000 активных прокси на аккаунт
+
+curl -X POST "https://shadowproxy.io/api/user-api/packages/package-uuid-here/proxies" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "US",
+    "quantity": 1,
+    "rotation": "BY_REQUEST"
+  }'
+
+# Для ротации по времени:
+curl -X POST "https://shadowproxy.io/api/user-api/packages/package-uuid-here/proxies" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "US",
+    "quantity": 1,
+    "rotation": "BY_TIME",
+    "rotationInterval": 30
+  }'
+
+# Успешный ответ (один прокси):
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": {
+#     "proxyPort": {
+#       "id": "proxy-uuid",
+#       "port": 12345,
+#       "login": "user-login",
+#       "password": "user-password",
+#       "serverHost": "proxy-server.example.com"
+#     }
+#   }
+# }
+
+# Ошибка (превышен лимит портов):
+# {
+#   "status": "error",
+#   "code": "PROXY_LIMIT_REACHED",
+#   "message": "Превышен лимит активных прокси. Максимум 1000, текущее количество: 1000"
+# }
+
+# Ошибка (страна недоступна):
+# {
+#   "status": "error",
+#   "code": "INVALID_COUNTRY",
+#   "message": "Страна XX недоступна для типа пакета RESIDENT"
+# }
+
+# Ошибка (неверный интервал ротации):
+# {
+#   "status": "error",
+#   "code": "INVALID_ROTATION_INTERVAL",
+#   "message": "rotationInterval должен быть от 5 до 120 минут"
+# }

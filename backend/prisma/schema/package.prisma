@@ -1,0 +1,24 @@
+enum PackageType {
+  RESIDENT
+  RESIDENT_PREMIUM
+  MOBILE
+  MOBILE_GB
+  IPV6_GB
+  PREMIUM_RESIDENTIAL
+  ISP_USA
+  ISP_EU
+  RESIDENTIAL_LITE
+}
+
+model Package {
+  id String @id @default(uuid(4))
+
+  type    PackageType
+  traffic String
+  price   Decimal
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("packages")
+}

@@ -1,0 +1,46 @@
+// Создание прокси на пакет
+// POST /user-api/packages/:packageId/proxies
+// Максимум 1000 активных прокси на аккаунт
+
+const apiKey = 'YOUR_API_KEY';
+const packageId = 'package-uuid-here';
+const url = `https://shadowproxy.io/api/user-api/packages/${packageId}/proxies`;
+
+// Ротация по запросу
+fetch(url, {
+  method: "POST",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    location: "US",
+    quantity: 1,
+    rotation: "BY_REQUEST"
+  })
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Response:', data);
+})
+.catch(error => console.error('Request failed:', error));
+
+// Ротация по времени
+fetch(url, {
+  method: "POST",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    location: "US",
+    quantity: 1,
+    rotation: "BY_TIME",
+    rotationInterval: 30  // от 5 до 120 минут
+  })
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Response:', data);
+})
+.catch(error => console.error('Request failed:', error));

@@ -1,0 +1,23 @@
+# Получение баланса и реферального баланса
+# GET /user-api/balance
+
+curl -X GET "https://shadowproxy.io/api/user-api/balance" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# Успешный ответ:
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": {
+#     "balance": "100.50",
+#     "referralBalance": "25.00"
+#   }
+# }
+
+# Ошибка (неверный API ключ):
+# {
+#   "status": "error",
+#   "code": "INVALID_API_KEY",
+#   "message": "Недействительный API ключ"
+# }

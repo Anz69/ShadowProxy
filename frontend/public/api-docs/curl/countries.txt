@@ -1,0 +1,57 @@
+# Получение списка доступных стран для пакета
+# GET /user-api/countries?packageType=RESIDENT
+# Для MOBILE типа возвращает также список операторов по странам
+
+curl -X GET "https://shadowproxy.io/api/user-api/countries?packageType=RESIDENT" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# Успешный ответ (для типов кроме MOBILE):
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": ["us", "de", "nl", "gb", "fr", ...]
+# }
+
+# Успешный ответ (для типа MOBILE):
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": {
+#     "countries": ["us", "de", "nl", ...],
+#     "operators": [
+#       {
+#         "country": "us",
+#         "operators": [
+#           {
+#             "id": "plan-id",
+#             "name": "Operator Name",
+#             "description": "Description",
+#             "availablePorts": 10,
+#             "tarifications": [
+#               {
+#                 "time": 300,
+#                 "traffic": 1024,
+#                 "price": 0.25
+#               }
+#             ]
+#           }
+#         ]
+#       }
+#     ]
+#   }
+# }
+
+# Ошибка (неверный тип пакета):
+# {
+#   "status": "error",
+#   "code": "INVALID_PACKAGE_TYPE",
+#   "message": "Неизвестный тип пакета"
+# }
+
+# Ошибка (отсутствует packageType):
+# {
+#   "status": "error",
+#   "code": "MISSING_REQUIRED_FIELD",
+#   "message": "packageType обязателен"
+# }

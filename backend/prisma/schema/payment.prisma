@@ -1,0 +1,36 @@
+enum PaymentStatus {
+  WAITING
+  PAID
+  CANCELLED
+}
+
+enum PaymentProvider {
+  CRYPTO_BOT
+  HELEKET
+  BALANCE
+  REFERRAL_BALANCE
+}
+
+model Payment {
+  id String @id @default(uuid(4))
+
+  amount    Decimal
+  amountUsd Decimal
+  asset     String
+
+  paymentUrl String? @map("payment_url")
+
+  provider PaymentProvider
+  status   PaymentStatus   @default(WAITING)
+  metadata Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @map("user_id")
+
+  referralReward ReferralReward?
+
+  @@map("payments")
+}

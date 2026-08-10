@@ -1,0 +1,35 @@
+// SPRINT-4 (ТЗ п.5) — заготовка под аренду IPv4/IPv6 на время.
+// Структура заложена заранее; бизнес-логика (биллинг по IP×период, автопродление,
+// уведомление за 3 дня, выгрузка .txt, замена IP с лимитом) реализуется позже.
+
+enum IpFamily {
+  IPV4
+  IPV6
+}
+
+enum RentedIpStatus {
+  ACTIVE
+  EXPIRED
+  REPLACED
+}
+
+model RentedIp {
+  id           String         @id @default(cuid())
+  userId       String         @map("user_id")
+  user         User           @relation(fields: [userId], references: [id])
+  family       IpFamily
+  ip           String
+  upstreamRef  String?        @map("upstream_ref") // как смапить на апстрим/порт
+  rentedAt     DateTime       @default(now()) @map("rented_at")
+  expiresAt    DateTime       @map("expires_at") // срок аренды
+  autoRenew    Boolean        @default(false) @map("auto_renew")
+  notified3d   Boolean        @default(false) @map("notified_3d") // отправлено ли уведомление за 3 дня
+  replaceCount Int            @default(0) @map("replace_count") // сколько раз меняли (бан) — для лимита
+  status       RentedIpStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status, expiresAt])
+  @@map("rented_ips")
+}

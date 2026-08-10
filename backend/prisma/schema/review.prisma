@@ -1,0 +1,13 @@
+model Review {
+  id String @id @default(uuid(4))
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @map("user_id")
+
+  rating Int
+  text   String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reviews")
+}

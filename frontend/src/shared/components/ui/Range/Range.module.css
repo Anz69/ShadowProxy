@@ -1,0 +1,98 @@
+.range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 9999px;
+    --fill: #0067ff;
+    --bg-alpha: 0.25;
+    background: linear-gradient(to right, var(--fill) var(--val, 0%), rgba(237, 246, 249, var(--bg-alpha)) var(--val, 0%));
+    cursor: pointer;
+    --thumb: 22px;
+}
+
+.sliderWrap {
+    position: relative;
+    width: 100%;
+    padding-top: 36px;
+}
+
+.valueBubble {
+    position: absolute;
+    top: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 10px;
+    background-color: color-mix(in oklab, var(--color-white) 20%, transparent);
+    color: var(--body);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1;
+    pointer-events: none;
+    backdrop-filter: saturate(120%) blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    white-space: nowrap;
+}
+
+.range:hover { --bg-alpha: 0.35; }
+.range:active,
+.range:focus-visible { --bg-alpha: 0.5; }
+
+/* Светлая тема: видимый трек, читаемый бабл, белый центр у бегунка */
+:global(html.light) .range {
+    background: linear-gradient(to right, var(--fill) var(--val, 0%), #e2e4ea var(--val, 0%));
+}
+:global(html.light) .valueBubble {
+    background-color: #ffffff;
+    color: #0e1019;
+    border: 1px solid #e2e4ea;
+    box-shadow: 0 8px 20px -10px rgba(14, 16, 25, 0.22);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+:global(html.light) .range::-webkit-slider-thumb {
+    background: radial-gradient(circle at center, #ffffff 0 45%, #0067ff 46% 100%);
+    box-shadow: 0 1px 4px rgba(14, 16, 25, 0.28);
+}
+:global(html.light) .range::-moz-range-thumb {
+    background: radial-gradient(circle at center, #ffffff 0 45%, #0067ff 46% 100%);
+    box-shadow: 0 1px 4px rgba(14, 16, 25, 0.28);
+}
+
+.range::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 8px;
+    border-radius: 9999px;
+}
+
+.range::-moz-range-track {
+    background: transparent;
+    height: 8px;
+    border: none;
+}
+
+.range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 9999px;
+    background: radial-gradient(circle at center, #edf6f9 0 45%, #0067ff 46% 100%);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s;
+    margin-top: -6px;
+}
+
+.range::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 9999px;
+    background: radial-gradient(circle at center, #edf6f9 0 45%, #0067ff 46% 100%);
+    border: none;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s;
+}

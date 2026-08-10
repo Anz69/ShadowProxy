@@ -1,0 +1,14 @@
+model Broadcast {
+  id String @id @default(uuid(4))
+
+  title   String
+  body    String
+  link    String?
+  segment String // all | trial_active | after_purchase | no_purchases
+
+  recipientsCount Int @map("recipients_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("broadcasts")
+}

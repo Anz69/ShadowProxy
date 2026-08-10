@@ -1,0 +1,82 @@
+/* =====================================================================
+   ShadowProxy landing — only what can't live as Tailwind utilities:
+   web fonts, the page (html) background, and the shared header/footer
+   theming. All section/card styling is inline Tailwind in the markup.
+   Theme: base = dark; add `light` class on <html> for light mode.
+   ===================================================================== */
+
+@font-face { font-family: "TalosInter"; src: url("/talos/fonts/Inter.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "TalosDisplay"; src: url("/talos/fonts/TTInterfaces.ttf") format("truetype"); font-weight: 100 900; font-display: swap; }
+
+/* Ambient drift + breathe for the hero aurora (paired with cursor parallax) */
+@keyframes sp-drift {
+	0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+	50% { transform: translate3d(1.5%, 2%, 0) scale(1.05); }
+}
+@keyframes sp-breathe {
+	0%, 100% { opacity: 0.72; }
+	50% { opacity: 1; }
+}
+
+/* ---- Page (html) background, scoped to the landing route (Bright Data
+   deep-navy in dark, clean white in light) ----------------------------- */
+html:has(.home-talos) { background: #060d1e !important; background-image: none !important; }
+html.light:has(.home-talos) { background: #eceff5 !important; }
+
+/* ---- Header: premium floating glass capsule (home only). A constant frosted
+   pill with a soft blue underglow + refined nav pills. Light variant below. -- */
+.header-light {
+	margin: 14px clamp(14px, 3vw, 40px) 0 !important;
+	height: 66px !important;
+	border-radius: 18px !important;
+	border: 1px solid rgba(255, 255, 255, 0.08) !important;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015)), rgba(8, 12, 24, 0.55) !important;
+	-webkit-backdrop-filter: blur(22px) saturate(170%) !important; backdrop-filter: blur(22px) saturate(170%) !important;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 22px 54px -26px rgba(0, 0, 0, 0.8), 0 0 54px -22px rgba(79, 141, 255, 0.5) !important;
+	transition: box-shadow .4s ease, background .4s ease, border-color .4s ease !important;
+}
+.header-light .font-struve > span { color: #6aa5ff !important; }
+/* logo glow only in dark — the light recolor (below) must win there */
+html:not(.light) .header-light .group img { filter: drop-shadow(0 4px 14px rgba(79, 141, 255, 0.55)) !important; }
+.header-light nav a, .header-light nav > span { color: rgba(255, 255, 255, 0.72) !important; border-radius: 10px !important; transition: color .2s ease, background .2s ease !important; }
+.header-light nav a:hover, .header-light nav > span:hover { color: #fff !important; background: rgba(255, 255, 255, 0.07) !important; }
+
+/* Right-side actions — unified glass icon buttons; "Войти" is the single accent */
+.header-light a[aria-label="Telegram"] { background: rgba(255, 255, 255, 0.06) !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; border-radius: 12px !important; box-shadow: none !important; transition: background .2s ease, border-color .2s ease !important; }
+.header-light a[aria-label="Telegram"]:hover { background: rgba(255, 255, 255, 0.12) !important; border-color: rgba(255, 255, 255, 0.2) !important; }
+.header-light a[aria-label="Telegram"] svg { color: #8fb6ff !important; }
+.header-light .lg-btn--primary { border-radius: 12px !important; box-shadow: 0 10px 26px -10px rgba(79, 141, 255, 0.85) !important; }
+html.light .header-light a[aria-label="Telegram"] { background: rgba(47, 107, 255, 0.08) !important; border-color: rgba(47, 107, 255, 0.18) !important; }
+html.light .header-light a[aria-label="Telegram"]:hover { background: rgba(47, 107, 255, 0.14) !important; }
+html.light .header-light a[aria-label="Telegram"] svg { color: #2f6bff !important; }
+/* Light theme: light frosted capsule */
+html.light .header-light {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8)) !important;
+	border-color: rgba(14, 16, 25, 0.07) !important;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 22px 54px -26px rgba(14, 16, 25, 0.3), 0 0 54px -26px rgba(47, 107, 255, 0.4) !important;
+}
+html.light .header-light img[src*="logo"] { filter: brightness(0) saturate(100%) invert(28%) sepia(96%) saturate(2400%) hue-rotate(220deg) brightness(101%) !important; }
+html.light .header-light .font-struve { color: #0e1019 !important; }
+html.light .header-light nav a, html.light .header-light nav > span { color: #475467 !important; }
+html.light .header-light nav a:hover, html.light .header-light nav > span:hover { color: #0e1019 !important; background: rgba(14,16,25,.05) !important; }
+html.light .header-light button.group { color: #475467 !important; }
+html.light .header-light a[aria-label]:not([aria-label="Telegram"]), html.light .header-light button[aria-label] { border-color: rgba(14,16,25,.1) !important; background: rgba(14,16,25,.04) !important; color: #0e1019 !important; }
+
+/* ---- Footer: dark default, light variant under html.light -------------
+   The footer's built-in CTA is hidden app-wide in globals.css (replaced by the
+   standalone <PreFooterCTA>), and all .ft theming now lives in globals.css too. */
+body:has(.home-talos) .ft { background: linear-gradient(180deg, #0b0d16 0%, #06070d 100%) !important; border-color: rgba(255, 255, 255, 0.08) !important; }
+html.light body:has(.home-talos) .ft { background: linear-gradient(180deg, #ffffff 0%, #f4f6fa 100%) !important; border-color: #e8ebf1 !important; box-shadow: 0 30px 80px -54px rgba(14,16,25,.22) !important; }
+html.light body:has(.home-talos) .ft__mark { color: rgba(14,16,25,.035) !important; }
+html.light body:has(.home-talos) .ft__cta { border-bottom-color: #e8ebf1 !important; }
+html.light body:has(.home-talos) .ft__cta h3 { color: #0e1019 !important; } html.light body:has(.home-talos) .ft__cta p { color: #5b6472 !important; }
+html.light body:has(.home-talos) .ft__logo b { color: #0e1019 !important; } html.light body:has(.home-talos) .ft__logo b i { color: #2f6bff !important; }
+html.light body:has(.home-talos) .ft__logo img[src*="logo"] { filter: brightness(0) saturate(100%) invert(28%) sepia(96%) saturate(2400%) hue-rotate(220deg) brightness(101%); }
+html.light body:has(.home-talos) .ft__tag { color: #5b6472 !important; }
+html.light body:has(.home-talos) .ft__col h4 { color: #8a93a3 !important; }
+html.light body:has(.home-talos) .ft__col a { color: #475467 !important; } html.light body:has(.home-talos) .ft__col a:hover { color: #0e1019 !important; }
+html.light body:has(.home-talos) .ft__col-soon { color: rgba(14,16,25,.45) !important; }
+html.light body:has(.home-talos) .ft__bottom { border-top-color: #e8ebf1 !important; }
+html.light body:has(.home-talos) .ft__copy { color: #8a93a3 !important; }
+html.light body:has(.home-talos) .ft__legal a { color: #5b6472 !important; }
+html.light body:has(.home-talos) .ft .lg-btn--clear { color: #0e1019 !important; border-color: #d8dde6 !important; background: #fff !important; }

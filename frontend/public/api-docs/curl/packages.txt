@@ -1,0 +1,40 @@
+# Получение списка активных пакетов пользователя
+# GET /user-api/packages
+
+curl -X GET "https://shadowproxy.io/api/user-api/packages" \
+  -H "api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# Успешный ответ:
+# {
+#   "status": "ok",
+#   "code": "200",
+#   "message": [
+#     {
+#       "id": "package-uuid",
+#       "userId": "user-uuid",
+#       "type": "RESIDENT",
+#       "createdAt": "2026-02-05T12:00:00.000Z",
+#       "updatedAt": "2026-02-05T12:00:00.000Z",
+#       "activeProxies": [
+#         {
+#           "id": "proxy-uuid",
+#           "port": 12345,
+#           "login": "user-login",
+#           "password": "user-password",
+#           "serverHost": "proxy-server.example.com",
+#           "createdAt": "2026-02-05T12:00:00.000Z",
+#           "lastActivityAt": "2026-02-05T13:00:00.000Z"
+#         }
+#       ],
+#       "proxiesCount": 1
+#     }
+#   ]
+# }
+
+# Ошибка (неверный API ключ):
+# {
+#   "status": "error",
+#   "code": "INVALID_API_KEY",
+#   "message": "Недействительный API ключ"
+# }

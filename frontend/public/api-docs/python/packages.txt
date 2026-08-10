@@ -1,0 +1,16 @@
+# Получение списка активных пакетов пользователя
+# GET /user-api/packages
+
+import requests
+
+api_key = 'YOUR_API_KEY'
+url = 'https://shadowproxy.io/api/user-api/packages'
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+print('Packages:', data['message'])

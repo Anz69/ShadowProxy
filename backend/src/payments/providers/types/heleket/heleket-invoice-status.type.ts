@@ -1,0 +1,15 @@
+export type HeleketInvoiceStatus =
+    | "paid"
+    | "paid_over"
+    | "wrong_amount"
+    | "process"
+    | "confirm_check"
+    | "wrong_amount_waiting"
+    | "check"
+    | "fail"
+    | "cancel"
+    | "system_fail"
+    | "refund_process"
+    | "refund_fail"
+    | "refund_paid"
+    | "locked";

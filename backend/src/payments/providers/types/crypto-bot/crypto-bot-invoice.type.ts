@@ -1,0 +1,32 @@
+import { CryptoBotInvoiceStatusType } from "./crypto-bot-invoice-status.type";
+import { AvailableAssets } from "../../../types/available-assets.type";
+
+export type CryptoBotInvoiceType = {
+    invoice_id: number;
+    hash: string;
+    currency_type: "crypto" | "fiat";
+    asset: AvailableAssets;
+    amount: string;
+    paid_asset: AvailableAssets;
+    paid_amount: string;
+    fee_asset: AvailableAssets;
+    fee_amount: string;
+    fee: string;
+    fee_in_usd: string;
+    pay_url: string;
+    bot_invoice_url: string;
+    mini_app_invoice_url: string;
+    web_app_invoice_url: string;
+    status: CryptoBotInvoiceStatusType;
+    created_at: string;
+    allow_comments: boolean;
+    allow_anonymous: boolean;
+    expiration_date: string;
+    paid_usd_rate: string;
+    usd_rate: string;
+    paid_at: string;
+    paid_anonymously: boolean;
+    payload?: string;
+    paid_btn_name?: string;
+    paid_btn_url?: string;
+};

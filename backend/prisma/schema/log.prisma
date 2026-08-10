@@ -1,0 +1,28 @@
+enum LogType {
+  USAGE
+  REPLENISH
+  SYSTEM
+  TRAFFIC
+  USER_ACTION
+  API
+}
+
+model Log {
+  id String @id @default(cuid())
+
+  type     LogType
+  message  String
+  metadata Json?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type, createdAt])
+  @@index([userId, createdAt])
+  @@map("logs")
+}

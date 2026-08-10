@@ -1,0 +1,65 @@
+// Обработка ошибок в едином формате JSON
+// GET /user-api/error-codes
+
+const apiKey = 'YOUR_API_KEY';
+const url = 'https://shadowproxy.io/api/user-api/error-codes';
+
+fetch(url, {
+  method: "GET",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Error codes:', data.message);
+  // Объект с кодами ошибок и их описаниями
+})
+.catch(error => console.error('Request failed:', error));
+
+// Формат всех ошибок:
+// {
+//   "status": "error",
+//   "code": "ERROR_CODE",
+//   "message": "Описание ошибки"
+// }
+
+// Пример обработки ошибки:
+fetch('https://shadowproxy.io/api/user-api/packages/invalid-id/proxies', {
+  method: "POST",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    location: "US",
+    quantity: 1
+  })
+})
+.then(response => response.json())
+.then(data => {
+  if (data.status === "error") {
+    console.error('Error code:', data.code);
+    console.error('Error message:', data.message);
+    // Обработка ошибки по коду
+    switch(data.code) {
+      case 'PACKAGE_NOT_FOUND':
+        // Пакет не найден
+        break;
+      case 'INVALID_COUNTRY':
+        // Неверная страна
+        break;
+      case 'INSUFFICIENT_BALANCE':
+        // Недостаточно средств на основном балансе (например POST /user-api/purchase-traffic)
+        break;
+      case 'INSUFFICIENT_REFERRAL_BALANCE':
+        // Недостаточно средств на реферальном балансе (POST /user-api/purchase-traffic с balanceSource: REFERRAL_BALANCE)
+        break;
+      case 'PROXY_LIMIT_REACHED':
+        // Превышен лимит прокси
+        break;
+    }
+  }
+})
+.catch(error => console.error('Request failed:', error));

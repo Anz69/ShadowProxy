@@ -1,0 +1,21 @@
+# Создание пакета по типу
+# POST /user-api/packages
+# Пакеты по ГБ создаются бесплатно, мобильные по времени требуют оплаты
+
+import requests
+
+api_key = 'YOUR_API_KEY'
+url = 'https://shadowproxy.io/api/user-api/packages'
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "type": "RESIDENT"
+}
+
+response = requests.post(url, headers=headers, json=payload)
+data = response.json()
+print('Response:', data)

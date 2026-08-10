@@ -1,0 +1,878 @@
+{
+	"common": {
+		"logo": "Shadow Proxy",
+		"logoAlt": "标志",
+		"loading": "加载中...",
+		"error": "错误",
+		"success": "成功",
+		"cancel": "取消",
+		"confirm": "确认",
+		"save": "保存",
+		"delete": "删除",
+		"edit": "编辑",
+		"close": "关闭",
+		"back": "返回",
+		"next": "下一步",
+		"submit": "提交",
+		"copy": "复制",
+		"copied": "已复制"
+	},
+	"header": {
+		"logo": "Shadow Proxy",
+		"nav": {
+			"catalog": "代理目录",
+			"prices": "价格",
+			"dashboard": "控制台",
+			"payment": "付款",
+			"api": "API系统",
+			"referral": "推荐系统",
+			"trial": "试用期",
+			"admin": "管理后台"
+		},
+		"userMenu": {
+			"profile": "个人资料",
+			"settings": "设置",
+			"logout": "退出"
+		},
+		"balance": "余额",
+		"login": "登录",
+		"register": "注册",
+		"languageLabel": "界面语言"
+	},
+	"footer": {
+		"copyright": "© 2026 ShadowProxy. 保留所有权利。",
+		"links": {
+			"about": "关于我们",
+			"terms": "服务条款",
+			"privacy": "隐私政策",
+			"support": "支持"
+		},
+		"nav": {
+			"catalog": "目录",
+			"api": "API系统",
+			"dashboard": "仪表板",
+			"support": "支持",
+			"terms": "服务条款",
+			"privacy": "隐私政策"
+		},
+		"cta": {
+			"title": "准备好启动代理了吗？",
+			"subtitle": "一分钟激活试用 — 无需绑定银行卡。",
+			"trial": "免费试用",
+			"apiDocs": "API 文档"
+		},
+		"brand": {
+			"tagline": "全球稳定、高速的轮换代理 — 适用于套利、反检测、广告与数据采集。"
+		},
+		"columns": {
+			"product": "产品",
+			"platform": "平台",
+			"help": "帮助"
+		},
+		"product": {
+			"residential": "住宅代理",
+			"mobile": "移动代理",
+			"ipv6": "IPv6 代理",
+			"premiumMobile": "高级移动代理",
+			"premiumResidential": "高级住宅代理",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"platform": {
+			"catalog": "目录",
+			"api": "API 系统",
+			"dashboard": "个人中心",
+			"referral": "推荐计划"
+		},
+		"help": {
+			"support": "支持",
+			"terms": "使用条款",
+			"privacy": "隐私政策"
+		},
+		"soon": "即将推出",
+		"status": "所有系统正常运行 · 99.99% 在线率",
+		"legal": {
+			"terms": "条款",
+			"privacy": "隐私"
+		}
+	},
+	"main": {
+		"hero": {
+			"title": "<span>ShadowProxy</span> — 适用于任何任务的可靠代理服务器",
+			"description": "我们只与经过验证的供应商合作，在全球范围内提供稳定、快速和轮换的IP",
+			"cta": {
+				"primary": "试用期",
+				"secondary": "API系统"
+			},
+			"eyebrow": "代理服务",
+			"stats": {
+				"countries": "国家",
+				"pool": "IP 池",
+				"uptime": "在线率"
+			}
+		},
+		"features": {
+			"title": "为什么选择我们",
+			"items": {
+				"verified": "干净且经过验证的IP",
+				"uptime": "99.99% 正常运行时间",
+				"stability": "高稳定性",
+				"auto": "自动代理发放",
+				"transparent": "透明的流量计费",
+				"geo": "支持200+地区",
+				"api": "便捷的API系统"
+			},
+			"eyebrow": "优势"
+		},
+		"steps": {
+			"title": "ShadowProxy如何工作",
+			"items": {
+				"step1": {
+					"title": "选择代理类型",
+					"alt": "选择代理类型"
+				},
+				"step2": {
+					"title": "充值余额或激活密钥",
+					"alt": "充值余额"
+				},
+				"step3": {
+					"title": "自动获得访问权限",
+					"alt": "获得访问权限"
+				},
+				"step4": {
+					"title": "通过控制面板或API使用",
+					"alt": "使用"
+				}
+			},
+			"eyebrow": "如何开始"
+		},
+		"proxyTypes": {
+			"title": "可用的代理类型",
+			"more": "更多详情",
+			"resident": {
+				"title": "Residential Proxy",
+				"description": "使用率最低的高级住宅IP。<br/>反检测、广告、社交媒体和复杂系统的最佳选择。<br/>池9000万+，不断清理。200+国家",
+				"features": {
+					"blocks": "低封禁风险",
+					"speed": "最大速度",
+					"connection": "稳定连接"
+				},
+				"price": "从 $1.2/gb"
+			},
+			"premiumResidential": {
+				"title": "Premium Residential",
+				"description": "ProxyEmpire 高级住宅代理。<br/>精准地理定位：国家、地区、城市、ISP。<br/>Sticky/Random/Custom 轮换。200+国家。",
+				"features": {
+					"geo": "选择国家、地区、城市和 ISP",
+					"countries": "200+ 国家",
+					"rotation": "Sticky/Random/Custom 轮换"
+				},
+				"price": "从 $1.5/gb"
+			},
+			"mobile": {
+				"title": "Mobile Proxy",
+				"description": "带链接轮换的4G/5G代理。<br/>适合TikTok、Instagram、广告和反检测。<br/>最灵活的定价。",
+				"features": {
+					"real": "真实移动IP",
+					"speed": "高速",
+					"geo": "按国家地理位置"
+				},
+				"price": "从 $2.5/gb"
+			},
+			"mobileGb": {
+				"title": "Mobile Proxy",
+				"description": "仅按使用流量付费。<br/>API任务和自动化的最佳选择。",
+				"features": {
+					"speed": "最大速度",
+					"unlimited": "无限流量",
+					"cheap": "便宜费率"
+				},
+				"price": "从 $0.5/gb"
+			},
+			"ipv6": {
+				"title": "IPv6 Proxy",
+				"description": "高速低价服务器IPv6。<br/>解析和SEO的理想选择。",
+				"features": {
+					"fixed": "固定IP地址",
+					"reputation": "高声誉",
+					"longterm": "长期租赁"
+				},
+				"price": "从 $0.00 / GB"
+			},
+			"comingSoon": "即将推出",
+			"standardSubtitle": "适用于日常任务的稳定基础套餐 — 可靠且实惠。",
+			"premiumSubtitle": "强化代理池与精准地理定位，适合最苛刻的任务。",
+			"premiumMobile": {
+				"title": "Premium Mobile",
+				"description": "4G/5G 移动代理，精准地理定位，链接轮换和顶级正常运行时间。<br/>反检测、广告、社交媒体和复杂系统的理想选择。",
+				"features": {
+					"geo": "按国家和运营商精准地理定位",
+					"rotation": "链接 / 定时轮换",
+					"uptime": "99.9% 正常运行时间，低封禁风险"
+				},
+				"price": "即将推出"
+			},
+			"standardTitle": "标准代理",
+			"premiumTitle": "高级代理",
+			"eyebrow": "套餐",
+			"ispUsa": {
+				"title": "ISP USA",
+				"description": "美国静态 ISP 代理。数据中心级速度与稳定性，兼具住宅级信任度。按 GB 计费。",
+				"features": {
+					"speed": "高速",
+					"stable": "稳定的静态 IP",
+					"rotation": "按时间轮换，最长 24 小时"
+				}
+			},
+			"ispEu": {
+				"title": "ISP EU",
+				"description": "欧洲静态 ISP 代理。多地理位置——可同时选择多个国家。高速，按 GB 计费。",
+				"features": {
+					"multigeo": "多地理位置——多个国家",
+					"speed": "高速",
+					"rotation": "按时间轮换，最长 24 小时"
+				}
+			},
+			"residentialLite": {
+				"title": "Residential Lite",
+				"description": "价格实惠的住宅代理。任意国家，按 GB 计费。性价比出色。",
+				"features": {
+					"price": "价格实惠",
+					"geo": "任意国家",
+					"rotation": "按请求/时间轮换"
+				}
+			}
+		},
+		"trust": {
+			"label": "ShadowProxy如何工作",
+			"title": "我们不使用\"灰色\"来源。仅使用经过验证的网络和<span>优质</span>解决方案",
+			"text": "每个 IP 池都经过人工与自动测试，覆盖关键指标：",
+			"cta": "测试",
+			"points": {
+				"speed": "速度",
+				"anon": "匿名性",
+				"ip": "IP 历史",
+				"abuse": "滥用程度",
+				"stability": "稳定性"
+			},
+			"titlePre": "我们不使用\"灰色\"来源。仅使用经过验证的网络和",
+			"titleAccent": "优质",
+			"titlePost": "解决方案"
+		},
+		"apiSystem": {
+			"title": "便捷的API系统",
+			"steps": {
+				"step1": "创建代理",
+				"step2": "余额查询",
+				"step3": "充值<br/>GB",
+				"step4": "流量统计"
+			},
+			"cta": "API文档",
+			"eyebrow": "API"
+		},
+		"globe": {
+			"eyebrow": "全球网络",
+			"title": "覆盖<span>全球</span>",
+			"subtitle": "覆盖 200+ 个国家的住宅、高级住宅和移动 IP。精准地理定位、超低延迟和稳定连接，满足套利、反检测、ADS 和数据采集的需求——无论您的项目在哪里运行。",
+			"cta": "免费开始",
+			"points": {
+				"countries": "国家与地区",
+				"pool": "IP 池规模",
+				"uptime": "网络在线率"
+			}
+		},
+		"faq": {
+			"eyebrow": "FAQ",
+			"title": "常见问题",
+			"subtitle": "快速了解 ShadowProxy 的运作方式以及我们的优势。",
+			"items": {
+				"q1": "什么是 ShadowProxy？",
+				"a1": "ShadowProxy 是代理租用服务——提供住宅、高级住宅和移动 IP。干净、经过验证的地址，200+ 地区，通过面板或 API 即时自动发放。",
+				"q2": "有哪些代理类型？",
+				"a2": "住宅代理和高级住宅代理（按国家、地区、城市和 ISP 精准定位，支持 Sticky/Random/Custom 轮换），以及支持链接轮换的 4G/5G 移动代理。高级移动代理即将推出。",
+				"q3": "如何计费？",
+				"a3": "按流量计费——只为使用的流量付费。充值余额或激活密钥，按实际用量透明扣费。",
+				"q4": "你们的 IP 有多干净？",
+				"a4": "我们只与经过验证的供应商合作。每个 IP 池都经过人工和自动测试：速度、匿名性、IP 历史、滥用程度和稳定性。",
+				"q5": "有 API 吗？",
+				"a5": "有，完整的 API 系统：创建代理、查询余额、充值和查看流量统计。文档见“API 系统”板块。",
+				"q6": "有试用期吗？",
+				"a6": "有，可以激活试用并测试服务。退款条款见使用条款。"
+			}
+		}
+	},
+	"dashboard": {
+		"trialButton": "试用",
+		"title": "仪表板",
+		"balance": {
+			"label": "余额",
+			"currency": "美元",
+			"replenish": "充值",
+			"buyProxy": "购买代理"
+		},
+		"traffic": {
+			"title": "流量",
+			"resident": "住宅",
+			"premium": "高级"
+		},
+		"proxies": {
+			"title": "代理",
+			"active": "活跃",
+			"create": "创建代理"
+		},
+		"user": {
+			"title": "用户",
+			"id": "ID",
+			"telegramLogin": "Telegram登录"
+		},
+		"actions": {
+			"title": "操作",
+			"logout": "退出",
+			"logoutInProgress": "退出中..."
+		},
+		"packagesList": {
+			"title": "已购买套餐列表",
+			"empty": "您没有活动套餐"
+		},
+		"trafficStats": {
+			"remainingTraffic": "剩余流量",
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile GB",
+			"mobileNew": "Mobile Proxy",
+			"ipv6": "IPv6",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"proxyPackage": {
+			"quality": "IP质量",
+			"type": "代理类型",
+			"trafficRemaining": "剩余流量",
+			"manage": "管理"
+		},
+		"discountBanner": {
+			"title": "30% 折扣已激活",
+			"subtitle": "购买任意套餐自动应用。",
+			"cta": "折扣购买"
+		},
+		"reviewBanner": {
+			"title": "留下评价 — 获得 30% 折扣",
+			"subtitle": "评价后下次购买可享折扣。",
+			"cta": "留下评价"
+		}
+	},
+	"auth": {
+		"subtitle": "欢迎",
+		"login": {
+			"title": "登录",
+			"tabLogin": "登录",
+			"tabRegister": "注册",
+			"formTitle": "登录",
+			"email": "电子邮件",
+			"password": "密码",
+			"submit": "登录",
+			"forgotPassword": "忘记密码？",
+			"noAccount": "还没有账户？",
+			"register": "注册",
+			"telegram": "使用Telegram登录",
+			"google": "使用Google登录",
+			"or": "或",
+			"termsPrefix": "我确认同意 ",
+			"termsLink": "服务条款和隐私政策",
+			"termsRequired": "必须接受服务条款",
+			"captchaFailed": "验证码未通过",
+			"googleCanceled": "Google授权已取消。请重试。",
+			"asideEyebrow": "全球网络",
+			"asideHeadline": "覆盖全球的代理",
+			"asideSubtext": "200+ 个国家，9000万+ IP 地址"
+		},
+		"register": {
+			"title": "注册",
+			"email": "电子邮件",
+			"password": "密码",
+			"passwordRepeat": "重复密码",
+			"submit": "注册",
+			"hasAccount": "已有账户？",
+			"login": "登录",
+			"telegram": "使用Telegram注册",
+			"google": "使用Google注册",
+			"or": "或",
+			"termsPrefix": "我确认同意 ",
+			"termsLink": "服务条款和隐私政策",
+			"termsRequired": "必须接受服务条款",
+			"captchaFailed": "验证码未通过"
+		},
+		"resetPassword": {
+			"title": "密码恢复",
+			"newPasswordTitle": "新密码",
+			"email": "电子邮件",
+			"newPassword": "新密码",
+			"passwordRepeat": "重复密码",
+			"submit": "发送说明",
+			"savePassword": "保存密码",
+			"backToLogin": "← 返回登录",
+			"emailSentTitle": "密码恢复说明已发送到您的电子邮件。",
+			"emailSentMessage": "请检查您的电子邮件并按照说明操作。",
+			"tokenMissing": "缺少恢复令牌",
+			"captchaFailed": "验证码未通过"
+		},
+		"emailVerification": {
+			"title": "电子邮件验证",
+			"message": "请稍候",
+			"enterTokenTitle": "输入验证码",
+			"enterTokenPlaceholder": "邮件中的验证码",
+			"submit": "验证",
+			"noTokenMessage": "点击邮件中的链接或手动输入验证码"
+		},
+		"mailSent": {
+			"emailConfirmationTitle": "请确认您的电子邮件地址",
+			"emailConfirmationMessage": "我们已向您的电子邮件地址发送了验证邮件：",
+			"passwordResetTitle": "密码恢复邮件已成功发送",
+			"passwordResetMessage": "我们已向您的电子邮件地址发送了密码重置邮件：",
+			"goToMail": "前往邮箱"
+		}
+	},
+	"payment": {
+		"pageTitle": "付款",
+		"balanceReplenishTitle": "余额充值",
+		"title": "充值",
+		"amount": "金额",
+		"currency": "货币",
+		"method": "付款方式",
+		"submit": "支付",
+		"history": "付款历史",
+		"tariffTypes": {
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile Proxy",
+			"mobileGb": "移动代理 GB",
+			"ipv6": "IPv6",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"descriptions": {
+			"resident": "高级住宅IP。低封禁风险，高速度。适用于反检测、广告和社交媒体。",
+			"premiumResidential": "带地理定位的高级住宅代理。选择国家、地区、城市和ISP。Sticky/Random/Custom 轮换。",
+			"mobile": "仅按使用的流量付费。API任务和自动化的最佳选择。",
+			"mobileGb": "按GB付费的移动代理。按请求或按时间轮换。非常适合自动化和API任务。",
+			"ipv6": "高速且价格最低的服务器IPv6。非常适合解析和SEO。",
+			"ispUsa": "美国静态 ISP 代理。高速稳定，按 GB 计费。",
+			"ispEu": "欧洲静态 ISP 代理。多地理位置——可同时选择多个国家。按 GB 计费。",
+			"residentialLite": "价格实惠的住宅代理。任意国家，按 GB 计费。"
+		},
+		"select": "选择",
+		"traffic": "流量",
+		"trafficPlaceholder": "输入流量值",
+		"replenish": "充值",
+		"replenishPlaceholder": "输入美元金额",
+		"currentBalance": "当前余额",
+		"balanceAfterReplenish": "充值后余额",
+		"packages": "套餐",
+		"merchant": "商户",
+		"balance": "余额",
+		"referralBalance": "推荐余额",
+		"total": "总计",
+		"buy": "购买",
+		"loading": "加载中...",
+		"successMessage": "付款已成功创建。您将被重定向到付款页面",
+		"statuses": {
+			"paid": "已付款",
+			"waiting": "等待中",
+			"cancelled": "已取消"
+		},
+		"copyId": "点击复制完整ID",
+		"copied": "已复制！",
+		"unknown": "未知",
+		"unknownPackage": "未知套餐",
+		"units": {
+			"gb": "GB",
+			"ip": "IP",
+			"sec": "秒",
+			"min": "分钟"
+		},
+		"from": "从",
+		"tariffType": "套餐类型",
+		"country": "国家",
+		"selectCountry": "选择国家",
+		"rentTime": "租用时间",
+		"selectRentTime": "选择租用时间",
+		"redirectWarning": "您将被重定向到付款页面",
+		"successBalance": "支付成功 — 套餐正在激活。",
+		"selectTariff": "选择套餐",
+		"selectRegion": "选择地区",
+		"selectedRegion": "已选地区",
+		"package": "套餐",
+		"packageLoadError": "加载套餐数据时出错",
+		"operator": "运营商",
+		"rentTimeTitle": "租用时间",
+		"selectCountryAndOperator": "选择国家和运营商",
+		"discountLabel": "折扣"
+	},
+	"package": {
+		"title": "套餐管理",
+		"type": "类型",
+		"time": "时间",
+		"manage": "管理",
+		"quality": "质量",
+		"mobileRent": "按时间租用调制解调器",
+		"mobileGb": "按GB",
+		"ipv6Rotation": "按需轮换",
+		"ispFixed": "固定生命周期",
+		"trafficLeft": "剩余流量",
+		"ipCount": "IP数量",
+		"status": "状态",
+		"active": "活跃",
+		"finished": "套餐已用完",
+		"replenishGb": "充值GB",
+		"replenishTime": "充值时间",
+		"activateKey": "激活密钥",
+		"timeExpired": "时间已过期",
+		"timeLeft": "剩余租用时间",
+		"extendRent": "延长租用",
+		"proxyFormat": "代理格式",
+		"ipRotation": "IP轮换",
+		"download": "下载",
+		"proxyList": "代理列表",
+		"showProxies": "显示代理",
+		"refreshProxies": "刷新代理",
+		"findProxies": "查找代理",
+		"quantity": "数量",
+		"generating": "生成中...",
+		"generate": "生成",
+		"noProxiesAvailable": "没有可用的代理",
+		"copy": "复制",
+		"notSpecified": "未指定",
+		"quantityError": "数量必须在1到1000之间",
+		"generationError": "生成代理时出错",
+		"rotationError": "IP轮换错误",
+		"rotationSuccess": "IP地址已成功更新",
+		"rotating": "轮换中...",
+		"notFound": "未找到套餐",
+		"timeLeftLabel": "时间",
+		"days": "天",
+		"hours": "小时",
+		"minutes": "分钟",
+		"seconds": "秒",
+		"daysShort": "天",
+		"hoursShort": "小时",
+		"minutesShort": "分钟",
+		"secondsShort": "秒",
+		"rentTime5Minutes": "5 分钟",
+		"from": "from",
+		"perGb": "/ GB",
+		"packageTypes": {
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile Proxy",
+			"isp": "ISP Proxy",
+			"ipv6": "IPv6 Proxy",
+			"default": "Proxy Package",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"trafficChart": {
+			"title": "流量使用图表",
+			"gb": "Gb",
+			"week": "周",
+			"dateRangeFormat": {
+				"_comment": "日期范围格式。占位符：{{day}} — 日，{{month}} — 月数字，{{year}} — 年。sameMonth：同月；differentMonths：不同月同年；differentYears：不同年。",
+				"sameMonth": {
+					"start": "{{day}}日",
+					"end": "{{year}}年{{month}}月{{day}}日"
+				},
+				"differentMonths": {
+					"start": "{{month}}月{{day}}日",
+					"end": "{{year}}年{{month}}月{{day}}日"
+				},
+				"differentYears": {
+					"start": "{{year}}年{{month}}月{{day}}日",
+					"end": "{{year}}年{{month}}月{{day}}日"
+				}
+			},
+			"averageWeekLines": {
+				"_comment": "«平均每周» 块的行。sameMonth — 4行；other — 3行。",
+				"line1": "平均",
+				"line2": "每周",
+				"sameMonth": {
+					"line3": "{{start}}日至{{end}}日",
+					"line4": "{{year}}年{{month}}月"
+				},
+				"other": "从{{start}}到{{end}}"
+			},
+			"averageWeek": "2025年12月15日至21日平均每周",
+			"averageWeekWithDates": "从{{start}}到{{end}}平均每周",
+			"days": {
+				"mon": "周一",
+				"tue": "周二",
+				"wed": "周三",
+				"thu": "周四",
+				"fri": "周五",
+				"sat": "周六",
+				"sun": "周日"
+			}
+		},
+		"proxyGenerator": {
+			"title": "代理生成器",
+			"inputData": "输入数据",
+			"country": "国家",
+			"searchCountry": "搜索国家...",
+			"enterCountryName": "输入名称",
+			"noCountries": "未找到国家",
+			"onRequest": "按请求轮换",
+			"byTime": "按时间",
+			"quantity": "端口数量",
+			"generate": "生成",
+			"generating": "生成中...",
+			"yourProxies": "您的代理",
+			"proxiesPlaceholder": "生成后，您的代理将显示在这里",
+			"copy": "复制",
+			"download": "下载",
+			"selectCountry": "选择国家",
+			"enterQuantity": "输入数量（最少1个）",
+			"generationError": "生成代理时出错",
+			"generationSuccess": "代理已成功生成",
+			"copySuccess": "已复制到剪贴板",
+			"search": "搜索...",
+			"region": "地区",
+			"city": "城市",
+			"isp": "ISP",
+			"any": "— 任意 —",
+			"noOptions": "无选项",
+			"minutesShort": "分钟",
+			"selectRotationTime": "选择代理生命周期（分钟）",
+			"rotationTime": "代理生命周期"
+		},
+		"leaveReview": "留下评价"
+	},
+	"trialModal": {
+		"title": "获取试用",
+		"description": "选择套餐以获取试用流量",
+		"traffic": "流量",
+		"trafficValue": "100 MB",
+		"getButton": "获取",
+		"tariffs": {
+			"resident": "Residential Proxy",
+			"premiumResidential": "Premium Residential",
+			"mobile": "Mobile Proxy",
+			"mobileGb": "Mobile GB",
+			"ipv6": "IPv6 代理",
+			"ispUsa": "ISP USA",
+			"ispEu": "ISP EU",
+			"residentialLite": "Residential Lite"
+		},
+		"requireLinkTitle": "激活试用前",
+		"requireLinkDescription": "请绑定 Google 或 Telegram 账户，以防止滥用。",
+		"linkGoogle": "绑定 Google",
+		"linkTelegram": "绑定 Telegram",
+		"successToast": "试用已激活！",
+		"errors": {
+			"alreadyReceived": "已激活过试用",
+			"invalidTariff": "该套餐不支持试用",
+			"requireLink": "请绑定 Google 或 Telegram 以激活试用",
+			"identityUsed": "此 Google/Telegram 已在其他账户使用过试用",
+			"packageNotCreated": "套餐未创建，请联系支持",
+			"generic": "激活试用失败"
+		}
+	},
+	"validation": {
+		"invalidEmail": "无效的电子邮件",
+		"passwordMinLength": "密码不能少于6个字符",
+		"passwordsMismatch": "密码不匹配",
+		"telegramAuthError": "Telegram授权错误"
+	},
+	"keys": {
+		"redeem": {
+			"title": "激活密钥",
+			"description": "激活密钥后，请重新加载页面",
+			"button": "激活",
+			"placeholder": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+		}
+	},
+	"api": {
+		"title": "API文档",
+		"key": {
+			"label": "API密钥",
+			"loading": "加载中...",
+			"notGenerated": "API密钥未生成。点击下面的按钮创建密钥。",
+			"generate": "生成新密钥",
+			"generating": "生成中...",
+			"copy": "复制",
+			"tokenCopied": "令牌已复制",
+			"tokenRegenerated": "令牌已重新生成"
+		},
+		"docs": {
+			"title": "API文档",
+			"copyCode": "复制代码",
+			"codeCopied": "代码已复制",
+			"codeNotAdded": "此方法的代码尚未添加"
+		},
+		"unauthorized": {
+			"message": "需要登录才能获取API密钥",
+			"login": "登录"
+		},
+		"requiredMethods": {
+			"title": "必需方法",
+			"methods": {
+				"balance": "获取余额",
+				"referral-balance": "获取推荐余额",
+				"countries": "获取可用国家列表",
+				"tariffs": "获取价格表",
+				"purchase-traffic": "用余额或推荐余额充值流量（GB）",
+				"packages": "获取活动套餐列表",
+				"create-package": "创建套餐",
+				"create-proxy": "在套餐上创建代理",
+				"traffic": "获取流量历史",
+				"error": "统一JSON格式的错误处理"
+			}
+		}
+	},
+	"termsPage": {
+		"title": "服务条款",
+		"section1": {
+			"title": "1. 总则",
+			"content": "本服务条款规范Shadow Proxy服务（以下简称「服务」）与用户在使用代理服务时的关系。注册或使用服务即表示您同意本条款。服务提供住宅、移动和IPv6代理的合法使用。禁止将代理用于非法活动、垃圾邮件、欺诈或为侵犯第三方权利而绕过封锁。"
+		},
+		"section2": {
+			"title": "2. 付款与退款",
+			"content": "服务费用按网站公布的费率收取。价格以美元计。付款后，资金将记入用户余额，可用于购买代理。代理成功发放后不予退款。如遇技术错误或无法提供服务，管理部门保留自行决定退款的权利。"
+		}
+	},
+	"referral": {
+		"title": "推荐系统",
+		"earnings": {
+			"label": "总",
+			"sublabel": "收入",
+			"currency": "美元"
+		},
+		"count": {
+			"label": "数量",
+			"sublabel": "邀请的用户"
+		},
+		"link": {
+			"title": "邀请推荐链接",
+			"copy": "复制",
+			"copied": "已复制"
+		},
+		"table": {
+			"title": "收入表",
+			"source": "来源",
+			"purchase": "购买",
+			"amount": "金额",
+			"date": "日期",
+			"empty": "无数据"
+		}
+	},
+	"notifications": {
+		"title": "通知",
+		"empty": "暂无通知",
+		"items": {
+			"review_request": {
+				"title": "留下评价，获得30%折扣",
+				"body": "感谢您的购买！分享您的体验 — 留下评价即可在下次购买任意套餐时享受30%折扣。"
+			},
+			"review_discount": {
+				"title": "评价折扣30%已激活",
+				"body": "感谢您的评价！下次购买任意套餐时将自动应用30%折扣。"
+			}
+		},
+		"readAll": "全部标为已读"
+	},
+	"reviews": {
+		"thanksTitle": "感谢您的评价！",
+		"formTitle": "留下评价",
+		"formSubtitle": "评价后下次购买任意套餐享 30% 折扣。",
+		"ratingLabel": "评分",
+		"textLabel": "评价内容",
+		"textPlaceholder": "分享您的体验（至少 20 个字符）",
+		"minChars": "字符",
+		"minOk": "已足够",
+		"widgetPhrase": "评价后\n下次购买\n可享",
+		"submit": "提交",
+		"submitted": "评价已提交！",
+		"errorNoRating": "请先评分",
+		"errorShort": "评价至少 20 个字符",
+		"close": "关闭"
+	},
+	"profile": {
+		"linkedAccounts": {
+			"title": "已绑定账户",
+			"description": "绑定 Google 或 Telegram — 激活试用并防止滥用所必需。",
+			"linked": "已绑定",
+			"notLinked": "未绑定",
+			"link": "绑定",
+			"unlink": "解绑",
+			"unlinked": "账户已解绑",
+			"cannotUnlinkLast": "无法解绑唯一的登录方式",
+			"linkSuccess": "账户已成功绑定",
+			"errorAlreadyLinked": "此账户已绑定到其他用户",
+			"errorGeneric": "绑定账户失败",
+			"linkCanceled": "已取消绑定",
+			"statusLabel": "状态",
+			"loginLabel": "账户"
+		}
+	},
+	"errors": {
+		"email_already_exists": "该邮箱的用户已存在",
+		"user_not_found": "未找到用户",
+		"wrong_credentials": "邮箱和/或密码错误",
+		"authorization_unexpected_error": "授权时发生未知错误",
+		"logout_unexpected_error": "退出登录时发生未知错误",
+		"not_enough_rights": "您没有足够的权限执行此操作",
+		"not_authorized": "未授权。执行此操作前请先登录。",
+		"captcha_error": "验证码校验失败",
+		"oauth_error": "无法获取用户，请重试！",
+		"oauth_unknown_provider": "未找到该提供商，请检查输入的数据",
+		"oauth_authorization_code_not_provided": "授权错误。未提供授权码",
+		"token_not_found": "未找到确认令牌",
+		"token_expired": "确认令牌已过期，请重试",
+		"email_sending_error": "邮件发送失败，请重试",
+		"cooldown_active": "发送验证码过于频繁，请稍后重试",
+		"email_unverified": "您的邮箱尚未验证，请点击邮件中的链接进行验证",
+		"wrong_signature": "签名无效",
+		"proxy_gb_price_not_set": "服务器错误：未设置流量价格",
+		"payment_provider_server_error": "商户侧发生错误，请稍后再试",
+		"too_small_amount": "金额对该商户来说太小。",
+		"unknown_error_payment": "创建支付时发生未知错误，请稍后再试。",
+		"package_not_found": "未找到套餐",
+		"wrong_number": "数字无效",
+		"proxy_unknown_error": "创建代理时发生未知错误，请稍后再试",
+		"insufficient_balance": "余额过低，无法执行此操作",
+		"unknown_mobile_proxy_plan": "未知运营商",
+		"unknown_mobile_proxy_rent_time": "租用时间无效",
+		"rotation_time_on_auto_mode": "所选轮换类型下无法设置轮换时间",
+		"too_many_refresh_requests": "更换 IP 过于频繁，请稍后再试",
+		"proxy_not_found": "未找到代理",
+		"key_not_found": "未找到密钥",
+		"key_already_activated": "该密钥已被激活",
+		"package_already_activated": "该套餐已被激活",
+		"no_such_server": "该地区暂无可用服务器",
+		"node_insufficient_resources": "目前无法发放这么多代理，请稍后再试",
+		"payment_not_found": "未找到支付",
+		"package_not_created": "创建套餐失败",
+		"trial_already_received": "已领取过试用",
+		"invalid_tariff_for_trial": "该套餐不支持试用",
+		"cannot_use_balance_for_replenish": "无法用余额本身充值余额",
+		"sub_account_not_exists": "子账户不存在",
+		"sub_account_username_taken": "该用户名已被占用",
+		"telegram_auth_expired": "Telegram 会话已过期，请重试",
+		"telegram_auth_invalid": "Telegram 授权数据无效",
+		"telegram_bot_not_configured": "未配置 Telegram 机器人",
+		"legacy_mobile_gb_disabled": "该接口已弃用，请使用新的 Mobile 套餐（ProxyEmpire）。",
+		"account_already_linked": "该账户已绑定到其他用户",
+		"account_not_found": "未找到绑定账户",
+		"cannot_unlink_last_auth": "无法解绑唯一的登录方式",
+		"trial_requires_linked_account": "激活试用前请绑定 Google 或 Telegram 账户",
+		"trial_identity_already_used": "该账户已使用过试用",
+		"review_already_exists": "您已提交过评价",
+		"review_text_too_short": "评价至少需 20 个字符",
+		"review_invalid_rating": "评分必须在 1 到 5 之间",
+		"rented_ip_not_available": "IP 租用暂时不可用",
+		"rented_ip_not_found": "未找到租用的 IP",
+		"rented_ip_replace_limit": "该租用已达到 IP 更换上限",
+		"proxy_type_unavailable": "该代理类型暂时不可用"
+	}
+}

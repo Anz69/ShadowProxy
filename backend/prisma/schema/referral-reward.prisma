@@ -1,0 +1,19 @@
+model ReferralReward {
+  id String @id @default(uuid(4))
+
+  referrerId String @map("referrer_id")
+  referrer   User   @relation("ReferralRewards", fields: [referrerId], references: [id])
+
+  referralId String @map("referral_id")
+  referral   User   @relation("ReferralPayments", fields: [referralId], references: [id])
+
+  paymentId String  @unique @map("payment_id")
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  amount Decimal @map("amount") @db.Decimal(65, 30)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("referral_rewards")
+}
+

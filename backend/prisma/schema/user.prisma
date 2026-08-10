@@ -1,0 +1,77 @@
+enum UserRole {
+  USER
+  ADMIN
+  BANNED
+}
+
+enum AuthMethod {
+  CREDENTIALS
+  GOOGLE
+  TELEGRAM
+}
+
+enum UserRegion {
+  CIS
+  EUROPE
+  USA
+}
+
+model User {
+  id String @id() @default(uuid(4))
+
+  email      String     @unique()
+  password   String
+  authMethod AuthMethod @map("auth_method")
+
+  role          UserRole @default(USER)
+  emailVerified Boolean  @default(false) @map("email_verified")
+
+  residentTrafficLeft String     @default("0") @map("resident_traffic_left")
+  premiumTrafficLeft  String     @default("0") @map("premium_trafic_left")
+  premiumUsername     String     @default("") @map("premium_username")
+  residentData        String     @default("") @map("resident_data")
+  residentTotalUsed   String     @default("0") @map("resident_total_used")
+  ispIpLeft           Int        @default(0) @map("isp_ip_left")
+  ipv6GbTrafficLeft   String     @default("0") @map("ipv6_gb_traffic_left")
+  mobileGbTrafficLeft             String     @default("0") @map("mobile_gb_traffic_left")
+  premiumResidentialTrafficLeft   String     @default("0") @map("premium_residential_traffic_left")
+  mobileTrafficLeft               String     @default("0") @map("mobile_traffic_left")
+  ispUsaTrafficLeft               String     @default("0") @map("isp_usa_traffic_left")
+  ispEuTrafficLeft                String     @default("0") @map("isp_eu_traffic_left")
+  residentialLiteTrafficLeft      String     @default("0") @map("residential_lite_traffic_left")
+  trial               DateTime?  @map("trial")
+  tgLogin             String?    @map("tg_login")
+  region              UserRegion
+  referrerId          String?    @map("referrer_id")
+  referrer            User?      @relation("UserReferrer", fields: [referrerId], references: [id])
+  referrals           User[]     @relation("UserReferrer")
+  apiKey              String?    @unique @map("api_key")
+  balance             Decimal    @default(0) @map("balance") @db.Decimal(65, 30)
+  referralBalance     Decimal    @default(0) @map("referral_balance") @db.Decimal(65, 30)
+
+  proxyEmpireSubUserEmail String? @map("proxyempire_subuser_email")
+  proxyEmpireSubUserToken String? @map("proxyempire_subuser_token")
+  proxyEmpireResiUsedSnapshot   String @default("0") @map("proxyempire_resi_used_snapshot")
+  proxyEmpireMobileUsedSnapshot String @default("0") @map("proxyempire_mobile_used_snapshot")
+
+  trialDiscountAvailable  Boolean @default(false) @map("trial_discount_available")
+  reviewDiscountAvailable Boolean @default(false) @map("review_discount_available")
+  reviewDiscountGranted   Boolean @default(false) @map("review_discount_granted")
+
+  accounts                  Account[]
+  payments                  Payment[]
+  proxies                   Proxy[]
+  packages                  UserPackage[]
+  referralRewardsAsReferrer ReferralReward[] @relation("ReferralRewards")
+  referralRewardsAsReferral ReferralReward[] @relation("ReferralPayments")
+  logs                      Log[]
+  review                    Review?
+  notifications             Notification[]
+  rentedIps                 RentedIp[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@map("users")
+}

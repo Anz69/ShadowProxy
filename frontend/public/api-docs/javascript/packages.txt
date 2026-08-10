@@ -1,0 +1,19 @@
+// Получение списка активных пакетов пользователя
+// GET /user-api/packages
+
+const apiKey = 'YOUR_API_KEY';
+const url = 'https://shadowproxy.io/api/user-api/packages';
+
+fetch(url, {
+  method: "GET",
+  headers: {
+    "api-key": apiKey,
+    "Content-Type": "application/json"
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Packages:', data.message);
+  // Массив пакетов с информацией о прокси
+})
+.catch(error => console.error('Request failed:', error));
