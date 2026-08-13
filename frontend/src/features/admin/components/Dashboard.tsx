@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronLeft, ChevronRight, Search } from "lucide-react"
-import { useEffect, useMemo, useState, type FC } from "react"
+import { type FC, useEffect, useMemo, useState } from "react"
 
 import AdminNav from "@/features/admin/components/AdminNav"
 import UsersTable from "@/features/admin/components/UsersTable"
@@ -13,18 +13,18 @@ import Select from "@/shared/components/ui/Select"
 
 const PAGE_SIZE = 50
 
-const SORT_OPTIONS: { value: AdminUsersSortField; label: string }[] = [
-	{ value: "createdAt", label: "Дата регистрации" },
-	{ value: "balance", label: "Баланс" },
-	{ value: "premiumTrafficLeft", label: "Трафик: Residential" },
-	{ value: "premiumResidentialTrafficLeft", label: "Трафик: Premium Res" },
-	{ value: "ispUsaTrafficLeft", label: "Трафик: ISP USA" },
-	{ value: "ispEuTrafficLeft", label: "Трафик: ISP EU" },
-	{ value: "residentialLiteTrafficLeft", label: "Трафик: Res. Lite" },
-	{ value: "mobileGbTrafficLeft", label: "Трафик: Mobile GB" },
-	{ value: "mobileTrafficLeft", label: "Трафик: Mobile" },
-	{ value: "ipv6GbTrafficLeft", label: "Трафик: IPv6" }
+const TRAFFIC_SORT_OPTIONS: { value: AdminUsersSortField; label: string }[] = [
+	{ value: "premiumTrafficLeft", label: "Residential" },
+	{ value: "premiumResidentialTrafficLeft", label: "Premium Res" },
+	{ value: "ispUsaTrafficLeft", label: "ISP USA" },
+	{ value: "ispEuTrafficLeft", label: "ISP EU" },
+	{ value: "residentialLiteTrafficLeft", label: "Res. Lite" },
+	{ value: "mobileGbTrafficLeft", label: "Mobile GB" },
+	{ value: "mobileTrafficLeft", label: "Mobile" },
+	{ value: "ipv6GbTrafficLeft", label: "IPv6" }
 ]
+
+type SortGroup = "createdAt" | "balance" | "traffic"
 
 const inputCls =
 	"h-10 rounded-xl border border-white/15 bg-white/[0.05] px-3 text-[14px] text-white placeholder:text-white/35 outline-none transition-colors focus:border-[#6aa5ff]/50"
@@ -35,6 +35,8 @@ const Dashboard: FC = () => {
 	const [page, setPage] = useState(1)
 	const [sortBy, setSortBy] = useState<AdminUsersSortField>("createdAt")
 	const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
+	const sortGroup: SortGroup =
+		sortBy === "createdAt" || sortBy === "balance" ? sortBy : "traffic"
 
 	// Debounce поиска: не дёргаем бэк на каждый символ.
 	useEffect(() => {
@@ -46,7 +48,13 @@ const Dashboard: FC = () => {
 	}, [searchInput])
 
 	const params = useMemo(
-		() => ({ page, limit: PAGE_SIZE, search: search || undefined, sortBy, sortDir }),
+		() => ({
+			page,
+			limit: PAGE_SIZE,
+			search: search || undefined,
+			sortBy,
+			sortDir
+		}),
 		[page, search, sortBy, sortDir]
 	)
 	const { users, total, isLoading, isFetching } = useGetAllUsers(params)
@@ -61,7 +69,7 @@ const Dashboard: FC = () => {
 		)
 
 	return (
-		<div className="relative z-[1] flex w-full min-w-0 max-w-full flex-col gap-6">
+		<div className="relative z-[1] flex w-full max-w-full min-w-0 flex-col gap-6">
 			<h1 className="font-[TalosDisplay] text-4xl font-semibold text-white md:text-5xl">
 				Пользователи
 				<span className="ml-3 align-middle text-[15px] font-medium text-white/40">
@@ -82,33 +90,61 @@ const Dashboard: FC = () => {
 					/>
 				</div>
 				<Select
-					value={sortBy}
+					value={sortGroup}
 					onChange={value => {
-						setSortBy(value as AdminUsersSortField)
+						const group = value as SortGroup
+						setSortBy(
+							group === "traffic" ? "premiumTrafficLeft" : group
+						)
 						setPage(1)
 					}}
 					size="small"
-					ariaLabel="Поле сортировки пользователей"
-					className="!w-[220px]"
+					ariaLabel="Категория сортировки пользователей"
+					className="!w-[190px]"
 					buttonClassName="!h-10 !border !border-white/15 !bg-white/[0.05] !px-3"
 				>
-					{SORT_OPTIONS.map(o => (
-						<Select.Option key={o.value} value={o.value}>
-							{o.label}
-						</Select.Option>
-					))}
+					<Select.Option value="createdAt">
+						Дата регистрации
+					</Select.Option>
+					<Select.Option value="balance">Баланс</Select.Option>
+					<Select.Option value="traffic">Трафик</Select.Option>
 				</Select>
-				<button
-					type="button"
-					className={`${inputCls} cursor-pointer px-4 hover:bg-white/10`}
-					title="Направление сортировки"
-					onClick={() => {
-						setSortDir(d => (d === "desc" ? "asc" : "desc"))
+				{sortGroup === "traffic" ? (
+					<Select
+						value={sortBy}
+						onChange={value => {
+							setSortBy(value as AdminUsersSortField)
+							setPage(1)
+						}}
+						size="small"
+						ariaLabel="Тип трафика для сортировки"
+						className="!w-[170px]"
+						buttonClassName="!h-10 !border !border-white/15 !bg-white/[0.05] !px-3"
+					>
+						{TRAFFIC_SORT_OPTIONS.map(option => (
+							<Select.Option
+								key={option.value}
+								value={option.value}
+							>
+								{option.label}
+							</Select.Option>
+						))}
+					</Select>
+				) : null}
+				<Select
+					value={sortDir}
+					onChange={value => {
+						setSortDir(value as "asc" | "desc")
 						setPage(1)
 					}}
+					size="small"
+					ariaLabel="Порядок сортировки пользователей"
+					className="!w-[180px]"
+					buttonClassName="!h-10 !border !border-white/15 !bg-white/[0.05] !px-3"
 				>
-					{sortDir === "desc" ? "По убыванию ↓" : "По возрастанию ↑"}
-				</button>
+					<Select.Option value="desc">По убыванию ↓</Select.Option>
+					<Select.Option value="asc">По возрастанию ↑</Select.Option>
+				</Select>
 				{isFetching && <Loader weight={3} size={22} />}
 			</div>
 
