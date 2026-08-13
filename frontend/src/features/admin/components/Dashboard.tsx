@@ -9,6 +9,7 @@ import { useGetAllUsers } from "@/features/user/hooks/useGetAllUsers"
 import type { AdminUsersSortField } from "@/features/user/types/user.types"
 
 import Loader from "@/shared/components/ui/Loader/Loader"
+import Select from "@/shared/components/ui/Select"
 
 const PAGE_SIZE = 50
 
@@ -80,20 +81,23 @@ const Dashboard: FC = () => {
 						onChange={e => setSearchInput(e.target.value)}
 					/>
 				</div>
-				<select
-					className={`${inputCls} cursor-pointer [&>option]:bg-[#0e1830]`}
+				<Select
 					value={sortBy}
-					onChange={e => {
-						setSortBy(e.target.value as AdminUsersSortField)
+					onChange={value => {
+						setSortBy(value as AdminUsersSortField)
 						setPage(1)
 					}}
+					size="small"
+					ariaLabel="Поле сортировки пользователей"
+					className="!w-[220px]"
+					buttonClassName="!h-10 !border !border-white/15 !bg-white/[0.05] !px-3"
 				>
 					{SORT_OPTIONS.map(o => (
-						<option key={o.value} value={o.value}>
+						<Select.Option key={o.value} value={o.value}>
 							{o.label}
-						</option>
+						</Select.Option>
 					))}
-				</select>
+				</Select>
 				<button
 					type="button"
 					className={`${inputCls} cursor-pointer px-4 hover:bg-white/10`}
