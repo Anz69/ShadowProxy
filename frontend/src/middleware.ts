@@ -60,11 +60,6 @@ export default async function middleware(request: NextRequest) {
 		}
 	}
 
-	// Redirect /support to Telegram
-	if (pathWithoutLocale === "/support") {
-		return NextResponse.redirect("https://t.me/shadowproxysupport_bot", 302)
-	}
-
 	// Handle auth routes — redirect to dashboard ONLY if backend says session is valid
 	if (pathWithoutLocale.startsWith("/auth")) {
 		const valid = await isSessionValid(sessionValue)
@@ -117,7 +112,7 @@ export default async function middleware(request: NextRequest) {
 	}
 
 	// Handle protected routes — allow only with valid session from backend
-	// u-api can be accessed without auth (/support redirects above, /terms returns 404)
+	// u-api, terms and privacy can be accessed without authentication.
 	const publicPaths = ["/", "/u-api", "/terms", "/privacy"]
 	if (!pathWithoutLocale.startsWith("/auth") && !publicPaths.includes(pathWithoutLocale)) {
 		const valid = await isSessionValid(sessionValue)
