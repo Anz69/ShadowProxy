@@ -75,7 +75,7 @@ const AttachmentView = ({ att }: { att: SupportAttachment }) => {
 const MessageBubble = ({ msg, youLabel, supportLabel, locale }: { msg: SupportMessage; youLabel: string; supportLabel: string; locale: string }) => {
 	const isUser = msg.authorRole === "USER"
 	return (
-		<div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
+		<div className={`flex w-full flex-col ${isUser ? "items-end" : "items-start"}`}>
 			<div
 				className={`flex max-w-[85%] flex-col gap-2 rounded-[16px] px-4 py-3 md:max-w-[70%] ${
 					isUser
@@ -94,10 +94,10 @@ const MessageBubble = ({ msg, youLabel, supportLabel, locale }: { msg: SupportMe
 						))}
 					</div>
 				)}
-				<span className={`text-[11px] ${isUser ? "text-white/55" : "text-white/35 light:text-[#8a93a3]"}`}>
-					{fmtTime(msg.createdAt, locale)}
-				</span>
 			</div>
+			<span className={`mt-1 px-1 text-[11px] ${isUser ? "text-right text-white/45" : "text-left text-white/35 light:text-[#8a93a3]"}`}>
+				{fmtTime(msg.createdAt, locale)}
+			</span>
 		</div>
 	)
 }
