@@ -8,6 +8,7 @@ import { type FC, useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
 
 import { usePrices } from "@/features/proxy/hooks/usePrices"
+import { useCurrentSessionUser } from "@/features/user/hooks/useCurrentSessionUser"
 import type { User as UserType } from "@/features/user/types/user.types"
 import { UserRole } from "@/features/user/types/user.types"
 
@@ -32,6 +33,9 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 	const [isClicked, setIsClicked] = useState(false)
 	const [isMobileMenuOpened, setIsMobileMenuOpened] = useState(false)
 	const { prices, isLoading } = usePrices()
+	const { data: sessionUser } = useCurrentSessionUser(user)
+	// undefined = браузер ещё не перепроверил сессию; null = сервер подтвердил гостя.
+	const currentUser = sessionUser === undefined ? user : sessionUser
 
 	const router = useRouter()
 	const pathname = usePathname()
@@ -91,7 +95,7 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 	const isAdminRoute = basePath.startsWith("/admin")
 	const adminLink = getLocalizedLink("/admin")
 	const adminLabel = T("header.nav.admin")
-	const shouldShowAdminButton = user?.role === UserRole.Admin && !isAdminRoute
+	const shouldShowAdminButton = currentUser?.role === UserRole.Admin && !isAdminRoute
 
 	// Пункт навигации: стеклянная пилюля, активный = синяя подсветка по роуту.
 	const navCls = (route: string) => {
@@ -114,7 +118,7 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 		}
 		suppressHoverRef.current = true
 		setTimeout(() => { suppressHoverRef.current = false }, 700)
-		if (!user) {
+		if (!currentUser) {
 			router.push(getLocalizedLink("/auth/login"))
 			return
 		}
@@ -199,7 +203,7 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 						{T("header.nav.api")}
 					</Link>
 					<Link href={getLocalizedLink("/dashboard")} className={`${navCls("/dashboard")} whitespace-nowrap`}>
-						{user ? T("header.nav.dashboard") : T("header.nav.trial")}
+						{currentUser ? T("header.nav.dashboard") : T("header.nav.trial")}
 					</Link>
 				</nav>
 
@@ -223,18 +227,18 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 					</a>
 
 					<div className="hidden items-center gap-2.5 lg:flex">
-						{user && <NotificationBell locale={currentLocale} />}
+						{currentUser && <NotificationBell locale={currentLocale} />}
 						{shouldShowAdminButton && (
 							<Link href={adminLink} className={iconBtn} aria-label={adminLabel}>
 								<Monitor className="h-5 w-5" />
 								<span className="sr-only">{adminLabel}</span>
 							</Link>
 						)}
-						{user && pathname !== getLocalizedLink("/dashboard") ? (
+						{currentUser && pathname !== getLocalizedLink("/dashboard") ? (
 							<Link href={getLocalizedLink("/dashboard")} className={iconBtn} aria-label={T("header.userMenu.profile")}>
 								<User className="h-5 w-5" />
 							</Link>
-						) : !user ? (
+						) : !currentUser ? (
 							<button
 								type="button"
 								className="lg-btn lg-btn--primary lg-btn--sm"
@@ -302,8 +306,8 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 							<ChevronRight className={mChevron} />
 						</Link>
 						<Link href={getLocalizedLink("/dashboard")} className={`${mItem} [animation:sp-rise_.3s_ease_both] [animation-delay:120ms]`} onClick={() => setIsMobileMenuOpened(false)}>
-							<span className={mIconBox}>{user ? <LayoutDashboard className="h-[18px] w-[18px]" /> : <Zap className="h-[18px] w-[18px]" />}</span>
-							<span className="flex-1 text-left">{user ? T("header.nav.dashboard") : T("header.nav.trial")}</span>
+							<span className={mIconBox}>{currentUser ? <LayoutDashboard className="h-[18px] w-[18px]" /> : <Zap className="h-[18px] w-[18px]" />}</span>
+							<span className="flex-1 text-left">{currentUser ? T("header.nav.dashboard") : T("header.nav.trial")}</span>
 							<ChevronRight className={mChevron} />
 						</Link>
 
@@ -322,13 +326,13 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 						</div>
 
 						<div className="pt-1 [animation:sp-rise_.3s_ease_both] [animation-delay:240ms]">
-							{user && pathname !== getLocalizedLink("/dashboard") ? (
+							{currentUser && pathname !== getLocalizedLink("/dashboard") ? (
 								<Link href={getLocalizedLink("/dashboard")} className={mItem} onClick={() => setIsMobileMenuOpened(false)}>
 									<span className={mIconBox}><User className="h-[18px] w-[18px]" /></span>
 									<span className="flex-1 text-left">{T("header.userMenu.profile")}</span>
 									<ChevronRight className={mChevron} />
 								</Link>
-							) : !user ? (
+							) : !currentUser ? (
 								<button
 									type="button"
 									className="lg-btn lg-btn--primary lg-btn--block"

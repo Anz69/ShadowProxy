@@ -98,6 +98,21 @@ class UserService {
 			throw new Error(extractError(e))
 		}
 	}
+
+	/**
+	 * Проверка текущей сессии для persistent UI (например, Header).
+	 * 401 — нормальное состояние гостя, остальные ошибки оставляем React Query,
+	 * чтобы он повторил запрос и не зафиксировал временно неправильную роль.
+	 */
+	async getCurrentSessionUser(): Promise<User | null> {
+		try {
+			const res = await this.api.get<User>("/me")
+			return res.data
+		} catch (error) {
+			if (axios.isAxiosError(error) && error.response?.status === 401) return null
+			throw error
+		}
+	}
 }
 
 export const userService = new UserService()
