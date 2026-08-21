@@ -1,11 +1,10 @@
 import { useMutation } from "@tanstack/react-query"
-import { useRouter, usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { getLocalizedPath } from "@/shared/utils/getLocalizedPath"
 
 import { authService } from "@/features/auth/services/auth.service"
 
 export function useLogout() {
-	const router = useRouter()
 	const pathname = usePathname()
 
 	const { mutate: logout, isPending: isLoading } = useMutation({
@@ -13,7 +12,8 @@ export function useLogout() {
 		mutationFn: () => authService.logout(),
 		onSuccess: () => {
 			const localizedPath = getLocalizedPath(pathname, "/auth/login")
-			router.push(localizedPath)
+			// Полный переход очищает persistent layout с данными прошлого пользователя.
+			window.location.assign(localizedPath)
 		}
 	})
 
