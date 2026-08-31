@@ -34,8 +34,10 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 	const [isMobileMenuOpened, setIsMobileMenuOpened] = useState(false)
 	const { prices, isLoading } = usePrices()
 	const { data: sessionUser } = useCurrentSessionUser(user)
-	// undefined = браузер ещё не перепроверил сессию; null = сервер подтвердил гостя.
-	const currentUser = sessionUser === undefined ? user : sessionUser
+	// Серверный user уже подтверждён HttpOnly session-cookie. Браузерный запрос
+	// используется только как дополнительное обновление и не должен затирать его
+	// null-ответом из-за временного CORS/cookie/network сбоя.
+	const currentUser = sessionUser ?? user
 
 	const router = useRouter()
 	const pathname = usePathname()
@@ -92,10 +94,12 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 	const basePath = removeLocaleFromPath(pathname)
 	// Unified premium "header-light" capsule is applied on every page now
 	// (styles live in globals.css); no per-route header variant.
-	const isAdminRoute = basePath.startsWith("/admin")
 	const adminLink = getLocalizedLink("/admin")
 	const adminLabel = T("header.nav.admin")
-	const shouldShowAdminButton = currentUser?.role === UserRole.Admin && !isAdminRoute
+	// Роль могла прийти либо с SSR, либо после клиентской перепроверки. Достаточно
+	// любого подтверждённого ADMIN; кнопку показываем и внутри самой админки.
+	const shouldShowAdminButton =
+		user?.role === UserRole.Admin || sessionUser?.role === UserRole.Admin
 
 	// Пункт навигации: стеклянная пилюля, активный = синяя подсветка по роуту.
 	const navCls = (route: string) => {
