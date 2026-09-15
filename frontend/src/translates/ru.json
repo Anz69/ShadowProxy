@@ -72,12 +72,12 @@
 		},
 		"product": {
 			"residential": "Residential Proxy",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"ipv6": "IPv6 Proxy",
 			"premiumMobile": "Premium Mobile",
 			"premiumResidential": "Premium Residential",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"platform": {
@@ -172,7 +172,7 @@
 				"price": "от 1.5$/gb"
 			},
 			"mobile": {
-				"title": "Mobile Proxy",
+				"title": "Premium Mobile",
 				"description": "4G/5G прокси с ротацией по ссылке.<br/>Подходят для TikTok, Instagram, ADS и антидетекта.<br/>Максимально гибкая тарификация.",
 				"features": {
 					"real": "Реальные мобильные IP",
@@ -182,7 +182,7 @@
 				"price": "от 2.5$/gb"
 			},
 			"mobileGb": {
-				"title": "Mobile Proxy",
+				"title": "Premium Mobile",
 				"description": "Оплата только за использованный трафик.<br/>Лучший вариант для API-задач и автоматизации.",
 				"features": {
 					"speed": "Максимальная скорость",
@@ -227,10 +227,10 @@
 				}
 			},
 			"ispEu": {
-				"title": "ISP EU",
-				"description": "Статичные ISP-прокси Европы. Мультигео — выбор нескольких стран сразу. Высокая скорость, оплата за ГБ.",
+				"title": "ISP Netherlands",
+				"description": "Стабильные ISP-прокси Нидерландов. Единственное доступное гео — NL. Высокая скорость, оплата за ГБ.",
 				"features": {
-					"multigeo": "Мультигео — несколько стран",
+					"multigeo": "Единственное гео — Нидерланды",
 					"speed": "Высокая скорость",
 					"rotation": "Ротация по времени до 24ч"
 				}
@@ -310,10 +310,10 @@
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
 			"mobile": "Mobile GB",
-			"mobileNew": "Mobile Proxy",
+			"mobileNew": "Premium Mobile",
 			"ipv6": "IPv6",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"title": "Личный кабинет",
@@ -343,6 +343,16 @@
 			"support": "Поддержка",
 			"logout": "Выход",
 			"logoutInProgress": "Выход..."
+		},
+		"promo": {
+			"button": "Активировать промокод",
+			"title": "Активировать промокод",
+			"description": "Сумма промокода моментально зачислится на ваш баланс.",
+			"code": "Код",
+			"placeholder": "SHADOW-XXXXXXXXXX",
+			"activate": "Активировать",
+			"pending": "Активация…",
+			"success": "Промокод активирован: +{amount}$"
 		},
 		"packagesList": {
 			"title": "Список купленных пакетов",
@@ -448,11 +458,11 @@
 		"tariffTypes": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"mobileGb": "Mobile Proxy GB",
 			"ipv6": "IPv6",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"descriptions": {
@@ -462,7 +472,7 @@
 			"mobileGb": "Мобильные прокси с оплатой за ГБ. Ротация по запросу или по времени. Идеально для автоматизации и API-задач.",
 			"ipv6": "Серверные IPv6 с высокой скоростью и минимальной ценой. Идеальны для парсинга и SEO.",
 			"ispUsa": "Статичные ISP-прокси США. Высокая скорость и стабильность, оплата за ГБ.",
-			"ispEu": "Статичные ISP-прокси Европы. Мультигео — несколько стран сразу. Оплата за ГБ.",
+			"ispEu": "Стабильные ISP-прокси Нидерландов. Единственное доступное гео — NL. Оплата за ГБ.",
 			"residentialLite": "Резидентские прокси по доступной цене. Любая страна, оплата за ГБ."
 		},
 		"select": "Выбрать",
@@ -568,12 +578,12 @@
 		"packageTypes": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"isp": "ISP Proxy",
 			"ipv6": "IPv6 Proxy",
 			"default": "Proxy Package",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"trafficChart": {
@@ -659,11 +669,11 @@
 		"tariffs": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"mobileGb": "Mobile GB",
 			"ipv6": "IPv6 прокси",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"requireLinkTitle": "Чтобы активировать пробный период",

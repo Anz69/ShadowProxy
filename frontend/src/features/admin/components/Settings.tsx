@@ -16,7 +16,7 @@ const Settings: FC<SettingsProps> = ({ prices }) => {
 				Настройки
 			</h1>
 			<AdminNav active="/admin/settings" />
-			<div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-2">
+			<div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,.75fr)]">
 				<ProxyPricesModifier prices={prices} />
 				<Packages />
 			</div>

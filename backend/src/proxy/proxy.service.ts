@@ -92,6 +92,13 @@ export class ProxyService implements OnModuleInit {
         return this.configService.get<string>("USE_NODE_GATEWAY") === "true";
     }
 
+    private getPublicProxyHost(internalHost: string | null): string | null {
+        if (!internalHost) return internalHost;
+        const configured = this.configService.get<string>("PROXY_PUBLIC_HOST", "").trim();
+        if (!configured) return internalHost;
+        return configured.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").split(":")[0] || internalHost;
+    }
+
     async issueIspProxy(dto: IssueIspProxyDto, userId: string) {
         if (dto.location.length !== 2 && dto.location !== "GLOBAL") {
             throw new BadRequestException("validation.UNKNOWN_LOCATION_FORMAT");
@@ -836,7 +843,11 @@ export class ProxyService implements OnModuleInit {
         const currentPage = Math.min(Number(query.page), totalPages || 1);
 
         return {
-            data: proxyChunks[currentPage - 1] ?? [],
+            // В БД остаётся внутренний IP для control-plane, наружу отдаём DNS-имя.
+            data: (proxyChunks[currentPage - 1] ?? []).map((proxy) => ({
+                ...proxy,
+                serverHost: this.getPublicProxyHost(proxy.serverHost),
+            })),
             page: currentPage,
             totalPages,
             next: currentPage < totalPages,
@@ -1159,4 +1170,3 @@ export class ProxyService implements OnModuleInit {
         return { works: true, exitIp, country, pingMs, error: null };
     }
 }
-

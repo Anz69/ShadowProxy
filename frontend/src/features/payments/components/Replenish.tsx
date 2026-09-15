@@ -176,16 +176,6 @@ const Replenish: FC<ReplenishProps> = ({
 										tier="standard"
 										locale={locale}
 									/>
-									<ProxyTypeCard
-										isActive={tariff === "MOBILE"}
-										onSelect={() => setTariff("MOBILE")}
-										label={T("payment.tariffTypes.mobile")}
-										price={`${formatPrice(typeof prices.mobile === "number" ? prices.mobile : 0)}$ / ${T("payment.units.gb")}`}
-										description={T("payment.descriptions.mobile")}
-										icon="/tariff-mobile-gb.svg"
-										tier="standard"
-										locale={locale}
-									/>
 									{!isProxyTypeDisabled("RESIDENTIAL_LITE") && (
 									<ProxyTypeCard
 										isActive={tariff === "RESIDENTIAL_LITE"}
@@ -242,14 +232,13 @@ const Replenish: FC<ReplenishProps> = ({
 										locale={locale}
 									/>
 									<ProxyTypeCard
-										isActive={false}
-										onSelect={() => {}}
+										isActive={tariff === "MOBILE"}
+										onSelect={() => setTariff("MOBILE")}
 										label={T("main.proxyTypes.premiumMobile.title")}
-										price={T("main.proxyTypes.comingSoon")}
+										price={`${formatPrice(typeof prices.mobile === "number" ? prices.mobile : 0)}$ / ${T("payment.units.gb")}`}
 										description={T("main.proxyTypes.premiumMobile.description").replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "")}
 										icon="/tariff-mobile-gb.svg"
 										tier="premium"
-										comingSoon
 										locale={locale}
 									/>
 								</div>

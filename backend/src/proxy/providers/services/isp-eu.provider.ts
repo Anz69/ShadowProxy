@@ -2,9 +2,8 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { generateRandomString } from "../../../shared/utils/generate-random-string";
 
 /**
- * ISP EU (SPRINT-3, ТЗ п.2) — продажа по ГБ, через наш гейтвей. Поддерживает МУЛЬТИГЕО:
- * пользователь выбирает одну или несколько стран из списка, в upstream-строке они
- * перечисляются через запятую.
+ * ISP NL — продажа по ГБ через наш гейтвей. Публично доступно только гео NL.
+ * Тип ISP_EU оставлен в БД/API ради обратной совместимости существующих пакетов.
  *
  * Формат upstream-строки (в proxy_username на гейтвей):
  *   BY_REQUEST: gedfdvfwf8-country-DE            (или -country-DE,FR,NL)
@@ -17,9 +16,9 @@ export class IspEuProvider {
     private readonly portSocks = 31; // на будущее (гейтвей ходит по HTTP CONNECT)
     private readonly user = "gedfdvfwf8";
     private readonly pass = "o18geslcqi";
-    private readonly allowed = ["GB", "CA", "DE", "FR", "AU", "JP", "NL", "IT", "ES"];
+    private readonly allowed = ["NL"];
 
-    /** @param location ISO-2 одной страны или нескольких через запятую ("DE,FR,NL"). */
+    /** @param location ISO-2; в текущем продуктовом режиме допустим только NL. */
     createProxy(location: string | undefined, rotationTime?: number) {
         const codes = (location ?? "")
             .split(",")
@@ -27,11 +26,11 @@ export class IspEuProvider {
             .filter(Boolean);
 
         if (!codes.length) {
-            throw new BadRequestException("location обязателен для ISP EU");
+            throw new BadRequestException("location обязателен для ISP NL");
         }
         for (const c of codes) {
             if (!this.allowed.includes(c)) {
-                throw new BadRequestException(`Страна ${c} недоступна для ISP EU`);
+                throw new BadRequestException(`Страна ${c} недоступна для ISP NL`);
             }
         }
 

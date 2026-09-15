@@ -117,13 +117,20 @@ export class AdminService {
         await this.logger.log("SYSTEM", `Админ ${userId} установил новые цены`, userId, {
             ...dto,
         });
+		const current = await this.settingService.getValue<Record<string, unknown>>("proxy_tariffications");
         await this.settingService.setKey("proxy_tariffications", {
+			...(current ?? {}),
             resident_premium: dto.resident_premium,
             mobile_gb: dto.mobile_gb,
             ipv6_gb: dto.ipv6_gb,
             premium_residential: dto.premium_residential ?? 1.5,
+			isp_usa: dto.isp_usa ?? Number(current?.isp_usa ?? 1.5),
+			isp_eu: dto.isp_eu ?? Number(current?.isp_eu ?? 1.5),
+			residential_lite: dto.residential_lite ?? Number(current?.residential_lite ?? 0.9),
         });
-        await this.settingService.setKey("mobile_tariffications", { options: dto.mobile });
+		if (dto.mobile) {
+			await this.settingService.setKey("mobile_tariffications", { options: dto.mobile });
+		}
         return dto;
     }
 
@@ -157,10 +164,13 @@ export class AdminService {
             if (s === "MOBILE") return "mobile" as const;
             if (s === "MOBILE_GB") return "mobileGb" as const;
             if (s === "IPV6_GB") return "ipv6" as const;
+            if (s === "ISP_USA") return "ispUsa" as const;
+            if (s === "ISP_EU") return "ispEu" as const;
+            if (s === "RESIDENTIAL_LITE") return "residentialLite" as const;
             return undefined;
         };
 
-        const proxy = { ...zerosNum(), resident: zerosNum(), premium: zerosNum(), premiumResidential: zerosNum(), mobile: zerosNum(), mobileGb: zerosNum(), ipv6: zerosNum() };
+        const proxy = { ...zerosNum(), resident: zerosNum(), premium: zerosNum(), premiumResidential: zerosNum(), mobile: zerosNum(), mobileGb: zerosNum(), ipv6: zerosNum(), ispUsa: zerosNum(), ispEu: zerosNum(), residentialLite: zerosNum() };
         for (const p of allProxy) {
             const ts = new Date(p.createdAt).getTime();
             const key = mapType((p as { type?: string }).type);
@@ -190,6 +200,9 @@ export class AdminService {
             mobile: zerosNum(),
             mobileGb: zerosNum(),
             ipv6: zerosNum(),
+            ispUsa: zerosNum(),
+            ispEu: zerosNum(),
+            residentialLite: zerosNum(),
         };
         for (const log of repleinishLogs) {
             const ts = new Date(log.createdAt).getTime();
@@ -220,6 +233,9 @@ export class AdminService {
         const bytesPremiumResidential = zerosBig();
         const bytesMobileGb = zerosBig();
         const bytesIpv6 = zerosBig();
+        const bytesIspUsa = zerosBig();
+        const bytesIspEu = zerosBig();
+        const bytesResidentialLite = zerosBig();
 
         for (const log of usageLogs) {
             const ts = new Date(log.createdAt).getTime();
@@ -240,6 +256,9 @@ export class AdminService {
                 else if (key === "premiumResidential") bytesPremiumResidential.hour += used;
                 else if (key === "mobileGb") bytesMobileGb.hour += used;
                 else if (key === "ipv6") bytesIpv6.hour += used;
+                else if (key === "ispUsa") bytesIspUsa.hour += used;
+                else if (key === "ispEu") bytesIspEu.hour += used;
+                else if (key === "residentialLite") bytesResidentialLite.hour += used;
             }
             if (ts >= t.day) {
                 bytesAll.day += used;
@@ -248,6 +267,9 @@ export class AdminService {
                 else if (key === "premiumResidential") bytesPremiumResidential.day += used;
                 else if (key === "mobileGb") bytesMobileGb.day += used;
                 else if (key === "ipv6") bytesIpv6.day += used;
+                else if (key === "ispUsa") bytesIspUsa.day += used;
+                else if (key === "ispEu") bytesIspEu.day += used;
+                else if (key === "residentialLite") bytesResidentialLite.day += used;
             }
             if (ts >= t.week) {
                 bytesAll.week += used;
@@ -256,6 +278,9 @@ export class AdminService {
                 else if (key === "premiumResidential") bytesPremiumResidential.week += used;
                 else if (key === "mobileGb") bytesMobileGb.week += used;
                 else if (key === "ipv6") bytesIpv6.week += used;
+                else if (key === "ispUsa") bytesIspUsa.week += used;
+                else if (key === "ispEu") bytesIspEu.week += used;
+                else if (key === "residentialLite") bytesResidentialLite.week += used;
             }
             if (ts >= t.month) {
                 bytesAll.month += used;
@@ -264,6 +289,9 @@ export class AdminService {
                 else if (key === "premiumResidential") bytesPremiumResidential.month += used;
                 else if (key === "mobileGb") bytesMobileGb.month += used;
                 else if (key === "ipv6") bytesIpv6.month += used;
+                else if (key === "ispUsa") bytesIspUsa.month += used;
+                else if (key === "ispEu") bytesIspEu.month += used;
+                else if (key === "residentialLite") bytesResidentialLite.month += used;
             }
         }
 
@@ -311,6 +339,24 @@ export class AdminService {
                 week: toGb(bytesIpv6.week),
                 month: toGb(bytesIpv6.month),
             },
+            ispUsa: {
+                hour: toGb(bytesIspUsa.hour),
+                day: toGb(bytesIspUsa.day),
+                week: toGb(bytesIspUsa.week),
+                month: toGb(bytesIspUsa.month),
+            },
+            ispEu: {
+                hour: toGb(bytesIspEu.hour),
+                day: toGb(bytesIspEu.day),
+                week: toGb(bytesIspEu.week),
+                month: toGb(bytesIspEu.month),
+            },
+            residentialLite: {
+                hour: toGb(bytesResidentialLite.hour),
+                day: toGb(bytesResidentialLite.day),
+                week: toGb(bytesResidentialLite.week),
+                month: toGb(bytesResidentialLite.month),
+            },
         };
 
         return { proxy, replenish, usageGb, usersTotal };
@@ -334,6 +380,9 @@ export class AdminService {
             if (s === "MOBILE") return "mobile" as const;
             if (s === "MOBILE_GB") return "mobileGb" as const;
             if (s === "IPV6_GB") return "ipv6" as const;
+            if (s === "ISP_USA") return "ispUsa" as const;
+            if (s === "ISP_EU") return "ispEu" as const;
+            if (s === "RESIDENTIAL_LITE") return "residentialLite" as const;
             return undefined;
         };
 
@@ -449,10 +498,11 @@ export class AdminService {
             newUsersByMonth[mKey] = (newUsersByMonth[mKey] ?? 0) + 1;
         }
 
-        const emptyTraffic = () => ({ totalGb: 0, resident: 0, premium: 0, premiumResidential: 0, mobile: 0, mobileGb: 0, ipv6: 0 });
-        const trafficByDay: Record<string, { totalGb: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }> = {};
-        const trafficByWeek: Record<string, { totalGb: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }> = {};
-        const trafficByMonth: Record<string, { totalGb: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }> = {};
+        const emptyTraffic = () => ({ totalGb: 0, resident: 0, premium: 0, premiumResidential: 0, mobile: 0, mobileGb: 0, ipv6: 0, ispUsa: 0, ispEu: 0, residentialLite: 0 });
+        type TrafficBucket = ReturnType<typeof emptyTraffic>;
+        const trafficByDay: Record<string, TrafficBucket> = {};
+        const trafficByWeek: Record<string, TrafficBucket> = {};
+        const trafficByMonth: Record<string, TrafficBucket> = {};
         const GB = 1024 ** 3;
         for (const log of usageLogs) {
             let used = 0;
@@ -468,28 +518,13 @@ export class AdminService {
             const gb = used / GB;
             if (!trafficByDay[dKey]) trafficByDay[dKey] = emptyTraffic();
             trafficByDay[dKey].totalGb += gb;
-            if (typeKey === "resident") trafficByDay[dKey].resident += gb;
-            else if (typeKey === "premium") trafficByDay[dKey].premium += gb;
-            else if (typeKey === "premiumResidential") trafficByDay[dKey].premiumResidential += gb;
-            else if (typeKey === "mobile") trafficByDay[dKey].mobile += gb;
-            else if (typeKey === "mobileGb") trafficByDay[dKey].mobileGb += gb;
-            else if (typeKey === "ipv6") trafficByDay[dKey].ipv6 += gb;
+            if (typeKey) trafficByDay[dKey][typeKey] += gb;
             if (!trafficByWeek[wKey]) trafficByWeek[wKey] = emptyTraffic();
             trafficByWeek[wKey].totalGb += gb;
-            if (typeKey === "resident") trafficByWeek[wKey].resident += gb;
-            else if (typeKey === "premium") trafficByWeek[wKey].premium += gb;
-            else if (typeKey === "premiumResidential") trafficByWeek[wKey].premiumResidential += gb;
-            else if (typeKey === "mobile") trafficByWeek[wKey].mobile += gb;
-            else if (typeKey === "mobileGb") trafficByWeek[wKey].mobileGb += gb;
-            else if (typeKey === "ipv6") trafficByWeek[wKey].ipv6 += gb;
+            if (typeKey) trafficByWeek[wKey][typeKey] += gb;
             if (!trafficByMonth[mKey]) trafficByMonth[mKey] = emptyTraffic();
             trafficByMonth[mKey].totalGb += gb;
-            if (typeKey === "resident") trafficByMonth[mKey].resident += gb;
-            else if (typeKey === "premium") trafficByMonth[mKey].premium += gb;
-            else if (typeKey === "premiumResidential") trafficByMonth[mKey].premiumResidential += gb;
-            else if (typeKey === "mobile") trafficByMonth[mKey].mobile += gb;
-            else if (typeKey === "mobileGb") trafficByMonth[mKey].mobileGb += gb;
-            else if (typeKey === "ipv6") trafficByMonth[mKey].ipv6 += gb;
+            if (typeKey) trafficByMonth[mKey][typeKey] += gb;
         }
 
         const countDistinct = (arr: { userId: string | null }[]) => {
@@ -530,10 +565,14 @@ export class AdminService {
             if (s === "MOBILE") return "mobile" as const;
             if (s === "MOBILE_GB") return "mobileGb" as const;
             if (s === "IPV6_GB") return "ipv6" as const;
+            if (s === "ISP_USA") return "ispUsa" as const;
+            if (s === "ISP_EU") return "ispEu" as const;
+            if (s === "RESIDENTIAL_LITE") return "residentialLite" as const;
             return undefined;
         };
-        const emptyProxyBucket = () => ({ count: 0, resident: 0, premium: 0, premiumResidential: 0, mobile: 0, mobileGb: 0, ipv6: 0 });
-        const proxyByHour: Record<string, { count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }> = {};
+        const emptyProxyBucket = () => ({ count: 0, resident: 0, premium: 0, premiumResidential: 0, mobile: 0, mobileGb: 0, ipv6: 0, ispUsa: 0, ispEu: 0, residentialLite: 0 });
+        type ProxyBucket = ReturnType<typeof emptyProxyBucket>;
+        const proxyByHour: Record<string, ProxyBucket> = {};
         for (const p of proxies24h) {
             const key = hourStart(new Date(p.createdAt));
             if (!proxyByHour[key]) proxyByHour[key] = emptyProxyBucket();
@@ -541,7 +580,7 @@ export class AdminService {
             const tk = proxyTypeKey((p as { type: string }).type);
             if (tk) (proxyByHour[key] as any)[tk] += 1;
         }
-        const proxyByDay: Record<string, { count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }> = {};
+        const proxyByDay: Record<string, ProxyBucket> = {};
         for (const p of proxies24d) {
             const key = dayStart(new Date(p.createdAt));
             if (!proxyByDay[key]) proxyByDay[key] = emptyProxyBucket();
@@ -549,7 +588,7 @@ export class AdminService {
             const tk = proxyTypeKey((p as { type: string }).type);
             if (tk) (proxyByDay[key] as any)[tk] += 1;
         }
-        const proxyByWeek: Record<string, { count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }> = {};
+        const proxyByWeek: Record<string, ProxyBucket> = {};
         for (const p of proxies12w) {
             const key = weekStart(new Date(p.createdAt));
             if (!proxyByWeek[key]) proxyByWeek[key] = emptyProxyBucket();
@@ -557,7 +596,7 @@ export class AdminService {
             const tk = proxyTypeKey((p as { type: string }).type);
             if (tk) (proxyByWeek[key] as any)[tk] += 1;
         }
-        const proxyByMonth: Record<string, { count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }> = {};
+        const proxyByMonth: Record<string, ProxyBucket> = {};
         for (const p of proxies12m) {
             const key = monthStart(new Date(p.createdAt));
             if (!proxyByMonth[key]) proxyByMonth[key] = emptyProxyBucket();
@@ -593,6 +632,9 @@ export class AdminService {
             mobile: usageGb.mobile.month === 999 ? 0 : usageGb.mobile.month,
             mobileGb: usageGb.mobileGb.month,
             ipv6: usageGb.ipv6.month,
+            ispUsa: usageGb.ispUsa.month,
+            ispEu: usageGb.ispEu.month,
+            residentialLite: usageGb.residentialLite.month,
         };
 
         const activeUsersByHour = sortKeys(activeByHour).map((date) => ({ date, count: activeByHour[date].size }));

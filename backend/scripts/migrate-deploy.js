@@ -2,30 +2,11 @@
 /**
  * Универсальный скрипт для безопасного деплоя миграций Prisma.
  * Автоматически резолвит все failed миграции перед применением новых.
- * Luna→Mango миграция всегда выполняется в конце при билде/деплое.
+ * Data-миграции провайдеров намеренно НЕ запускаются автоматически.
+ * Они требуют отдельного dry-run и явного --execute после деплоя.
  */
 
 const { execSync } = require('child_process');
-
-async function runLunaToMango() {
-  console.log('🔄 Running Luna→Mango data migration...');
-  try {
-    const { runLunaToMangoMigration } = require('./luna-to-mango-migrate.js');
-    await runLunaToMangoMigration();
-    console.log('✅ Luna→Mango migration completed.');
-  } catch (e) {
-    const msg = e && e.message ? e.message : String(e);
-    console.error('Luna→Mango migration error:', msg);
-    if (e && e.stack) console.error(e.stack);
-    if (msg.includes('Unexpected end of input') || msg.includes('Unexpected end of JSON')) {
-      console.log('(Деплой продолжаем; при необходимости: npm run script:luna-to-mango)');
-    } else if (msg.includes('invalid port number') || msg.includes('invalid database string') || msg.includes('connection string')) {
-      console.log('(Проверьте DATABASE_URL в backend/.env. Деплой продолжаем.)');
-    } else {
-      process.exit(1);
-    }
-  }
-}
 
 function run(command, options = {}) {
   try {
@@ -53,7 +34,6 @@ async function main() {
   if (result.success) {
     console.log('✅ Migration deploy completed successfully!');
     console.log(result.output);
-    await runLunaToMango();
     return;
   }
 
@@ -85,7 +65,6 @@ async function main() {
       console.log('🚀 Retrying prisma migrate deploy...');
       run('npx prisma migrate deploy');
       console.log('✅ Migration deploy completed!');
-      await runLunaToMango();
       return;
     }
   }
@@ -96,8 +75,6 @@ async function main() {
   if (result.success) {
     console.log('✅ Migration deploy completed!');
   }
-  // Luna→Mango всегда выполняется в конце (при билде/деплое)
-  await runLunaToMango();
 }
 
 main().catch((error) => {

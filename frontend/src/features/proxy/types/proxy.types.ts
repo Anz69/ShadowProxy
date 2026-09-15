@@ -58,6 +58,7 @@ export type Prices = {
 	isp_usa?: number
 	isp_eu?: number
 	residential_lite?: number
+	minimum_prices?: Partial<Record<"resident_premium" | "premium_residential" | "mobile" | "mobile_gb" | "ipv6_gb" | "isp_usa" | "isp_eu" | "residential_lite", number>>
 }
 
 export type ProxyStaticLocations =

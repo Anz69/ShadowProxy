@@ -7,7 +7,6 @@ import { AlertCircle, Plus, KeyRound, LifeBuoy } from "lucide-react"
 import PageBackground from "@/shared/components/widgets/PageBackground"
 import { getLocaleFromPath, addLocaleToPath } from "@/shared/utils/getLocaleFromPath"
 import { t } from "@/shared/utils/i18n"
-import { useMyPackages } from "@/features/packages/hooks/useMyPackages"
 import TrafficChart from "@/features/dashboard/components/TrafficChart"
 import ProxyGenerator from "@/features/dashboard/components/ProxyGenerator"
 import RedeemKeyModal from "@/features/keys/components/RedeemKeyModal"
@@ -125,7 +124,6 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 	const currentLocale = getLocaleFromPath(pathname)
 	const T = (key: string) => t(key, currentLocale)
 	const { open } = useModalStore()
-	const { userPackages } = useMyPackages()
 	const { data: myReview } = useMyReview()
 	const canLeaveReview =
 		!myReview?.hasReview &&
@@ -151,10 +149,6 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 		return () => clearInterval(interval)
 	}, [initialUser])
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const currentUserPackage = userPackages && Array.isArray(userPackages) ? userPackages.find((up: any) => up.id === packageData.id) : null
-	const activeProxies = currentUserPackage?.activeProxies || []
-	
 	const getLocalizedPath = (path: string) => {
 		return addLocaleToPath(path, currentLocale)
 	}
@@ -168,7 +162,7 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 				return T("package.packageTypes.premiumResidential")
 			case "MOBILE":
 			case "MOBILE_GB":
-				return T("package.packageTypes.mobile")
+				return T("main.proxyTypes.premiumMobile.title")
 			case "IPV6_GB":
 				return T("package.packageTypes.ipv6")
 			case "ISP":
@@ -193,7 +187,7 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 			case "PREMIUM_RESIDENTIAL":
 				return "Premium Residential"
 			case "MOBILE":
-				return "Mobile Proxy"
+				return "Premium Mobile"
 			case "MOBILE_GB":
 				return "Mobile GB"
 			case "ISP":
@@ -203,7 +197,7 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 		}
 	}
 
-	const stars = packageType === "RESIDENT" ? 3 : packageType === "RESIDENT_PREMIUM" ? 4 : 0
+	const stars = packageType === "RESIDENT" ? 3 : packageType === "PREMIUM_RESIDENTIAL" ? 5 : packageType === "RESIDENT_PREMIUM" ? 4 : 0
 	const showStars = stars > 0
 	
 	const getRatingText = () => {
@@ -314,7 +308,7 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 				{/* Chart + generator */}
 				<div className="grid grid-cols-1 items-stretch gap-5 2xl:grid-cols-[1.25fr_1fr]">
 					<TrafficChart packageId={packageData.id} />
-					<ProxyGenerator packageId={packageData.id} existingProxies={activeProxies} packageType={packageType} />
+					<ProxyGenerator packageId={packageData.id} packageType={packageType} />
 				</div>
 
 				{/* ТЗ 1.3: баннер «Нужна помощь?» на странице генерации — glass, ненавязчиво */}
@@ -344,4 +338,3 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 		</main>
 	)
 }
-

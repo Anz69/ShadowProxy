@@ -30,10 +30,10 @@ const TRAFFIC_FIELDS: { key: keyof AdminUser; label: string }[] = [
 	{ key: "premiumTrafficLeft", label: "Residential" },
 	{ key: "premiumResidentialTrafficLeft", label: "Premium Res" },
 	{ key: "ispUsaTrafficLeft", label: "ISP USA" },
-	{ key: "ispEuTrafficLeft", label: "ISP EU" },
+	{ key: "ispEuTrafficLeft", label: "ISP Netherlands" },
 	{ key: "residentialLiteTrafficLeft", label: "Res. Lite" },
 	{ key: "mobileGbTrafficLeft", label: "Mobile GB" },
-	{ key: "mobileTrafficLeft", label: "Mobile" },
+	{ key: "mobileTrafficLeft", label: "Premium Mobile" },
 	{ key: "ipv6GbTrafficLeft", label: "IPv6" }
 ]
 

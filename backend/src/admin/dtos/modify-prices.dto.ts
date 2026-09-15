@@ -29,8 +29,24 @@ export class ModifyPricesDto {
     @IsPositive({ message: "validation.NOT_POSITIVE".internationalize() })
     premium_residential?: number;
 
+    @IsOptional()
+    @IsNumber({}, { message: "validation.NOT_NUMBER".internationalize() })
+    @IsPositive({ message: "validation.NOT_POSITIVE".internationalize() })
+    isp_usa?: number;
+
+    @IsOptional()
+    @IsNumber({}, { message: "validation.NOT_NUMBER".internationalize() })
+    @IsPositive({ message: "validation.NOT_POSITIVE".internationalize() })
+    isp_eu?: number;
+
+    @IsOptional()
+    @IsNumber({}, { message: "validation.NOT_NUMBER".internationalize() })
+    @IsPositive({ message: "validation.NOT_POSITIVE".internationalize() })
+    residential_lite?: number;
+
+    @IsOptional()
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => MobilePriceDto)
-    mobile: MobilePriceDto[];
+    mobile?: MobilePriceDto[];
 }

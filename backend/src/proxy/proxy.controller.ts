@@ -162,7 +162,7 @@ export class ProxyController {
             options: { price: number; rentTime: number }[];
         }>("mobile_tariffications");
         const mobileGbPrice = proxyTariffications?.mobile_gb ?? 0.5;
-        return {
+		const basePrices = {
             resident_premium: proxyTariffications?.resident_premium ?? 1.2,
             premium_residential: proxyTariffications?.premium_residential ?? 1.5,
             mobile_gb: mobileGbPrice,
@@ -176,6 +176,33 @@ export class ProxyController {
             // Legacy time-based options сохранены для совместимости со старыми клиентами
             mobile_legacy_options: mobileTariffications?.options ?? [],
         };
+		const packageTypeToPriceKey: Record<string, keyof typeof basePrices> = {
+			RESIDENT_PREMIUM: "resident_premium",
+			PREMIUM_RESIDENTIAL: "premium_residential",
+			MOBILE: "mobile",
+			MOBILE_GB: "mobile_gb",
+			IPV6_GB: "ipv6_gb",
+			ISP_USA: "isp_usa",
+			ISP_EU: "isp_eu",
+			RESIDENTIAL_LITE: "residential_lite",
+		};
+		const minimumPrices: Record<string, number> = Object.fromEntries(
+			Object.entries(basePrices)
+				.filter(([, value]) => typeof value === "number")
+				.map(([key, value]) => [key, value as number]),
+		);
+		const packagePresets = await this.prisma.package.findMany({ select: { type: true, traffic: true, price: true } });
+		for (const preset of packagePresets) {
+			const key = packageTypeToPriceKey[preset.type];
+			if (!key || key === "mobile_legacy_options") continue;
+			const bytes = BigInt(preset.traffic || "0");
+			const paid = Number(preset.price);
+			if (bytes <= 0n || !(paid > 0)) continue;
+			const units = preset.type === "IPV6_GB" ? Number(bytes) : Number(bytes) / 1024 ** 3;
+			const perGb = paid / units;
+			if (Number.isFinite(perGb) && perGb > 0) minimumPrices[key] = Math.min(minimumPrices[key] ?? perGb, perGb);
+		}
+		return { ...basePrices, minimum_prices: minimumPrices };
     }
 
     @Patch("/modify")

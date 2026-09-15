@@ -77,7 +77,7 @@
 			"premiumMobile": "高级移动代理",
 			"premiumResidential": "高级住宅代理",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"platform": {
@@ -172,7 +172,7 @@
 				"price": "从 $1.5/gb"
 			},
 			"mobile": {
-				"title": "Mobile Proxy",
+				"title": "Premium Mobile",
 				"description": "带链接轮换的4G/5G代理。<br/>适合TikTok、Instagram、广告和反检测。<br/>最灵活的定价。",
 				"features": {
 					"real": "真实移动IP",
@@ -182,7 +182,7 @@
 				"price": "从 $2.5/gb"
 			},
 			"mobileGb": {
-				"title": "Mobile Proxy",
+				"title": "Premium Mobile",
 				"description": "仅按使用流量付费。<br/>API任务和自动化的最佳选择。",
 				"features": {
 					"speed": "最大速度",
@@ -227,10 +227,10 @@
 				}
 			},
 			"ispEu": {
-				"title": "ISP EU",
-				"description": "欧洲静态 ISP 代理。多地理位置——可同时选择多个国家。高速，按 GB 计费。",
+				"title": "ISP Netherlands",
+				"description": "稳定的荷兰 ISP 代理。唯一可用地区为 NL。高速，按 GB 计费。",
 				"features": {
-					"multigeo": "多地理位置——多个国家",
+					"multigeo": "唯一地区——荷兰",
 					"speed": "高速",
 					"rotation": "按时间轮换，最长 24 小时"
 				}
@@ -333,6 +333,16 @@
 			"logout": "退出",
 			"logoutInProgress": "退出中..."
 		},
+		"promo": {
+			"button": "激活优惠码",
+			"title": "激活优惠码",
+			"description": "优惠码金额将立即存入您的余额。",
+			"code": "优惠码",
+			"placeholder": "SHADOW-XXXXXXXXXX",
+			"activate": "激活",
+			"pending": "激活中…",
+			"success": "优惠码已激活：+${amount}"
+		},
 		"packagesList": {
 			"title": "已购买套餐列表",
 			"empty": "您没有活动套餐"
@@ -342,10 +352,10 @@
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
 			"mobile": "Mobile GB",
-			"mobileNew": "Mobile Proxy",
+			"mobileNew": "Premium Mobile",
 			"ipv6": "IPv6",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"proxyPackage": {
@@ -448,11 +458,11 @@
 		"tariffTypes": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"mobileGb": "移动代理 GB",
 			"ipv6": "IPv6",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"descriptions": {
@@ -462,7 +472,7 @@
 			"mobileGb": "按GB付费的移动代理。按请求或按时间轮换。非常适合自动化和API任务。",
 			"ipv6": "高速且价格最低的服务器IPv6。非常适合解析和SEO。",
 			"ispUsa": "美国静态 ISP 代理。高速稳定，按 GB 计费。",
-			"ispEu": "欧洲静态 ISP 代理。多地理位置——可同时选择多个国家。按 GB 计费。",
+			"ispEu": "稳定的荷兰 ISP 代理。唯一可用地区为 NL。按 GB 计费。",
 			"residentialLite": "价格实惠的住宅代理。任意国家，按 GB 计费。"
 		},
 		"select": "选择",
@@ -568,12 +578,12 @@
 		"packageTypes": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"isp": "ISP Proxy",
 			"ipv6": "IPv6 Proxy",
 			"default": "Proxy Package",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"trafficChart": {
@@ -659,11 +669,11 @@
 		"tariffs": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"mobileGb": "Mobile GB",
 			"ipv6": "IPv6 代理",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"requireLinkTitle": "激活试用前",

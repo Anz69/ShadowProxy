@@ -35,12 +35,12 @@ import { formatTimeLeft } from "@/shared/utils/format-time-left"
 const proxyTypeLabel = {
 	RESIDENT: "Резидентские",
 	RESIDENT_PREMIUM: "Премиум",
-	MOBILE: "Мобильные",
+	MOBILE: "Premium Mobile",
 	MOBILE_GB: "Мобильные ГБ",
 	IPV6_GB: "IPv6 ГБ",
 	PREMIUM_RESIDENTIAL: "Premium Residential",
 	ISP_USA: "ISP USA",
-	ISP_EU: "ISP EU",
+	ISP_EU: "ISP Netherlands",
 	RESIDENTIAL_LITE: "Residential Lite"
 }
 
@@ -60,8 +60,11 @@ const proxyTypeMapping: Map<ProxyTypeLabel, ProxyType> = new Map()
 	.set("Mobile", "MOBILE")
 	.set("MobileGb", "MOBILE_GB")
 	.set("Ipv6Gb", "IPV6_GB")
+	.set("IspUsa", "ISP_USA")
+	.set("IspNetherlands", "ISP_EU")
+	.set("ResidentialLite", "RESIDENTIAL_LITE")
 
-type ProxyTypeLabel = "Residental" | "Premium" | "PremiumResidential" | "Mobile" | "MobileGb" | "Ipv6Gb"
+type ProxyTypeLabel = "Residental" | "Premium" | "PremiumResidential" | "Mobile" | "MobileGb" | "Ipv6Gb" | "IspUsa" | "IspNetherlands" | "ResidentialLite"
 
 type ProxyTableProps = {
 	locations: Locations

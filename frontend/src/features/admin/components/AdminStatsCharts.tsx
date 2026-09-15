@@ -1,7 +1,7 @@
 "use client"
 
 import { type FC, useState } from "react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import type { AdminChartsStats } from "@/features/admin/types/admin.types"
 import Card from "@/shared/components/ui/Card"
 
@@ -12,11 +12,15 @@ const PERIODS = [
 ]
 
 /** Типы трафика для выбора (без Mobile Time) */
-const TRAFFIC_TYPE_OPTIONS: { key: "totalGb" | "premium" | "premiumResidential" | "mobileGb" | "ipv6"; label: string }[] = [
+type TrafficTypeKey = "totalGb" | "premium" | "premiumResidential" | "mobileGb" | "ispUsa" | "ispEu" | "residentialLite" | "ipv6"
+const TRAFFIC_TYPE_OPTIONS: { key: TrafficTypeKey; label: string }[] = [
 	{ key: "totalGb", label: "Общий" },
 	{ key: "premium", label: "Residential Proxy" },
 	{ key: "premiumResidential", label: "Premium Residential" },
 	{ key: "mobileGb", label: "Mobile GB" },
+	{ key: "ispUsa", label: "ISP USA" },
+	{ key: "ispEu", label: "ISP Netherlands" },
+	{ key: "residentialLite", label: "Residential Lite" },
 	{ key: "ipv6", label: "IPv6" },
 ]
 
@@ -28,12 +32,16 @@ const ACTIVITY_PERIODS = [
 ]
 
 /** Тип прокси для графика генераций (общий + по типам, включая Mobile Time) */
-const PROXY_GEN_TYPE_OPTIONS: { key: "count" | "premium" | "premiumResidential" | "mobile" | "mobileGb" | "ipv6"; label: string }[] = [
+type ProxyGenerationTypeKey = "count" | "premium" | "premiumResidential" | "mobile" | "mobileGb" | "ispUsa" | "ispEu" | "residentialLite" | "ipv6"
+const PROXY_GEN_TYPE_OPTIONS: { key: ProxyGenerationTypeKey; label: string }[] = [
 	{ key: "count", label: "Общий" },
 	{ key: "premium", label: "Residential Proxy" },
 	{ key: "premiumResidential", label: "Premium Residential" },
-	{ key: "mobile", label: "Mobile Time" },
+	{ key: "mobile", label: "Premium Mobile" },
 	{ key: "mobileGb", label: "Mobile GB" },
+	{ key: "ispUsa", label: "ISP USA" },
+	{ key: "ispEu", label: "ISP Netherlands" },
+	{ key: "residentialLite", label: "Residential Lite" },
 	{ key: "ipv6", label: "IPv6" },
 ]
 
@@ -44,11 +52,11 @@ type AdminStatsChartsProps = {
 const AdminStatsCharts: FC<AdminStatsChartsProps> = ({ chartsData }) => {
 	const [revenuePeriod, setRevenuePeriod] = useState<"day" | "week" | "month">("week")
 	const [newUsersPeriod, setNewUsersPeriod] = useState<"day" | "week" | "month">("week")
-	const [trafficType, setTrafficType] = useState<"totalGb" | "premium" | "premiumResidential" | "mobileGb" | "ipv6">("totalGb")
+	const [trafficType, setTrafficType] = useState<TrafficTypeKey>("totalGb")
 	const [trafficPeriod, setTrafficPeriod] = useState<"day" | "week" | "month">("day")
 	const [activeUsersPeriod, setActiveUsersPeriod] = useState<"hour" | "day" | "week" | "month">("week")
 	const [proxyGenPeriod, setProxyGenPeriod] = useState<"hour" | "day" | "week" | "month">("week")
-	const [proxyGenType, setProxyGenType] = useState<"count" | "premium" | "premiumResidential" | "mobile" | "mobileGb" | "ipv6">("count")
+	const [proxyGenType, setProxyGenType] = useState<ProxyGenerationTypeKey>("count")
 
 	const revenuePoints =
 		chartsData?.revenue?.[revenuePeriod === "day" ? "byDay" : revenuePeriod === "week" ? "byWeek" : "byMonth"] ?? []
@@ -71,7 +79,7 @@ const AdminStatsCharts: FC<AdminStatsChartsProps> = ({ chartsData }) => {
 	const proxyGenDataKey = proxyGenType
 
 	return (
-		<div className="flex w-full flex-col gap-8">
+		<div className="grid w-full grid-cols-1 gap-5 xl:grid-cols-2">
 			{/* 1) Оборот */}
 			<Card>
 				<h2 className="mb-4 font-[TalosDisplay] text-2xl font-semibold text-white">Оборот</h2>

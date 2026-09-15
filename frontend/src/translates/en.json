@@ -71,12 +71,12 @@
 		},
 		"product": {
 			"residential": "Residential Proxy",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"ipv6": "IPv6 Proxy",
 			"premiumMobile": "Premium Mobile",
 			"premiumResidential": "Premium Residential",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"platform": {
@@ -171,7 +171,7 @@
 				"price": "from $1.5/gb"
 			},
 			"mobile": {
-				"title": "Mobile Proxy",
+				"title": "Premium Mobile",
 				"description": "4G/5G proxies with link rotation.<br/>Suitable for TikTok, Instagram, ADS and anti-detect.<br/>Maximum flexible pricing.",
 				"features": {
 					"real": "Real mobile IPs",
@@ -181,7 +181,7 @@
 				"price": "from $2.5/gb"
 			},
 			"mobileGb": {
-				"title": "Mobile Proxy",
+				"title": "Premium Mobile",
 				"description": "Pay only for used traffic.<br/>Best option for API tasks and automation.",
 				"features": {
 					"speed": "Maximum speed",
@@ -226,10 +226,10 @@
 				}
 			},
 			"ispEu": {
-				"title": "ISP EU",
-				"description": "Static ISP proxies across Europe. Multigeo — pick several countries at once. High speed, pay per GB.",
+				"title": "ISP Netherlands",
+				"description": "Stable Netherlands ISP proxies. The only available location is NL. High speed, pay per GB.",
 				"features": {
-					"multigeo": "Multigeo — several countries",
+					"multigeo": "Only location — Netherlands",
 					"speed": "High speed",
 					"rotation": "Time rotation up to 24h"
 				}
@@ -332,6 +332,16 @@
 			"logout": "Logout",
 			"logoutInProgress": "Logging out..."
 		},
+		"promo": {
+			"button": "Activate promo code",
+			"title": "Activate promo code",
+			"description": "The promo amount will be credited to your balance instantly.",
+			"code": "Code",
+			"placeholder": "SHADOW-XXXXXXXXXX",
+			"activate": "Activate",
+			"pending": "Activating…",
+			"success": "Promo code activated: +${amount}"
+		},
 		"packagesList": {
 			"title": "List of purchased packages",
 			"empty": "You have no active packages"
@@ -341,10 +351,10 @@
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
 			"mobile": "Mobile GB",
-			"mobileNew": "Mobile Proxy",
+			"mobileNew": "Premium Mobile",
 			"ipv6": "IPv6",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"proxyPackage": {
@@ -447,11 +457,11 @@
 		"tariffTypes": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"mobileGb": "Mobile Proxy GB",
 			"ipv6": "IPv6",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"descriptions": {
@@ -461,7 +471,7 @@
 			"mobileGb": "Mobile proxies with pay-per-GB. Rotation on request or by time. Ideal for automation and API tasks.",
 			"ipv6": "Server IPv6 with high speed and minimal price. Ideal for parsing and SEO.",
 			"ispUsa": "Static US ISP proxies. High speed and stability, pay per GB.",
-			"ispEu": "Static European ISP proxies. Multigeo — several countries at once. Pay per GB.",
+			"ispEu": "Stable Netherlands ISP proxies. The only available location is NL. Pay per GB.",
 			"residentialLite": "Residential proxies at an affordable price. Any country, pay per GB."
 		},
 		"select": "Select",
@@ -567,12 +577,12 @@
 		"packageTypes": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"isp": "ISP Proxy",
 			"ipv6": "IPv6 Proxy",
 			"default": "Proxy Package",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"trafficChart": {
@@ -655,11 +665,11 @@
 		"tariffs": {
 			"resident": "Residential Proxy",
 			"premiumResidential": "Premium Residential",
-			"mobile": "Mobile Proxy",
+			"mobile": "Premium Mobile",
 			"mobileGb": "Mobile GB",
 			"ipv6": "IPv6 Proxy",
 			"ispUsa": "ISP USA",
-			"ispEu": "ISP EU",
+			"ispEu": "ISP Netherlands",
 			"residentialLite": "Residential Lite"
 		},
 		"requireLinkTitle": "To activate the trial",

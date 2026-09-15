@@ -1,0 +1,34 @@
+enum PromoCodeMode {
+  ONE_TIME
+  MULTI_USE
+}
+
+model PromoCode {
+  id              String        @id @default(uuid(4))
+  code            String        @unique
+  amount          Decimal       @db.Decimal(65, 30)
+  expiresAt       DateTime      @map("expires_at")
+  mode            PromoCodeMode @default(MULTI_USE)
+  active          Boolean       @default(true)
+  activationCount Int           @default(0) @map("activation_count")
+  redemptions     PromoRedemption[]
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@index([active, expiresAt])
+  @@map("promo_codes")
+}
+
+model PromoRedemption {
+  id          String    @id @default(uuid(4))
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  promoCodeId String    @map("promo_code_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id")
+  amount      Decimal   @db.Decimal(65, 30)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([promoCodeId, userId])
+  @@index([userId])
+  @@map("promo_redemptions")
+}

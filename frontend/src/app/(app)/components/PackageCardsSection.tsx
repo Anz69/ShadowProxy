@@ -13,7 +13,7 @@ import type { Package } from "@/features/packages/types/packages.types"
 import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
 
 type PackageType = "RESIDENT" | "RESIDENT_PREMIUM" | "MOBILE" | "MOBILE_GB" | "IPV6_GB" | "PREMIUM_RESIDENTIAL" | "ISP_USA" | "ISP_EU" | "RESIDENTIAL_LITE"
-type CardType = PackageType | "PREMIUM_MOBILE_PLACEHOLDER"
+type CardType = PackageType
 
 type CardData = {
 	type: CardType
@@ -43,14 +43,14 @@ const buildCards = (T: (key: string) => string): CardData[] => [
 	{
 		type: "MOBILE",
 		icon: "/tariff-mobile-gb.svg",
-		title: T("main.proxyTypes.mobile.title"),
-		description: stripHtml(T("main.proxyTypes.mobile.description")),
+		title: T("main.proxyTypes.premiumMobile.title"),
+		description: stripHtml(T("main.proxyTypes.premiumMobile.description")),
 		features: [
-			T("main.proxyTypes.mobile.features.real"),
-			T("main.proxyTypes.mobile.features.speed"),
-			T("main.proxyTypes.mobile.features.geo")
+			T("main.proxyTypes.premiumMobile.features.geo"),
+			T("main.proxyTypes.premiumMobile.features.rotation"),
+			T("main.proxyTypes.premiumMobile.features.uptime")
 		],
-		tier: "standard"
+		tier: "premium"
 	},
 	{
 		type: "RESIDENTIAL_LITE",
@@ -100,19 +100,6 @@ const buildCards = (T: (key: string) => string): CardData[] => [
 		],
 		tier: "premium"
 	},
-	{
-		type: "PREMIUM_MOBILE_PLACEHOLDER",
-		icon: "/tariff-mobile-gb.svg",
-		title: T("main.proxyTypes.premiumMobile.title"),
-		description: stripHtml(T("main.proxyTypes.premiumMobile.description")),
-		features: [
-			T("main.proxyTypes.premiumMobile.features.geo"),
-			T("main.proxyTypes.premiumMobile.features.rotation"),
-			T("main.proxyTypes.premiumMobile.features.uptime")
-		],
-		tier: "premium",
-		comingSoon: true
-	}
 ]
 
 type Props = {
@@ -136,11 +123,23 @@ function cheapestPricePerGb(
 	else if (type === "ISP_USA") p = prices.isp_usa ?? 0
 	else if (type === "ISP_EU") p = prices.isp_eu ?? 0
 	else if (type === "RESIDENTIAL_LITE") p = prices.residential_lite ?? 0
+	const keyByType = {
+		RESIDENT_PREMIUM: "resident_premium",
+		MOBILE_GB: "mobile_gb",
+		IPV6_GB: "ipv6_gb",
+		PREMIUM_RESIDENTIAL: "premium_residential",
+		MOBILE: "mobile",
+		ISP_USA: "isp_usa",
+		ISP_EU: "isp_eu",
+		RESIDENTIAL_LITE: "residential_lite"
+	} as const
+	const apiMinimum = prices.minimum_prices?.[keyByType[type]]
+	if (apiMinimum && apiMinimum > 0) p = Math.min(p || apiMinimum, apiMinimum)
 
 	let cheap = p
 	if (packages && packages.length > 0) {
 		for (const pkg of packages.filter(x => x.type === type)) {
-			const gb = Number(BigInt(pkg.traffic)) / (1024 ** 3)
+			const gb = type === "IPV6_GB" ? Number(BigInt(pkg.traffic)) : Number(BigInt(pkg.traffic)) / (1024 ** 3)
 			// Пакеты теперь = объёмы-пресеты без цены (price: 0). Цена берётся
 			// из тарификации, поэтому учитываем только пакеты с реальной ценой.
 			if (gb > 0 && pkg.price > 0) {
@@ -172,10 +171,9 @@ export default function PackageCardsSection({ user, prices, packages, locale }: 
 	const cards = buildCards(T).filter(c => !isProxyTypeDisabled(c.type))
 
 	const priceText = (type: CardType): string | null => {
-		if (type === "PREMIUM_MOBILE_PLACEHOLDER") return null
 		if (type === "RESIDENT_PREMIUM" || type === "MOBILE_GB" || type === "IPV6_GB" || type === "PREMIUM_RESIDENTIAL" || type === "MOBILE" || type === "ISP_USA" || type === "ISP_EU" || type === "RESIDENTIAL_LITE") {
 			const p = cheapestPricePerGb(type, prices, packages)
-			if (p > 0) return `${T("payment.from")} ${formatPrice(p)}$ / ${T("payment.units.gb")}`
+			if (p > 0) return `${T("payment.from")} ${formatPrice(p)}$ / ${type === "IPV6_GB" ? "IP" : T("payment.units.gb")}`
 		}
 		return null
 	}
@@ -183,7 +181,6 @@ export default function PackageCardsSection({ user, prices, packages, locale }: 
 	const getLocalizedPath = (path: string) => addLocaleToPath(path, locale)
 
 	const onClick = (type: CardType) => {
-		if (type === "PREMIUM_MOBILE_PLACEHOLDER") return
 		if (!user) { router.push(getLocalizedPath("/auth/login")); return }
 		let tariff = "RESIDENT_PREMIUM"
 		if (type === "IPV6_GB") tariff = "IPV6"

@@ -11,37 +11,30 @@ type StatBlockProps = {
 }
 
 const Row: FC<{ title: string; data: TimeStats; format: (v: string | number) => string }> = ({ title, data, format }) => (
-	<div className="flex w-full flex-col">
-		<span className="text-body/50 text-xl font-medium">{title}</span>
-		<div className="flex w-full flex-row items-start justify-between">
-			<div className="flex flex-col items-start">
-				<span className="text-body/50 text-xl font-semibold">Час</span>
-				<span className="text-body text-2xl font-semibold">{format(data.hour)}</span>
-			</div>
-			<div className="flex flex-col items-start">
-				<span className="text-body/50 text-xl font-semibold">День</span>
-				<span className="text-body text-2xl font-semibold">{format(data.day)}</span>
-			</div>
-			<div className="flex flex-col items-start">
-				<span className="text-body/50 text-xl font-semibold">Неделя</span>
-				<span className="text-body text-2xl font-semibold">{format(data.week)}</span>
-			</div>
-			<div className="flex flex-col items-start">
-				<span className="text-body/50 text-xl font-semibold">Месяц</span>
-				<span className="text-body text-2xl font-semibold">{format(data.month)}</span>
-			</div>
+	<div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-3.5">
+		<span className="mb-3 block truncate text-sm font-medium text-white/65" title={title}>{title}</span>
+		<div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4">
+			{([['Час', data.hour], ['День', data.day], ['Неделя', data.week], ['Месяц', data.month]] as const).map(([period, value]) => (
+				<div key={period} className="min-w-0">
+					<span className="block text-[11px] font-medium uppercase tracking-[0.08em] text-white/35">{period}</span>
+					<span className="mt-0.5 block truncate text-sm font-semibold text-white" title={format(value)}>{format(value)}</span>
+				</div>
+			))}
 		</div>
 	</div>
 )
 
 const StatBlock: FC<StatBlockProps> = ({ stats, label, format }) => {
 	return (
-		<Card>
-			<h1 className="text-body w-full text-3xl font-semibold">{label}</h1>
+		<Card className="!gap-3 !p-4 sm:!p-5">
+			<h2 className="font-[TalosDisplay] text-xl font-semibold text-white">{label}</h2>
 			<Row title="Residential Proxy (Delvin23)" data={stats.premium} format={format} />
 			<Row title="Premium Residential (ProxyEmpire)" data={stats.premiumResidential} format={format} />
-			<Row title="Mobile" data={stats.mobile} format={format} />
+			<Row title="Premium Mobile" data={stats.mobile} format={format} />
 			<Row title="Mobile GB" data={stats.mobileGb} format={format} />
+			<Row title="ISP USA" data={stats.ispUsa} format={format} />
+			<Row title="ISP Netherlands" data={stats.ispEu} format={format} />
+			<Row title="Residential Lite" data={stats.residentialLite} format={format} />
 			<Row title="IPv6" data={stats.ipv6} format={format} />
 		</Card>
 	)

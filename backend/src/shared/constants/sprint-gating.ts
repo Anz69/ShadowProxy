@@ -7,8 +7,8 @@
  *
  * Чтобы открыть Sprint 3 — очисти массив (`[]`) и пересобери.
  */
-// Sprint 3 открыт: ISP_EU + Residential Lite включены. (Sprint 2 было ["ISP_EU","RESIDENTIAL_LITE"].)
-export const DISABLED_PROXY_TYPES: readonly string[] = [];
+// Продажу/новую генерацию ISP USA закрываем: публичный ISP-тариф теперь только NL.
+export const DISABLED_PROXY_TYPES: readonly string[] = ["ISP_USA"];
 
 export const isProxyTypeDisabled = (t: string | null | undefined): boolean =>
     !!t && DISABLED_PROXY_TYPES.includes(t);

@@ -641,7 +641,7 @@ async createProxyAccount(username: string) {
         // SPRINT-1 (Task A): в gateway-режиме остаток считаем по TrafficLog, а не
         // тянем снапшот из Mango /user_info (устаревший снапшот = баг 8.1).
         if (this.isGatewayMode()) return;
-        if (!this.configService.get<string>("ENABLE_MANGO_SYNC")) return;
+        if (this.configService.get<string>("ENABLE_MANGO_SYNC", "false") !== "true") return;
 
         const allUsers = await this.userService.findMany({
             where: {

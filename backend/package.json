@@ -23,6 +23,10 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "script:luna-to-mango": "node scripts/luna-to-mango-migrate.js",
+    "script:mango-audit": "node scripts/mango-traffic-reconcile.js audit",
+    "script:mango-zero": "node scripts/mango-traffic-reconcile.js zero",
+    "script:mango-restore": "node scripts/mango-traffic-reconcile.js restore",
+    "script:gateway-audit": "node scripts/gateway-audit.js",
     "script:proxy-test": "node scripts/proxy-test.js"
   },
   "dependencies": {

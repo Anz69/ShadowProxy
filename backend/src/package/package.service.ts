@@ -320,7 +320,7 @@ export class PackageService {
                         login: p.username,
                         country: p.country,
                         status: p.status,
-                        serverHost: p.serverHost ?? p.host,
+                        serverHost: this.proxyServerService.getPublicHost(p.serverHost ?? p.host),
                         createdAt: p.createdAt,
                         rentTime: p.rentTime,
                     }));
@@ -929,7 +929,7 @@ export class PackageService {
                         port: existingSamePackageOnServer.userPort!,
                         login: existingSamePackageOnServer.userLogin!,
                         password: existingSamePackageOnServer.userPassword!,
-                        serverHost: existingSamePackageOnServer.serverHost || "",
+                        serverHost: this.proxyServerService.getPublicHost(existingSamePackageOnServer.serverHost || serverHost),
                     },
                 });
                 continue;
@@ -982,7 +982,7 @@ export class PackageService {
                     port: proxy.userPort!,
                     login: proxy.userLogin!,
                     password: proxy.userPassword!,
-                    serverHost: proxy.serverHost || '',
+                    serverHost: this.proxyServerService.getPublicHost(proxy.serverHost || serverHost),
                 },
             });
 

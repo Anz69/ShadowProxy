@@ -16,7 +16,7 @@ export interface PricesPopUpProps {
 }
 
 type Item = {
-	type: CatalogItemType | "PREMIUM_MOBILE_SOON"
+	type: CatalogItemType
 	icon: string
 	titleKey: string
 	taglineKey: string
@@ -32,14 +32,6 @@ const STANDARD: Item[] = [
 		titleKey: "payment.tariffTypes.resident",
 		taglineKey: "payment.descriptions.resident",
 		getPrice: p => p.resident_premium ?? 0,
-		tier: "standard"
-	},
-	{
-		type: "MOBILE",
-		icon: "/tariff-mobile-gb.svg",
-		titleKey: "payment.tariffTypes.mobile",
-		taglineKey: "payment.descriptions.mobile",
-		getPrice: p => (typeof p.mobile === "number" ? p.mobile : 0),
 		tier: "standard"
 	},
 	{
@@ -78,12 +70,12 @@ const PREMIUM: Item[] = [
 		tier: "premium"
 	},
 	{
-		type: "PREMIUM_MOBILE_SOON",
+		type: "MOBILE",
 		icon: "/tariff-mobile-gb.svg",
 		titleKey: "main.proxyTypes.premiumMobile.title",
 		taglineKey: "main.proxyTypes.premiumMobile.description",
-		tier: "premium",
-		soon: true
+		getPrice: p => (typeof p.mobile === "number" ? p.mobile : 0),
+		tier: "premium"
 	}
 ]
 
@@ -96,13 +88,27 @@ const ArrowIcon = () => (
 	</svg>
 )
 
+const PRICE_KEY_BY_TYPE: Partial<Record<CatalogItemType, keyof NonNullable<Prices["minimum_prices"]>>> = {
+	RESIDENT_PREMIUM: "resident_premium",
+	PREMIUM_RESIDENTIAL: "premium_residential",
+	MOBILE: "mobile",
+	MOBILE_GB: "mobile_gb",
+	IPV6_GB: "ipv6_gb",
+	ISP_USA: "isp_usa",
+	ISP_EU: "isp_eu",
+	RESIDENTIAL_LITE: "residential_lite"
+}
+
 const MegaItem: FC<{
 	item: Item
 	prices: Prices
 	T: (key: string) => string
 	onClick: () => void
 }> = ({ item, prices, T, onClick }) => {
-	const price = item.getPrice ? item.getPrice(prices) : null
+	const basePrice = item.getPrice ? item.getPrice(prices) : null
+	const priceKey = PRICE_KEY_BY_TYPE[item.type]
+	const minimumPrice = priceKey ? prices.minimum_prices?.[priceKey] : undefined
+	const price = basePrice === null ? null : minimumPrice && minimumPrice > 0 ? Math.min(basePrice || minimumPrice, minimumPrice) : basePrice
 
 	return (
 		<button

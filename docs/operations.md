@@ -6,8 +6,10 @@
 
 | Переменная | Дефолт | Назначение |
 |---|---|---|
-| `USE_NODE_GATEWAY` | `false` | Если `true` — выпуск/учёт прокси идёт через node-gateway (legacy). Если `false` — прямой режим: backend сам напрямую общается с API провайдеров (Mango, ProxyEmpire). По умолчанию задействован прямой режим. |
-| `ENABLE_MANGO_SYNC` | `true` (любое значение кроме пустого) | Минутный cron `MangoProxyProvider.updateUserBalances()` синхронизирует Mango.last_flow → DB.premiumTrafficLeft, пишет USAGE-логи и traffic_logs. Отключение — установить пустое значение. |
+| `USE_NODE_GATEWAY` | `false` | `true` включает production-маршрут через наш gateway и локальный учёт трафика. `false` оставляет прямой провайдерский маршрут для аварийного отката. |
+| `MANGO_MODE` | `api` | `gateway` отключает Mango API для пополнения/синхронизации трафика; баланс учитывается нашей БД и gateway. `api` оставлен для аварийного отката. |
+| `ENABLE_MANGO_SYNC` | `false` | Только точное значение `true` включает минутный cron Mango.last_flow → DB.premiumTrafficLeft в API-режиме. В gateway-режиме cron всегда выключен. |
+| `PROXY_PUBLIC_HOST` | пусто | Публичный DNS-хост gateway без протокола и порта. В БД остаётся внутренний IP control-plane, пользователю возвращается домен. |
 | `ENABLE_PROXYEMPIRE_USAGE_SYNC` | `true` (если не `"false"`) | Минутный cron `ProxyService.syncProxyEmpireUsage()` для PE residential/mobile. |
 | `ENABLE_LEGACY_MOBILE_GB` | `false` | Открывает доступ к старому endpoint `POST /api/proxy/issue/mobile-gb` (FlashProxy/LTE-Socks). По умолчанию — 410 Gone. Включать только для аварийного отката. После миграции `20260514150000_migrate_mobilegb_to_mobile` баланс юзеров уже в `mobile_traffic_left` (ProxyEmpire). |
 
@@ -17,19 +19,22 @@
 
 Если нужно ручное обновление: `docker compose restart backend`.
 
-## Откат на node-gateway
+## Production-режим через node-gateway
 
-Если прямой режим даёт сбой и нужно временно вернуться на legacy:
+После проверки gateway включить согласованные флаги одной записью в `backend/.env`:
 
 ```bash
 echo "USE_NODE_GATEWAY=true" >> /home/shaproxy/ShadowProxy/backend/.env
+echo "MANGO_MODE=gateway" >> /home/shaproxy/ShadowProxy/backend/.env
+echo "ENABLE_MANGO_SYNC=false" >> /home/shaproxy/ShadowProxy/backend/.env
 docker compose restart backend
 ```
 
 После этого:
 - генерация прокси возвращается к маршруту через `node-gateway`
 - учёт списания снова идёт через `proxy-node.controller.ts`
-- крон-синки PE/Mango продолжают работать поверх (двойной учёт не возникает, т.к. в gateway-режиме они тоже пишут в `premiumTrafficLeft`)
+- Mango API не участвует в пополнении и синхронизации пользовательского трафика
+- локальный баланс и `traffic_logs` остаются единственным источником учёта
 
 ## Миграционные скрипты
 
@@ -43,13 +48,15 @@ docker exec shadowproxy-backend-1 node scripts/migrate-resident-to-balance.js
 
 Идемпотентен: повторный запуск ничего не делает, т.к. поле уже = `"0"`.
 
-### `backend/scripts/luna-to-mango-migrate.js` (auto, через entrypoint)
+### `backend/scripts/luna-to-mango-migrate.js`
 
-Запускается автоматически из `migrate-deploy.js`. Можно вызвать вручную (например, чтобы добить недомигрировавшийся аккаунт):
+Не запускается автоматически из `migrate-deploy.js`: provider data-миграции требуют отдельного dry-run и явного запуска. Ручной вызов старой миграции:
 
 ```bash
 docker exec shadowproxy-backend-1 node scripts/luna-to-mango-migrate.js
 ```
+
+Для production-сверки, обнуления и восстановления Mango, а также выбора одной gateway-ноды используйте `docs/production-release/RELEASE-RUNBOOK.md`.
 
 ## SSL-сертификаты
 

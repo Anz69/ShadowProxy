@@ -22,20 +22,25 @@ const Statistics: FC<StatisticsProps> = ({ stats, chartsData = null }) => {
 
 	return (
 		<div className="relative z-[1] flex w-full flex-col gap-6">
-			<h1 className="font-[TalosDisplay] text-4xl font-semibold text-white md:text-5xl">
-				Статистика
-			</h1>
+			<div>
+				<p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#6aa5ff]">Аналитика платформы</p>
+				<h1 className="font-[TalosDisplay] text-4xl font-semibold text-white md:text-5xl">Статистика</h1>
+				<p className="mt-2 max-w-2xl text-sm text-white/50">Оборот, пользователи, генерации и расход трафика в одном экране.</p>
+			</div>
 			<AdminNav active="/admin/stats" />
 
 			{/* Всего зарегистрированных пользователей (ТЗ 3.4) */}
-			<Card className="flex flex-row items-center justify-between gap-4 !py-5">
-				<span className="text-[15px] font-medium text-white/60">Всего пользователей</span>
-				<span className="font-[TalosDisplay] text-3xl font-bold text-white">
+			<Card className="relative overflow-hidden !border-[#3c78ff]/25 !bg-gradient-to-br !from-[#102148] !to-[#0b1429] !py-5">
+				<div className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-[#0067ff]/20 blur-3xl" />
+				<div className="relative flex items-center justify-between gap-4">
+				<span className="text-[15px] font-medium text-white/60">Всего зарегистрированных пользователей</span>
+				<span className="font-[TalosDisplay] text-3xl font-bold text-white md:text-4xl">
 					{stats.usersTotal ?? "—"}
 				</span>
+				</div>
 			</Card>
 
-			<div className="grid w-full grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+			<div className="grid w-full grid-cols-1 gap-5 xl:grid-cols-3">
 				<StatBlock
 					stats={stats.replenish}
 					label="Сумма пополнений"

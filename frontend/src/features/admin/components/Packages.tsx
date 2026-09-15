@@ -17,9 +17,11 @@ import { sortByCreatedAtDesc } from "@/shared/utils/sort-by-created-at-desc"
 const PACKAGE_GROUPS: { type: string; label: string }[] = [
 	{ type: "RESIDENT_PREMIUM", label: "Residential" },
 	{ type: "PREMIUM_RESIDENTIAL", label: "Premium Residential" },
-	{ type: "MOBILE", label: "Mobile" },
+	{ type: "MOBILE", label: "Premium Mobile" },
 	{ type: "MOBILE_GB", label: "Mobile ГБ" },
-	{ type: "IPV6_GB", label: "IPv6 ГБ" }
+	{ type: "IPV6_GB", label: "IPv6 ГБ" },
+	{ type: "ISP_EU", label: "ISP Netherlands" },
+	{ type: "RESIDENTIAL_LITE", label: "Residential Lite" }
 ]
 
 const Packages: FC = () => {

@@ -20,11 +20,11 @@ import SegmentedControl from "@/shared/components/ui/SegmentedControl"
 const typeLabels: Record<RechargeableProxyType, string> = {
 	RESIDENT_PREMIUM: "Residential",
 	PREMIUM_RESIDENTIAL: "Premium Residential",
-	MOBILE: "Mobile",
+	MOBILE: "Premium Mobile",
 	MOBILE_GB: "Mobile ГБ",
 	IPV6_GB: "IPv6 ГБ",
 	ISP_USA: "ISP USA",
-	ISP_EU: "ISP EU",
+	ISP_EU: "ISP Netherlands",
 	RESIDENTIAL_LITE: "Residential Lite",
 	RESIDENT: "Резидентский" // не используется, оставлен для типа
 }
@@ -32,11 +32,11 @@ const typeLabels: Record<RechargeableProxyType, string> = {
 const reverseTypeLabels = new Map<string, RechargeableProxyType>()
 	.set("Residential", "RESIDENT_PREMIUM")
 	.set("Premium Residential", "PREMIUM_RESIDENTIAL")
-	.set("Mobile", "MOBILE")
+	.set("Premium Mobile", "MOBILE")
 	.set("Mobile ГБ", "MOBILE_GB")
 	.set("IPv6 ГБ", "IPV6_GB")
 	.set("ISP USA", "ISP_USA")
-	.set("ISP EU", "ISP_EU")
+	.set("ISP Netherlands", "ISP_EU")
 	.set("Residential Lite", "RESIDENTIAL_LITE")
 
 type AddPackageProps = {
@@ -93,7 +93,7 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 				Пакет — это быстрый объём (пресет) на странице оплаты с заданной ценой.
 			</p>
 			<SegmentedControl
-				options={["Residential", "Premium Residential", "Mobile", "Mobile ГБ", "IPv6 ГБ"]}
+				options={["Residential", "Premium Residential", "Premium Mobile", "Mobile ГБ", "IPv6 ГБ", "ISP Netherlands", "Residential Lite"]}
 				value={typeLabels[watch("type") as RechargeableProxyType]}
 				onChange={val => setValue("type", reverseTypeLabels.get(val) ?? "RESIDENT_PREMIUM")}
 			/>

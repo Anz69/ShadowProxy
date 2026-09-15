@@ -13,6 +13,9 @@ export type ProxyTypeStats = {
 	mobile: TimeStats
 	mobileGb: TimeStats
 	ipv6: TimeStats
+	ispUsa: TimeStats
+	ispEu: TimeStats
+	residentialLite: TimeStats
 }
 
 export type TimeStats = {
@@ -30,6 +33,9 @@ const emptyProxyType: ProxyTypeStats = {
 	mobile: { ...zeros },
 	mobileGb: { ...zeros },
 	ipv6: { ...zeros },
+	ispUsa: { ...zeros },
+	ispEu: { ...zeros },
+	residentialLite: { ...zeros },
 }
 const emptyBlock = { ...zeros, ...emptyProxyType }
 
@@ -70,6 +76,9 @@ export type AdminChartsStats = {
 		mobile: number
 		mobileGb: number
 		ipv6: number
+		ispUsa: number
+		ispEu: number
+		residentialLite: number
 	}[]
 	trafficByWeek: {
 		date: string
@@ -80,6 +89,9 @@ export type AdminChartsStats = {
 		mobile: number
 		mobileGb: number
 		ipv6: number
+		ispUsa: number
+		ispEu: number
+		residentialLite: number
 	}[]
 	trafficByMonth: {
 		date: string
@@ -90,6 +102,9 @@ export type AdminChartsStats = {
 		mobile: number
 		mobileGb: number
 		ipv6: number
+		ispUsa: number
+		ispEu: number
+		residentialLite: number
 	}[]
 	trafficByType: {
 		resident: number
@@ -98,6 +113,9 @@ export type AdminChartsStats = {
 		mobile: number
 		mobileGb: number
 		ipv6: number
+		ispUsa: number
+		ispEu: number
+		residentialLite: number
 	}
 	activity: {
 		activeUsers: {
@@ -107,10 +125,24 @@ export type AdminChartsStats = {
 			byMonth: { date: string; count: number }[]
 		}
 		proxyGenerations: {
-			byHour: { date: string; count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }[]
-			byDay: { date: string; count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }[]
-			byWeek: { date: string; count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }[]
-			byMonth: { date: string; count: number; resident: number; premium: number; premiumResidential: number; mobile: number; mobileGb: number; ipv6: number }[]
+			byHour: ProxyGenerationPoint[]
+			byDay: ProxyGenerationPoint[]
+			byWeek: ProxyGenerationPoint[]
+			byMonth: ProxyGenerationPoint[]
 		}
 	}
+}
+
+export type ProxyGenerationPoint = {
+	date: string
+	count: number
+	resident: number
+	premium: number
+	premiumResidential: number
+	mobile: number
+	mobileGb: number
+	ipv6: number
+	ispUsa: number
+	ispEu: number
+	residentialLite: number
 }

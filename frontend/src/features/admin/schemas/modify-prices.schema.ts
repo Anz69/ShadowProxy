@@ -30,6 +30,9 @@ export const modifyPricesSchema = z.object({
 			error: "Должно быть позитивным числом"
 		})
 		.optional(),
+	isp_usa: z.number({ error: "Должно быть число" }).positive({ error: "Должно быть позитивным числом" }).optional(),
+	isp_eu: z.number({ error: "Должно быть число" }).positive({ error: "Должно быть позитивным числом" }).optional(),
+	residential_lite: z.number({ error: "Должно быть число" }).positive({ error: "Должно быть позитивным числом" }).optional(),
 	mobile: z.array(
 		z.object({
 			price: z
@@ -47,7 +50,7 @@ export const modifyPricesSchema = z.object({
 					error: "Должно быть позитивным числом"
 				})
 		})
-	)
+	).optional()
 })
 
 export type ModifyPricesDto = z.infer<typeof modifyPricesSchema>

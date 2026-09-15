@@ -41,7 +41,7 @@ function getPackageTitle(type: string, T: (key: string) => string): string {
 		case "PREMIUM_RESIDENTIAL":
 			return T("package.packageTypes.premiumResidential")
 		case "MOBILE":
-			return T("package.packageTypes.mobile")
+			return T("main.proxyTypes.premiumMobile.title")
 		case "MOBILE_GB":
 			return T("package.packageTypes.mobile")
 		case "ISP":
@@ -82,8 +82,9 @@ function getPackageStars(type: string): number {
 		case "RESIDENT":
 			return 3
 		case "RESIDENT_PREMIUM":
-		case "PREMIUM_RESIDENTIAL":
 			return 4
+		case "PREMIUM_RESIDENTIAL":
+			return 5
 		default:
 			return 0
 	}
@@ -362,4 +363,3 @@ export default function UserPackageCard({ userPackage, user, prices, plans = [] 
 		</div>
 	)
 }
-

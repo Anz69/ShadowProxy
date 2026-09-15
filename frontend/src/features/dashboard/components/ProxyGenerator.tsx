@@ -52,15 +52,6 @@ const STATIC_RESIDENTIAL_COUNTRIES = [
 
 type ProxyGeneratorProps = {
 	packageId?: string
-	existingProxies?: Array<{
-		id: string
-		port: number
-		login: string
-		password: string
-		serverHost: string
-		createdAt: string
-		lastActivityAt: string
-	}>
 	packageType?: string
 }
 
@@ -199,90 +190,7 @@ const CustomDropdown: FC<CustomDropdownProps> = ({ placeholder, options, value, 
 	)
 }
 
-// Мультигео-селектор стран (ISP_EU, ТЗ п.2) — несколько стран сразу.
-type MultiCountryDropdownProps = {
-	placeholder: string
-	options: string[]
-	values: string[]
-	onToggle: (code: string) => void
-	regionNames: Intl.DisplayNames
-}
-const MultiCountryDropdown: FC<MultiCountryDropdownProps> = ({ placeholder, options, values, onToggle, regionNames }) => {
-	const pathname = usePathname()
-	const locale = getLocaleFromPath(pathname)
-	const T = (key: string) => t(key, locale)
-	const [open, setOpen] = useState(false)
-	const wrapRef = useRef<HTMLDivElement>(null)
-
-	useEffect(() => {
-		const onClickOutside = (e: MouseEvent) => {
-			if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-		}
-		document.addEventListener("mousedown", onClickOutside)
-		return () => document.removeEventListener("mousedown", onClickOutside)
-	}, [])
-
-	const label = values.length === 0
-		? placeholder
-		: values.map(v => regionNames.of(v.toUpperCase()) || v).join(", ")
-
-	return (
-		<div className="relative flex-1 min-w-[180px] w-full" ref={wrapRef}>
-			<div
-				onClick={() => setOpen(!open)}
-				className={`rounded-[12px] border px-4 py-3 w-full min-w-0 flex items-center gap-3 cursor-pointer transition-colors ${
-					open ? "border-[#4f8dff]/60 bg-white/[0.06] ring-4 ring-[#4f8dff]/15 light:bg-[#eef1f6]" : "border-white/10 bg-white/[0.04] hover:border-white/20 light:border-[#e2e4ea] light:bg-[#f4f6fa] light:hover:bg-[#eef1f6]"
-				}`}
-			>
-				<span className="flex-1 min-w-0 text-white light:text-[#0e1019] text-base font-normal block truncate" style={values.length === 0 ? { opacity: 0.5 } : {}}>
-					{label}
-				</span>
-				{values.length > 0 && (
-					<span className="flex-shrink-0 rounded-full bg-[#4f8dff] px-2 py-0.5 text-[12px] font-semibold text-white">{values.length}</span>
-				)}
-				<ChevronDown className={`h-5 w-5 text-white light:text-[#5b6472] transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`} style={{ opacity: 0.5 }} />
-			</div>
-			{open && (
-				<div className="absolute top-full left-0 right-0 mt-2 w-full rounded-[12px] border border-white/10 bg-[#0e1830] z-20 overflow-hidden shadow-[0_30px_70px_-30px_rgba(0,0,0,0.9)] light:bg-white light:border-[#e2e4ea] light:shadow-[0_30px_70px_-30px_rgba(14,16,25,0.25)]">
-					<div className="max-h-52 overflow-y-auto overflow-x-hidden py-2">
-						{options.map(country => {
-							const checked = values.includes(country)
-							return (
-								<div
-									key={country}
-									onClick={() => onToggle(country)}
-									className="px-4 py-3 flex items-center gap-3 cursor-pointer text-white light:text-[#0e1019] text-base font-normal hover:bg-white/[0.06] light:hover:bg-[#f4f6fa] transition-colors"
-								>
-									<Image
-										src={`https://flagsapi.com/${country.toUpperCase()}/flat/64.png`}
-										alt={regionNames.of(country.toUpperCase()) as string}
-										width={28}
-										height={20}
-										className="h-5 w-7 rounded object-cover flex-shrink-0"
-										draggable={false}
-									/>
-									<span className="flex-1 min-w-0 break-words">{regionNames.of(country.toUpperCase())}</span>
-									<div className={`flex-shrink-0 w-5 h-5 rounded-[6px] border-2 flex items-center justify-center transition-colors ${
-										checked ? "border-[#4f8dff] bg-[#4f8dff]" : "border-white/30 bg-transparent light:border-[#cdd2db]"
-									}`}>
-										{checked && (
-											<svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-										)}
-									</div>
-								</div>
-							)
-						})}
-						{options.length === 0 && (
-							<div className="px-4 py-3 text-white/50 light:text-[#8a93a3] text-sm">{T("package.proxyGenerator.noCountries")}</div>
-						)}
-					</div>
-				</div>
-			)}
-		</div>
-	)
-}
-
-const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, existingProxies = [], packageType }) => {
+const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, packageType }) => {
 	const pathname = usePathname()
 	const locale = getLocaleFromPath(pathname)
 	const T = (key: string) => t(key, locale)
@@ -299,16 +207,14 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, existingProxies = 
 	const isMobilePE = packageType === "MOBILE"
 	// Новые типы (ТЗ п.2/п.3/п.7): трафик считает наш гейтвей, апстрим скрыт.
 	const isIspUsa = packageType === "ISP_USA" // страна фиксирована (US)
-	const isIspEu = packageType === "ISP_EU"   // мультигео
+	const isIspEu = packageType === "ISP_EU"   // публично только NL
 	const isLite = packageType === "RESIDENTIAL_LITE" // одна страна, любая
 	// Эти типы поддерживают время жизни 1–1440 мин (остальные — от 5).
 	const isNewGatewayType = isIspUsa || isIspEu || isLite
 	const rotMin = isNewGatewayType ? 1 : 5
 	const rotMax = isNewGatewayType ? 1440 : 90
-	const [selectedCountries, setSelectedCountries] = useState<string[]>([]) // для ISP_EU
-	// Локация для запроса: ISP_EU отправляет коды через запятую (мультигео).
-	const hasLocation = isIspEu ? selectedCountries.length > 0 : !!selectedCountry
-	const effectiveLocation = isIspEu ? selectedCountries.join(",") : selectedCountry
+	const hasLocation = !!selectedCountry
+	const effectiveLocation = selectedCountry
 	const prCountry = isPR && selectedCountry ? selectedCountry.toLowerCase() : null
 	const mobileCountry = isMobilePE && selectedCountry ? selectedCountry.toLowerCase() : null
 	const mangoCountry = isMangoResi && selectedCountry ? selectedCountry.toLowerCase() : null
@@ -334,8 +240,9 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, existingProxies = 
 	const filterIsps = isMangoResi ? mangoIsps : isMobilePE ? mobileIsps : prIsps
 	const showLocationFilters = isPR || isMangoResi || isMobilePE
 
-	// ISP_USA — страна фиксирована (US), селектор не показываем.
+	// ISP USA и текущий ISP NL имеют фиксированное гео — селектор не показываем.
 	useEffect(() => { if (isIspUsa) setSelectedCountry("US") }, [isIspUsa])
+	useEffect(() => { if (isIspEu) setSelectedCountry("NL") }, [isIspEu])
 
 	// Сброс нижестоящих фильтров при смене страны/региона/города.
 	useEffect(() => { setRegion(""); setCity(""); setIsp("") }, [selectedCountry])
@@ -365,11 +272,9 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, existingProxies = 
 			: `${login}:${password}@${host}:${port}`
 	}
 
-	// Raw proxies (always stored as ip:port:login:password)
-	const rawProxies = [
-		...existingProxies.map(proxy => `${proxy.serverHost}:${proxy.port}:${proxy.login}:${proxy.password}`),
-		...newProxies
-	]
+	// Показываем только прокси, созданные в текущем открытии страницы. Сами прокси
+	// остаются в БД и продолжают работать, но список очищается при refresh/уходе.
+	const rawProxies = newProxies
 	// Formatted for display based on selected proxyFormat
 	const allProxies = rawProxies.map(p => formatProxyForDisplay(p, proxyFormat))
 	
@@ -428,7 +333,7 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, existingProxies = 
 				} else if (packageType === "ISP_USA") {
 					countries = locations.ispUsa?.length ? locations.ispUsa : ["US"]
 				} else if (packageType === "ISP_EU") {
-					countries = locations.ispEu || []
+					countries = ["NL"]
 				} else if (packageType === "RESIDENTIAL_LITE") {
 					countries = locations.residentialLite || []
 				} else {
@@ -440,7 +345,7 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, existingProxies = 
 			} catch (error) {
 				console.error("Ошибка при загрузке списка стран:", error)
 				// Fallback на дефолтный список
-				setAvailableCountries(["US", "RU", "GB", "DE", "FR", "CN", "JP", "KR"])
+				setAvailableCountries(packageType === "ISP_EU" ? ["NL"] : ["US", "RU", "GB", "DE", "FR", "CN", "JP", "KR"])
 			}
 		}
 		
@@ -524,15 +429,14 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, existingProxies = 
 								</div>
 							</div>
 						)}
-						{/* ISP_EU — мультигео: можно выбрать несколько стран */}
+						{/* ISP — единственное доступное гео NL */}
 						{isIspEu && (
-							<MultiCountryDropdown
-								placeholder={T("package.proxyGenerator.country")}
-								options={availableCountries}
-								values={selectedCountries}
-								onToggle={(code) => setSelectedCountries(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])}
-								regionNames={regionNames}
-							/>
+							<div className="relative flex-1 min-w-[180px] w-full">
+								<div className="rounded-[12px] border border-white/10 bg-white/[0.04] px-4 py-3 w-full flex items-center gap-3 light:border-[#e2e4ea] light:bg-[#f4f6fa]">
+									<Image src="https://flagsapi.com/NL/flat/64.png" alt="Nederland" width={28} height={20} className="h-5 w-7 rounded object-cover flex-shrink-0" draggable={false} />
+									<span className="flex-1 min-w-0 text-white light:text-[#0e1019] text-base font-normal">{regionNames.of("NL")}</span>
+								</div>
+							</div>
 						)}
 						{/* Селект стран — закрыт: иконка + текст; открыт: поиск в кнопке */}
 						{!isIspUsa && !isIspEu && (

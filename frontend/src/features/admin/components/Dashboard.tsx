@@ -17,10 +17,10 @@ const TRAFFIC_SORT_OPTIONS: { value: AdminUsersSortField; label: string }[] = [
 	{ value: "premiumTrafficLeft", label: "Residential" },
 	{ value: "premiumResidentialTrafficLeft", label: "Premium Res" },
 	{ value: "ispUsaTrafficLeft", label: "ISP USA" },
-	{ value: "ispEuTrafficLeft", label: "ISP EU" },
+	{ value: "ispEuTrafficLeft", label: "ISP Netherlands" },
 	{ value: "residentialLiteTrafficLeft", label: "Res. Lite" },
 	{ value: "mobileGbTrafficLeft", label: "Mobile GB" },
-	{ value: "mobileTrafficLeft", label: "Mobile" },
+	{ value: "mobileTrafficLeft", label: "Premium Mobile" },
 	{ value: "ipv6GbTrafficLeft", label: "IPv6" }
 ]
 

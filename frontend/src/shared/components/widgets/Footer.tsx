@@ -89,15 +89,10 @@ const Footer: FC<FooterProps> = ({ locale: localeProp }) => {
 					<div className="ft__col">
 						<h4>{T("footer.columns.product")}</h4>
 						<Link href={link("/")}>{T("footer.product.residential")}</Link>
-						<Link href={link("/")}>{T("footer.product.ispUsa")}</Link>
 						<Link href={link("/")}>{T("footer.product.ispEu")}</Link>
 						<Link href={link("/")}>{T("footer.product.residentialLite")}</Link>
 						<Link href={link("/")}>{T("footer.product.mobile")}</Link>
 						<Link href={link("/")}>{T("footer.product.premiumResidential")}</Link>
-						<span className="ft__col-soon flex items-center gap-2 py-1.5 text-[14px]" style={{ color: "rgba(244,247,251,.45)" }}>
-							{T("footer.product.premiumMobile")}
-							<span className="ft__pill">{T("footer.soon")}</span>
-						</span>
 					</div>
 
 					<div className="ft__col">

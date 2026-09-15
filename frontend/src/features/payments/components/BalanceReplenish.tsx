@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { type FC, useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { ArrowRight, Check, ShieldCheck, WalletCards, Zap } from "lucide-react"
 
 import PaymentModal from "@/features/payments/components/PaymentModal"
 import TransactionHistory from "@/features/payments/components/TransactionHistory"
@@ -96,7 +97,7 @@ const BalanceReplenish: FC<BalanceReplenishProps> = ({
 		calculateAssetPrice(amount || 1)
 	}, [amount, asset, exchangeRates])
 
-	const onSubmit = (dto: { merchant?: Merchant; asset?: AvailableAssets }) => {
+	const onSubmit = useCallback((dto: { merchant?: Merchant; asset?: AvailableAssets }) => {
 		const options = {
 			onSuccess: (data: Invoice<"balance">) => {
 				setIsSuccess(true)
@@ -121,7 +122,7 @@ const BalanceReplenish: FC<BalanceReplenishProps> = ({
 			},
 			options
 		)
-	}
+	}, [amount, asset, merchant, createBalanceInvoice, setError])
 
 	const getPaymentModalContent = useCallback(
 		() => (
@@ -146,7 +147,7 @@ const BalanceReplenish: FC<BalanceReplenishProps> = ({
 				isBalanceReplenish={true}
 			/>
 		),
-		[exchangeRates, merchant, asset, price, assetPrice, onSubmit, isBalanceInvoiceLoading, isSuccess, errors.root?.message, user]
+		[exchangeRates, merchant, asset, price, assetPrice, onSubmit, isBalanceInvoiceLoading, isSuccess, errors.root?.message, user, clearErrors]
 	)
 
 	const handleOpenPaymentModal = () => {
@@ -168,98 +169,33 @@ const BalanceReplenish: FC<BalanceReplenishProps> = ({
 	}, [isOpen, isSuccess, closeModal])
 
 	return (
-		<div className="flex w-full flex-col gap-6">
-			<h1 className="text-body text-[52px] font-semibold light:text-[#0e1019]">{T("payment.balanceReplenishTitle")}</h1>
-			<div className="flex w-full flex-col items-start gap-2 md:flex-row md:gap-2">
-				<div className="flex-1 w-full">
-					<div className="glass-panel rounded-xl px-4 md:px-8 py-5 flex flex-col gap-4 w-full light:bg-none light:bg-white light:border-[#e6e8ef] light:shadow-[0_24px_60px_-44px_rgba(14,16,25,0.14)]">
-						<h2 className="text-body text-3xl font-semibold light:text-[#0e1019]">
-							{T("payment.title")}
-						</h2>
-						
-						{/* Поля баланса в ряд */}
-						<div className="flex w-full flex-col md:flex-row gap-4">
-							{/* Текущий баланс */}
-							<div className="flex-1 flex flex-col gap-1">
-								<span className="text-white text-xl font-semibold light:text-[#0e1019]">
-									{T("payment.currentBalance")}
-								</span>
-								<div className="glass-panel rounded-xl px-4 py-3">
-									<span className="text-body text-base font-medium light:text-[#0e1019]">
-										{currentBalance.toFixed(2)}$
-									</span>
-								</div>
-							</div>
+		<div className="relative flex w-full flex-col gap-6 py-[clamp(22px,4vw,44px)] text-white light:text-[#0e1019]">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+				<div><span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-[#78adff]"><Zap className="size-3.5" />Мгновенное зачисление</span><h1 className="mt-2 font-[TalosDisplay] text-[clamp(32px,5vw,52px)] font-bold leading-none">{T("payment.balanceReplenishTitle")}</h1><p className="mt-3 max-w-xl text-sm leading-6 text-white/45 light:text-[#667085]">Выберите сумму, затем удобную валюту и способ оплаты. Баланс обновится после подтверждения платежа.</p></div>
+				<div className="inline-flex items-center gap-2 self-start rounded-full border border-emerald-400/20 bg-emerald-400/[0.08] px-3 py-2 text-xs font-medium text-emerald-300 light:text-emerald-700"><ShieldCheck className="size-4" />Безопасная оплата</div>
+			</div>
 
-							{/* Поле пополнения */}
-							<div className="flex-1 flex flex-col gap-1">
-								<span className="text-white text-xl font-semibold light:text-[#0e1019]">
-									{T("payment.replenish")}
-								</span>
-								<Input
-									placeholder={T("payment.replenishPlaceholder")}
-									type="number"
-									step="0.01"
-									min="1"
-									error={errors.amount?.message}
-									className="w-full !bg-transparent light:!bg-[#f7f8fb] !border !border-white/20 light:!border-[#e2e4ea] hover:!border-[#0067FF] focus:!border-[#0067FF] !px-4 !py-3 !rounded-xl light:!text-[#0e1019] light:placeholder:!text-[#9aa3b2]"
-									{...register("amount", {
-										valueAsNumber: true
-									})}
-									title=""
-								/>
-							</div>
+			<div className="grid w-full items-start gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]">
+				<section className="relative overflow-hidden rounded-[24px] border border-white/[0.09] bg-[radial-gradient(100%_110%_at_100%_0%,rgba(59,130,246,.2),transparent_50%),linear-gradient(145deg,#101d38,#080f1f)] p-5 shadow-[0_38px_90px_-55px_rgba(0,0,0,.95),inset_0_1px_0_rgba(255,255,255,.06)] sm:p-7 light:border-[#e6e8ef] light:bg-white">
+					<div className="mb-6 flex items-center gap-3"><span className="grid size-11 place-items-center rounded-[14px] border border-[#6aa5ff]/25 bg-[#2f6bff]/12 text-[#78adff]"><WalletCards className="size-5" /></span><div><h2 className="font-[TalosDisplay] text-xl font-semibold">{T("payment.title")}</h2><p className="mt-0.5 text-xs text-white/40 light:text-[#8a93a3]">Минимальная сумма — 1 USD</p></div></div>
 
-							{/* Баланс после пополнения */}
-							<div className="flex-1 flex flex-col gap-1">
-								<span className="text-white text-xl font-semibold light:text-[#0e1019]">
-									{T("payment.balanceAfterReplenish")}
-								</span>
-								<div className="glass-panel rounded-xl px-4 py-3">
-									<span className="text-body text-base font-medium light:text-[#0e1019]">
-										{balanceAfterReplenish.toFixed(2)}$
-									</span>
-								</div>
-							</div>
-						</div>
-
-						<div className="flex w-full flex-row items-end justify-between gap-2">
-							<span className="text-white/30 text-2xl font-semibold md:text-3xl light:text-[#8a93a3]">
-								{T("payment.total")}
-							</span>
-							<span className="text-body text-xl font-semibold md:text-2xl light:text-[#0e1019]">
-								{(price || 0).toFixed(2)}$
-							</span>
-						</div>
-
-						{errors.root?.message && (
-							<Footnote variant="error">
-								{errors.root.message}
-							</Footnote>
-						)}
-						{isSuccess && (
-							<Footnote variant="success">
-								{T("payment.successMessage")}
-							</Footnote>
-						)}
-						<Button
-							variant="white"
-							type="button"
-							disabled={!amount || amount < 1}
-							className="px-9 py-3 w-full light:!bg-[#2f6bff] light:!text-white"
-							onClick={handleOpenPaymentModal}
-						>
-							{T("payment.buy")}
-						</Button>
+					<div className="grid gap-3 sm:grid-cols-2">
+						<div className="rounded-[16px] border border-white/[0.08] bg-white/[0.035] p-4 light:border-[#e6e8ef] light:bg-[#f7f8fb]"><span className="text-xs text-white/40 light:text-[#8a93a3]">{T("payment.currentBalance")}</span><strong className="mt-2 block font-[TalosDisplay] text-2xl">${currentBalance.toFixed(2)}</strong></div>
+						<div className="rounded-[16px] border border-[#6aa5ff]/20 bg-[#2f6bff]/[0.08] p-4"><span className="text-xs text-[#9bc2ff]">{T("payment.balanceAfterReplenish")}</span><strong className="mt-2 block font-[TalosDisplay] text-2xl">${balanceAfterReplenish.toFixed(2)}</strong></div>
 					</div>
-				</div>
-				<div className="h-full w-full md:w-auto">
-					<TransactionHistory payments={payments} packages={packages} locale={locale} />
-				</div>
+
+					<label className="mt-6 block"><span className="mb-2 block text-sm font-medium text-white/65 light:text-[#475467]">{T("payment.replenish")}</span><Input placeholder={T("payment.replenishPlaceholder")} type="number" step="0.01" min="1" error={errors.amount?.message} className="w-full !rounded-[14px] !border-white/15 !bg-white/[0.04] !px-4 !py-4 !text-lg hover:!border-[#6aa5ff]/40 focus:!border-[#6aa5ff]/60 light:!border-[#e2e4ea] light:!bg-[#f7f8fb] light:!text-[#0e1019]" {...register("amount", { valueAsNumber: true })} title="" /></label>
+					<div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">{[10, 25, 50, 100, 250, 500].map(value => <button key={value} type="button" onClick={() => setValue("amount", value, { shouldValidate: true })} className={`min-h-10 rounded-[11px] border text-sm font-semibold transition ${amount === value ? "border-[#6aa5ff]/50 bg-[#2f6bff]/20 text-white" : "border-white/[0.08] bg-white/[0.025] text-white/55 hover:border-white/20 hover:text-white light:border-[#e6e8ef] light:text-[#667085]"}`}>${value}</button>)}</div>
+
+					<div className="mt-6 rounded-[16px] border border-white/[0.08] bg-black/10 p-4 light:border-[#e6e8ef] light:bg-[#f7f8fb]"><div className="flex items-end justify-between gap-4"><span className="text-sm text-white/45 light:text-[#667085]">{T("payment.total")}</span><strong className="font-[TalosDisplay] text-3xl">${(price || 0).toFixed(2)}</strong></div><div className="mt-3 flex items-center gap-2 text-xs text-white/35 light:text-[#8a93a3]"><Check className="size-3.5 text-emerald-400" />Комиссия и курс будут показаны до оплаты</div></div>
+					{errors.root?.message && <div className="mt-4"><Footnote variant="error">{errors.root.message}</Footnote></div>}
+					{isSuccess && <div className="mt-4"><Footnote variant="success">{T("payment.successMessage")}</Footnote></div>}
+					<Button variant="white" type="button" disabled={!amount || amount < 1} className="mt-5 !min-h-12 w-full !rounded-full !bg-gradient-to-b !from-[#5595ff] !to-[#2f6bff] !text-white shadow-[0_16px_40px_-14px_rgba(59,130,246,.9)]" onClick={handleOpenPaymentModal}>{T("payment.buy")}<ArrowRight className="ml-2 inline size-4" /></Button>
+				</section>
+				<section className="min-w-0 overflow-hidden rounded-[24px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#091124)] p-1 light:border-[#e6e8ef] light:bg-white"><TransactionHistory payments={payments} packages={packages} locale={locale} /></section>
 			</div>
 		</div>
 	)
 }
 
 export default BalanceReplenish
-

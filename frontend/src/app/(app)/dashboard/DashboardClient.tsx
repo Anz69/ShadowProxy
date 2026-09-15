@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { Gift, Star, Boxes } from "lucide-react"
+import { Gift, Star, Boxes, TicketPercent } from "lucide-react"
 import toast from "react-hot-toast"
 import { useLogout } from "@/features/auth/hooks/useLogout"
 import type { User } from "@/features/user/types/user.types"
@@ -20,6 +20,7 @@ import { useMyReview } from "@/features/reviews/hooks/useReview"
 import { useActiveDiscount } from "@/features/payments/hooks/useActiveDiscount"
 import Reveals from "@/shared/anim/Reveals"
 import CountUp from "@/shared/anim/CountUp"
+import PromoActivationModal from "@/features/promos/components/PromoActivationModal"
 
 export default function DashboardClient({ user, prices, plans }: { user: User | null; prices: Prices | null; plans: Plan[] }) {
 	const { logout, isLoading: isLoggingOut } = useLogout()
@@ -277,6 +278,14 @@ export default function DashboardClient({ user, prices, plans }: { user: User | 
 						<div className={`left__row ${CARD} flex flex-col gap-3.5 p-5`}>
 							<span className="font-[TalosDisplay] text-[18px] font-semibold text-white light:text-[#0e1019]">{T("dashboard.actions.title")}</span>
 							<div className="flex flex-col gap-3">
+								<button
+									className="flex w-full items-center gap-3 rounded-[12px] border border-[#6aa5ff]/20 bg-[#2f6bff]/[0.08] px-4 py-2.5 text-[15px] font-medium text-[#9bc2ff] transition-colors hover:bg-[#2f6bff]/[0.14]"
+									type="button"
+									onClick={() => open(<PromoActivationModal />)}
+								>
+									<span className="grid size-6 place-items-center rounded-lg bg-[#2f6bff] text-white"><TicketPercent className="size-3.5" /></span>
+									<span>{T("dashboard.promo.button")}</span>
+								</button>
 								<button
 									className="flex w-full items-center gap-3 rounded-[12px] border border-white/10 light:border-[#e2e4ea] bg-white/[0.04] light:bg-[#f4f6fa] px-4 py-2.5 text-[15px] font-medium text-white light:text-[#0e1019] transition-colors hover:bg-white/[0.08] light:hover:bg-[#eef1f6]"
 									type="button"

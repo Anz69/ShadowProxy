@@ -16,7 +16,8 @@ const NAV = [
 	{ href: "/admin/servers", label: "Серверы" },
 	{ href: "/admin/reviews", label: "Отзывы" },
 	{ href: "/admin/support", label: "Поддержка" },
-	{ href: "/admin/broadcasts", label: "Рассылки" }
+	{ href: "/admin/broadcasts", label: "Рассылки" },
+	{ href: "/admin/promos", label: "Промокоды" }
 ]
 
 /**

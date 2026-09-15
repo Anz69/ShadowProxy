@@ -6,12 +6,27 @@ import axios from 'axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PROXY_SERVER_PORT } from '../shared/utils/hash-credentials';
 import { OnEvent } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ProxyServerService {
     private readonly logger = new Logger(ProxyServerService.name);
 
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private readonly configService: ConfigService,
+    ) {}
+
+    /**
+     * Публичный адрес, который видит клиент. Внутренний IP остаётся в БД и
+     * используется control-plane для синхронизации агента. После привязки DNS
+     * достаточно выставить PROXY_PUBLIC_HOST без миграции существующих записей.
+     */
+    getPublicHost(internalHost: string): string {
+        const configured = this.configService.get<string>('PROXY_PUBLIC_HOST', '').trim();
+        if (!configured) return internalHost;
+        return configured.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').split(':')[0] || internalHost;
+    }
 
     // Получить все серверы с динамическим подсчётом загрузки
     async getAllServers() {
@@ -655,4 +670,3 @@ export class ProxyServerService {
         return { success, failed };
     }
 }
-

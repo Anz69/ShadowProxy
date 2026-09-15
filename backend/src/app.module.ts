@@ -32,6 +32,7 @@ import { NotificationModule } from "./notification/notification.module";
 import { SupportModule } from "./support/support.module";
 import { ReviewModule } from "./review/review.module";
 import { RentedIpModule } from "./rented-ip/rented-ip.module";
+import { PromoModule } from "./promo/promo.module";
 
 @Module({
     imports: [
@@ -99,6 +100,7 @@ import { RentedIpModule } from "./rented-ip/rented-ip.module";
         ReviewModule,
         RentedIpModule,
         SupportModule,
+        PromoModule,
     ],
     providers: [SubService],
 })
