@@ -56,11 +56,12 @@ services:
       - server
     restart: on-failure
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/proxy/prices" ]
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/api/health/check" ]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # Инициализация провайдеров может занимать до минуты при медленном Mango.
+      start_period: 90s
 
   frontend:
     build:
