@@ -75,4 +75,10 @@ Control-plane продолжит использовать IP из `proxy_servers
 
 ## 7. Smoke-check
 
-Проверить `/`, `/dashboard`, `/balance`, `/admin/promos`, `/admin/stats`, `/support`; выполнить одну тестовую покупку/промокод и по одному живому прокси каждого продаваемого типа. После этого проверить backend/nginx логи и health контейнеров.
+```bash
+docker compose exec -T backend node scripts/gateway-provider-smoke.js
+```
+
+Команда временно регистрирует отдельные QA-логины, проверяет ISP NL, ISP USA и Residential Lite через ACTIVE gateway скачиванием 100 KB и всегда блокирует QA-логины после теста. Пользовательские пакеты, прокси и балансы не меняются.
+
+Дополнительно проверить `/`, `/dashboard`, `/balance`, `/admin/promos`, `/admin/stats`, `/support`; выполнить одну тестовую покупку/промокод в выделенном QA-аккаунте. После этого проверить backend/nginx логи и health контейнеров.

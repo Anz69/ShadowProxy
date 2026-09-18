@@ -28,6 +28,7 @@
     "script:mango-zero": "node scripts/mango-traffic-reconcile.js zero",
     "script:mango-restore": "node scripts/mango-traffic-reconcile.js restore",
     "script:gateway-audit": "node scripts/gateway-audit.js",
+    "script:gateway-smoke": "node scripts/gateway-provider-smoke.js",
     "script:proxy-test": "node scripts/proxy-test.js"
   },
   "dependencies": {
