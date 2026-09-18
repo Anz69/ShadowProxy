@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { generateRandomString } from "../../../shared/utils/generate-random-string";
 
 /**
@@ -11,12 +12,22 @@ import { generateRandomString } from "../../../shared/utils/generate-random-stri
  */
 @Injectable()
 export class IspEuProvider {
-    private readonly host = "eu-isp.flashproxy.io";
-    private readonly portHttp = 30;
+    private readonly host: string;
+    private readonly portHttp: number;
     private readonly portSocks = 31; // на будущее (гейтвей ходит по HTTP CONNECT)
-    private readonly user = "gedfdvfwf8";
-    private readonly pass = "o18geslcqi";
+    private readonly user: string;
+    private readonly pass: string;
     private readonly allowed = ["NL"];
+
+    constructor(config: ConfigService) {
+        this.host = config.get<string>("FLASH_ISP_EU_HOST", "eu-isp.flashproxy.io");
+        this.portHttp = Number(config.get<string>("FLASH_ISP_EU_HTTP_PORT", "30"));
+        this.user = config.getOrThrow<string>("FLASH_ISP_EU_USERNAME");
+        this.pass = config.getOrThrow<string>("FLASH_ISP_EU_PASSWORD");
+        if (!Number.isInteger(this.portHttp) || this.portHttp < 1 || this.portHttp > 65535) {
+            throw new Error("FLASH_ISP_EU_HTTP_PORT должен быть корректным TCP-портом");
+        }
+    }
 
     /** @param location ISO-2; в текущем продуктовом режиме допустим только NL. */
     createProxy(location: string | undefined, rotationTime?: number) {

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { generateRandomString } from "../../../shared/utils/generate-random-string";
 
 /**
@@ -13,12 +14,22 @@ import { generateRandomString } from "../../../shared/utils/generate-random-stri
  */
 @Injectable()
 export class IspUsaProvider {
-    private readonly host = "beta.flashproxy.io";
-    private readonly portHttp = 30;
+    private readonly host: string;
+    private readonly portHttp: number;
     // SOCKS5-порт апстрима (31) — оставлен на будущее; сейчас гейтвей ходит по HTTP CONNECT.
     private readonly portSocks = 31;
-    private readonly user = "w8z673e2dx";
-    private readonly pass = "m3tv7xgdcw";
+    private readonly user: string;
+    private readonly pass: string;
+
+    constructor(config: ConfigService) {
+        this.host = config.get<string>("FLASH_ISP_USA_HOST", "beta.flashproxy.io");
+        this.portHttp = Number(config.get<string>("FLASH_ISP_USA_HTTP_PORT", "30"));
+        this.user = config.getOrThrow<string>("FLASH_ISP_USA_USERNAME");
+        this.pass = config.getOrThrow<string>("FLASH_ISP_USA_PASSWORD");
+        if (!Number.isInteger(this.portHttp) || this.portHttp < 1 || this.portHttp > 65535) {
+            throw new Error("FLASH_ISP_USA_HTTP_PORT должен быть корректным TCP-портом");
+        }
+    }
 
     /**
      * @param rotationTime — интервал ротации в минутах (1–1440). Не указан → ротация по запросу.

@@ -57,6 +57,12 @@ docker compose exec -T backend node scripts/gateway-audit.js --execute --confirm
 USE_NODE_GATEWAY=true
 MANGO_MODE=gateway
 ENABLE_MANGO_SYNC=false
+FLASH_ISP_EU_USERNAME=<secret>
+FLASH_ISP_EU_PASSWORD=<secret>
+FLASH_ISP_USA_USERNAME=<secret>
+FLASH_ISP_USA_PASSWORD=<secret>
+FLASH_RESIDENTIAL_LITE_USERNAME=<secret>
+FLASH_RESIDENTIAL_LITE_PASSWORD=<secret>
 ```
 
 После привязки DNS добавить без протокола и порта:

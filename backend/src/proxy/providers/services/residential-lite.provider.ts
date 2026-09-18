@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { generateRandomString } from "../../../shared/utils/generate-random-string";
 
 /**
@@ -11,11 +12,21 @@ import { generateRandomString } from "../../../shared/utils/generate-random-stri
  */
 @Injectable()
 export class ResidentialLiteProvider {
-    private readonly host = "lite.flashproxy.io";
-    private readonly portHttp = 6969;
+    private readonly host: string;
+    private readonly portHttp: number;
     private readonly portSocks = 9696; // на будущее (гейтвей ходит по HTTP CONNECT)
-    private readonly user = "iqtzetcozu";
-    private readonly pass = "o1o9gpret9";
+    private readonly user: string;
+    private readonly pass: string;
+
+    constructor(config: ConfigService) {
+        this.host = config.get<string>("FLASH_RESIDENTIAL_LITE_HOST", "lite.flashproxy.io");
+        this.portHttp = Number(config.get<string>("FLASH_RESIDENTIAL_LITE_HTTP_PORT", "6969"));
+        this.user = config.getOrThrow<string>("FLASH_RESIDENTIAL_LITE_USERNAME");
+        this.pass = config.getOrThrow<string>("FLASH_RESIDENTIAL_LITE_PASSWORD");
+        if (!Number.isInteger(this.portHttp) || this.portHttp < 1 || this.portHttp > 65535) {
+            throw new Error("FLASH_RESIDENTIAL_LITE_HTTP_PORT должен быть корректным TCP-портом");
+        }
+    }
 
     /** @param location ISO-2 любой страны. */
     createProxy(location: string | undefined, rotationTime?: number) {
