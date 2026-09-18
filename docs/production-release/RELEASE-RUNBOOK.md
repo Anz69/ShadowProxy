@@ -18,7 +18,7 @@ install -m 600 /path/from/mango/full-usernames-export.txt release-private/mango-
 ## 2. Mango: аудит и обнуление
 
 ```bash
-docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit --report-file=/secure/mango-audit-before.json
+docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit --timeout-ms=5000 --report-file=/secure/mango-audit-before.json
 docker compose exec -T backend node scripts/mango-traffic-reconcile.js zero --usernames-file=/secure/mango-usernames.txt --report-file=/secure/mango-zero-dry-run.json
 docker compose exec -T backend node scripts/mango-traffic-reconcile.js zero --execute --confirm=MANGO_ZERO --confirm-scope=ALL_MANGO_ACCOUNTS --usernames-file=/secure/mango-usernames.txt --report-file=/secure/mango-zero-result.json
 ```
@@ -37,7 +37,7 @@ docker compose exec -T backend npx prisma migrate status
 ```bash
 docker compose exec -T backend node scripts/mango-traffic-reconcile.js restore
 docker compose exec -T backend node scripts/mango-traffic-reconcile.js restore --execute --confirm=MANGO_RESTORE --report-file=/secure/mango-restore-result.json
-docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit --report-file=/secure/mango-audit-after.json
+docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit --timeout-ms=5000 --report-file=/secure/mango-audit-after.json
 ```
 
 `restore` доводит `last_flow` до `premiumTrafficLeft` дельтой. Он идемпотентен и не меняет баланс пользователя на сайте.

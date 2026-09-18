@@ -34,6 +34,8 @@ const confirm = args.find((arg) => arg.startsWith("--confirm="))?.split("=").sli
 const usernamesFile = args.find((arg) => arg.startsWith("--usernames-file="))?.split("=").slice(1).join("=");
 const scopeConfirmation = args.find((arg) => arg.startsWith("--confirm-scope="))?.split("=").slice(1).join("=");
 const reportFile = args.find((arg) => arg.startsWith("--report-file="))?.split("=").slice(1).join("=");
+const timeoutArg = args.find((arg) => arg.startsWith("--timeout-ms="))?.split("=").slice(1).join("=");
+const timeoutMs = timeoutArg ? Number(timeoutArg) : 30_000;
 
 if (!["audit", "zero", "restore"].includes(mode)) {
   throw new Error("Режим: audit | zero | restore");
@@ -59,6 +61,9 @@ if (execute && mode === "zero") {
     throw new Error("Подтвердите полноту manifest: --confirm-scope=ALL_MANGO_ACCOUNTS");
   }
 }
+if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 60_000) {
+  throw new Error("--timeout-ms должен быть целым числом от 1000 до 60000");
+}
 
 function databaseUrl() {
   const explicit = process.env.DATABASE_URL || process.env.POSTGRES_URI;
@@ -76,7 +81,7 @@ const baseURL = process.env.MANGO_PROXY_BASE_URL;
 const appKey = process.env.MANGO_PROXY_API_KEY;
 if (!baseURL || !appKey) throw new Error("Нужны MANGO_PROXY_BASE_URL и MANGO_PROXY_API_KEY");
 
-const api = axios.create({ baseURL, timeout: 30_000, validateStatus: () => true });
+const api = axios.create({ baseURL, timeout: timeoutMs, validateStatus: () => true });
 async function mangoPost(endpoint, data) {
   const response = await api.post(endpoint, { ...data, app_key: appKey });
   if (response.status < 200 || response.status >= 300 || typeof response.data === "string") {
