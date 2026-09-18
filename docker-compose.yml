@@ -47,6 +47,8 @@ services:
     volumes:
       # Вложения поддержки (скриншоты/видео) — переживают rebuild контейнера
       - uploads_data:/app/uploads
+      # Приватные manifest/report/backup-файлы release-операций; каталог исключён из git.
+      - ./release-private:/secure
     depends_on:
       postgres:
         condition: service_healthy

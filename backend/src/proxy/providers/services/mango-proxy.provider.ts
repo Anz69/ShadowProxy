@@ -95,7 +95,6 @@ export class MangoProxyProvider implements OnModuleInit {
             
             await this.logger.log("SYSTEM", `🔍 Проверка необходимости создания аккаунта Mango для пользователя ${userId}`, userId, {
                 hasPremiumUsername: !!user.premiumUsername && user.premiumUsername.length > 0,
-                premiumUsername: user.premiumUsername || "пусто",
             });
             
             if (!user.premiumUsername.length) {
@@ -107,14 +106,10 @@ export class MangoProxyProvider implements OnModuleInit {
                     username,
                 });
 
-                console.log("=== MANGO API /create_user RESPONSE ===");
-                console.log("Status:", userCreateRes.status);
-                console.log("Data:", JSON.stringify(userCreateRes.data, null, 2));
-                console.log("======================================");
-
                 await this.logger.log("SYSTEM", `📥 Ответ от Mango API /create_user`, userId, {
                     statusCode: userCreateRes.status,
-                    responseData: userCreateRes.data,
+                    code: userCreateRes.data?.code,
+                    message: userCreateRes.data?.msg,
                 });
 
                     const { account, password } = await this.createProxyAccount(username);
@@ -130,14 +125,14 @@ export class MangoProxyProvider implements OnModuleInit {
                     } else {
                         await this.logger.error(`⚠️ Неожиданный статус при создании пользователя: ${userCreateRes.status}`, userId, {
                             status: userCreateRes.status,
-                            data: userCreateRes.data,
+                            code: userCreateRes.data?.code,
+                            message: userCreateRes.data?.msg,
                         });
                         throw new Error(userCreateRes.data.msg);
                     }
                     return true;
                 } catch (e: unknown) {
                     await this.logger.error(`❌ Ошибка при создании аккаунта Mango Proxy для юзера ${userId}`, userId, {
-                        error: e,
                         errorMessage: e instanceof Error ? e.message : String(e),
                     });
                     return false;
@@ -170,7 +165,8 @@ async createProxyAccount(username: string) {
 
     await this.logger.log("SYSTEM", `📥 Ответ от Mango API /add_proxy_account`, undefined, {
         statusCode: response.status,
-        responseData: response.data,
+        code: response.data?.code,
+        message: response.data?.msg,
     });
 
     return {
@@ -440,14 +436,16 @@ async createProxyAccount(username: string) {
 
             await this.logger.log("SYSTEM", `📥 Ответ Mango /create_user (recovery)`, userId, {
                 statusCode: recreateRes.status,
-                responseData: recreateRes.data,
+                code: recreateRes.data?.code,
+                message: recreateRes.data?.msg,
             });
 
             const createOk = recreateRes.status === 201 || recreateRes.data?.code === "1";
             if (!createOk) {
                 await this.logger.error(`⚠️ Mango recovery: create_user неуспешен`, userId, {
                     status: recreateRes.status,
-                    data: recreateRes.data,
+                    code: recreateRes.data?.code,
+                    message: recreateRes.data?.msg,
                 });
                 return false;
             }
@@ -476,7 +474,8 @@ async createProxyAccount(username: string) {
 
             await this.logger.log("SYSTEM", `📥 Ответ Mango /add_user_flow (после recovery)`, userId, {
                 statusCode: retryRes.status,
-                responseData: retryRes.data,
+                code: retryRes.data?.code,
+                message: retryRes.data?.msg,
             });
 
             if (retryRes.data?.code === "1") {
@@ -561,7 +560,6 @@ async createProxyAccount(username: string) {
             // Задержка только если аккаунт только что создан (чтобы Mango API успел его подхватить)
             if (accountJustCreated) {
                 await this.logger.log("SYSTEM", `⏳ Ожидание 2 секунд перед добавлением трафика (чтобы пользователь успел создаться в Mango API)...`, userId, {
-                    premiumUsername: user.premiumUsername,
                     extractedUsername: username,
                 });
                 await sleep(2000);
@@ -578,10 +576,10 @@ async createProxyAccount(username: string) {
                     flow: trafficInMB,
                 });
 
-                // Логируем полный ответ от Mango API
                 await this.logger.log("SYSTEM", `📥 Ответ от Mango API /add_user_flow`, userId, {
                     statusCode: distributeRes.status,
-                    responseData: distributeRes.data,
+                    code: distributeRes.data?.code,
+                    message: distributeRes.data?.msg,
                 });
 
                 if (distributeRes.data.code === "1") {
@@ -593,7 +591,6 @@ async createProxyAccount(username: string) {
                 await this.logger.error(`⚠️ Mango API вернул код ошибки: ${distributeRes.data.code}`, userId, {
                     code: distributeRes.data.code,
                     message: distributeRes.data.msg,
-                    fullResponse: distributeRes.data,
                 });
                 
                 throw new Error(`Mango API error: ${distributeRes.data.msg} (code: ${distributeRes.data.code})`);

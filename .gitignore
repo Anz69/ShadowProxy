@@ -34,6 +34,9 @@ copyParty2/
 copyParty/
 Архив*/
 
+# Private production-release manifests, database dumps and operation reports
+release-private/
+
 # Archives & scratch notes
 *.zip
 ProxyEmpaer.md

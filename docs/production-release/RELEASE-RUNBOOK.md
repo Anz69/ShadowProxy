@@ -1,20 +1,29 @@
 # Production release runbook
 
-Все команды выполняются из `backend` внутри backend-контейнера либо на хосте с тем же `.env` и доступом к PostgreSQL/Mango. Обычный деплой больше не запускает provider data-миграции автоматически.
+Все команды выполняются из корня проекта. Обычный деплой больше не запускает provider data-миграции автоматически. Приватный каталог `release-private/` смонтирован в backend-контейнер как `/secure` и исключён из Git.
 
 ## 1. Резервная копия
 
 Перед изменением Mango сохранить дамп PostgreSQL и экспорт списка всех Mango-субаккаунтов. Визуальные балансы сайта скрипт не изменяет.
 
+```bash
+install -d -m 700 release-private
+set -a; . ./.env; set +a
+docker compose exec -T postgres pg_dump -U "$POSTGRES_USERNAME" -d "$POSTGRES_DATABASE" -Fc > "release-private/pre-release-$(date -u +%Y%m%dT%H%M%SZ).dump"
+install -m 600 /path/from/mango/full-usernames-export.txt release-private/mango-usernames.txt
+```
+
+Не продолжать, если дамп пуст, полный экспорт Mango не получен или его количество аккаунтов не сверено с кабинетом Mango.
+
 ## 2. Mango: аудит и обнуление
 
 ```bash
-node scripts/mango-traffic-reconcile.js audit
-node scripts/mango-traffic-reconcile.js zero --usernames-file=/secure/mango-usernames.txt
-node scripts/mango-traffic-reconcile.js zero --execute --confirm=MANGO_ZERO --usernames-file=/secure/mango-usernames.txt
+docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit --report-file=/secure/mango-audit-before.json
+docker compose exec -T backend node scripts/mango-traffic-reconcile.js zero --usernames-file=/secure/mango-usernames.txt --report-file=/secure/mango-zero-dry-run.json
+docker compose exec -T backend node scripts/mango-traffic-reconcile.js zero --execute --confirm=MANGO_ZERO --confirm-scope=ALL_MANGO_ACCOUNTS --usernames-file=/secure/mango-usernames.txt --report-file=/secure/mango-zero-result.json
 ```
 
-Файл содержит по одному Mango username в строке и нужен, чтобы охватить субаккаунты, которые не связаны с пользователями в БД сайта. Без него скрипт обрабатывает все связанные аккаунты из `users.premium_username`. После каждой записи выполняется повторный `/user_info`; ошибка проверки даёт ненулевой exit code.
+Файл содержит по одному Mango username в строке и должен быть полным экспортом Mango, включая аккаунты, которые не связаны с пользователями в БД сайта. Реальное обнуление без полного manifest и отдельного подтверждения scope запрещено. До первого изменения скрипт читает `last_flow` всех целей; любая ошибка preflight останавливает операцию без частичного обнуления. После каждой записи выполняется повторный `/user_info`, а приватный JSON-журнал создаётся с правами `0600`.
 
 ## 3. Деплой и миграции Prisma
 
@@ -27,8 +36,8 @@ docker compose exec -T backend npx prisma migrate status
 
 ```bash
 docker compose exec -T backend node scripts/mango-traffic-reconcile.js restore
-docker compose exec -T backend node scripts/mango-traffic-reconcile.js restore --execute --confirm=MANGO_RESTORE
-docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit
+docker compose exec -T backend node scripts/mango-traffic-reconcile.js restore --execute --confirm=MANGO_RESTORE --report-file=/secure/mango-restore-result.json
+docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit --report-file=/secure/mango-audit-after.json
 ```
 
 `restore` доводит `last_flow` до `premiumTrafficLeft` дельтой. Он идемпотентен и не меняет баланс пользователя на сайте.
@@ -36,11 +45,11 @@ docker compose exec -T backend node scripts/mango-traffic-reconcile.js audit
 ## 5. Gateway: выбрать одну рабочую ноду
 
 ```bash
-docker compose exec -T backend node scripts/gateway-audit.js
-docker compose exec -T backend node scripts/gateway-audit.js --execute --keep=WORKING_IP
+docker compose exec -T backend node scripts/gateway-audit.js --report-file=/secure/gateway-audit.json
+docker compose exec -T backend node scripts/gateway-audit.js --execute --confirm=GATEWAY_SINGLE_NODE --keep=WORKING_IP --report-file=/secure/gateway-selection.json
 ```
 
-Скрипт проверяет TCP 10000, control-plane 808, реальный HTTPS-запрос через зарегистрированный ACTIVE-прокси и фактическое увеличение `trafficUsed` после отчёта агента. Переключение оставляет одну ноду `ACTIVE`, остальные переводит в `OFFLINE`; записи и действующие прокси не удаляются.
+Скрипт проверяет TCP 10000, авторизованный `/health` control-plane, реальный HTTPS-запрос через зарегистрированный ACTIVE-прокси и фактическое увеличение `trafficUsed` после отчёта агента. Переключение требует отдельного подтверждения, сохраняет приватный журнал, оставляет одну ноду `ACTIVE`, остальные переводит в `OFFLINE`; записи и действующие прокси не удаляются.
 
 ## 6. Режим релиза
 

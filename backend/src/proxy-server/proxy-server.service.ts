@@ -196,7 +196,7 @@ export class ProxyServerService {
 
         // Генерируем новый токен
         const token = randomUUID();
-        console.log(`[ProxyServerService] generateServerToken: сгенерирован токен ${token}`);
+        console.log(`[ProxyServerService] generateServerToken: токен сгенерирован`);
 
         // Сохраняем токен в базу данных
         try {
@@ -204,7 +204,7 @@ export class ProxyServerService {
                 where: { id: serverId },
                 data: { token },
             });
-            console.log(`[ProxyServerService] generateServerToken: токен сохранен в БД для сервера ${updated.host}, токен: ${updated.token}`);
+            console.log(`[ProxyServerService] generateServerToken: токен сохранен в БД для сервера ${updated.host}`);
         } catch (error) {
             console.error(`[ProxyServerService] generateServerToken: ОШИБКА при сохранении токена:`, error);
             throw error;
@@ -215,7 +215,7 @@ export class ProxyServerService {
             where: { id: serverId },
             select: { token: true, host: true },
         });
-        console.log(`[ProxyServerService] generateServerToken: проверка сохранения - токен в БД: ${verify?.token || 'НЕТ'}`);
+        console.log(`[ProxyServerService] generateServerToken: проверка сохранения - ${verify?.token ? 'OK' : 'НЕТ ТОКЕНА'}`);
 
         return {
             token,
