@@ -15,20 +15,33 @@
 ## Автоматическая проверка
 
 - Prisma schema validate/generate: проходит.
-- Backend production build: проходит.
-- Frontend production build и type-check: проходят.
-- Новые Mango/gateway/deploy scripts: проходят `node --check`.
-- Promo activation unit tests: проходят отдельно.
-- Полный старый Jest-набор сейчас не является рабочим release gate: устаревшие scaffold specs не поднимают зависимости Nest, не загружают расширение `String.internationalize` и не резолвят `.tsx` email templates. Это существующий долг тестовой инфраструктуры, а не ошибка production build.
-- Go-тесты агента на этой машине не запускались: Go runtime не установлен.
+- Backend production build: проходит; Jest — 17 suites / 23 tests.
+- Release scripts: 4/4 теста проходят; Mango/gateway/smoke scripts также проходят `node --check`.
+- Frontend production build и type-check: проходят; lint — 0 ошибок, 71 существующее предупреждение.
+- ISP Netherlands, ISP USA и Residential Lite покрыты unit-тестами формата upstream, гео и ограничения ротации.
+- На dev выполнен живой gateway smoke через единственную ACTIVE-ноду: ISP NL, ISP USA, Residential Lite и Mango — 4/4 успешных загрузки по 100 KB.
+- Go-тесты агента локально не запускались: Go runtime не установлен. Работоспособность развёрнутого агента подтверждена systemd health, авторизованным control-plane health и живым трафиком четырёх провайдеров.
+
+## Состояние dev после Sprint 3
+
+- Перед изменениями создан приватный PostgreSQL dump с правами `0600`.
+- Backend, PostgreSQL и Redis healthy; frontend запущен; публичный сайт и `/api/health/check` отвечают HTTP 200.
+- Prisma: 80 миграций, схема актуальна.
+- В БД оставлена одна ACTIVE gateway-нода `94.156.112.52`; остальные переведены в `OFFLINE` без удаления записей.
+- Временные QA-логины после smoke удалены; критических ошибок в свежих backend-логах нет.
+- Публичные страницы проверены в браузере в светлой/тёмной теме и на ширине 390 px: нет ошибок консоли, битых изображений и горизонтального переполнения.
+
+## Внешний блокер Mango migration
+
+Read-only preflight проверил 28 связанных с БД Mango-субаккаунтов, но Mango API вернул timeout/HTTP 522 по всем запросам. Скрипт завершился до первой мутации, поэтому трафик Mango не обнулялся и не восстанавливался. Production-операцию разрешено выполнять только после восстановления Mango API и получения полного экспорта всех Mango username, включая аккаунты вне БД сайта.
 
 ## Требует production/staging credentials
 
 - Реальные Google/Telegram callback flows и trial identity.
 - Все платёжные провайдеры и финальные callbacks/idempotency.
-- Живые upstream-подключения всех типов, rotation и списание трафика.
+- Финальные callback-сценарии upstream rotation и списания на выделенном QA-пакете.
 - Mango zero/restore по приватному API и экспортированному полному списку субаккаунтов.
-- Выбор единственного gateway реальным `gateway-audit` на production.
-- Финальный desktop/mobile визуальный проход с production-данными.
+- Повторный `gateway-audit` и smoke на production после переключения DNS/окружения.
+- Авторизованный desktop/mobile проход dashboard, balance, support и admin с production-данными.
 
 Релизный порядок и точные команды находятся в `RELEASE-RUNBOOK.md`.
