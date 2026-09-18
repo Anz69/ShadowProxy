@@ -83,9 +83,27 @@ async function main() {
   const active = await prisma.proxyServer.findMany({ where: { status: "ACTIVE", token: { not: null } } });
   if (active.length !== 1) throw new Error(`Ожидался ровно один ACTIVE gateway, найдено: ${active.length}`);
   const server = active[0];
+  const mangoSample = await prisma.proxy.findFirst({
+    where: { type: "RESIDENT_PREMIUM", status: "ACTIVE" },
+    orderBy: { updatedAt: "desc" },
+    select: { host: true, port: true, username: true, password: true },
+  });
+  if (!mangoSample?.host || !mangoSample.port || !mangoSample.username || !mangoSample.password) {
+    throw new Error("Не найден ACTIVE Mango-прокси для gateway smoke");
+  }
+  const smokeTargets = [
+    ...targets,
+    {
+      type: "MANGO",
+      host: mangoSample.host,
+      port: mangoSample.port,
+      username: mangoSample.username,
+      password: mangoSample.password,
+    },
+  ];
   const results = [];
 
-  for (const target of targets) {
+  for (const target of smokeTargets) {
     const suffix = randomBytes(8).toString("hex");
     const login = `qa-sprint3-${target.type.toLowerCase()}-${suffix}`;
     const password = randomBytes(12).toString("base64url");

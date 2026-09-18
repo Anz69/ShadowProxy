@@ -79,6 +79,6 @@ Control-plane продолжит использовать IP из `proxy_servers
 docker compose exec -T backend node scripts/gateway-provider-smoke.js
 ```
 
-Команда временно регистрирует отдельные QA-логины, проверяет ISP NL, ISP USA и Residential Lite через ACTIVE gateway скачиванием 100 KB и всегда блокирует QA-логины после теста. Пользовательские пакеты, прокси и балансы не меняются.
+Команда временно регистрирует отдельные QA-логины, проверяет ISP NL, ISP USA, Residential Lite и существующий ACTIVE Mango через ACTIVE gateway скачиванием 100 KB и всегда блокирует QA-логины после теста. Пользовательские пакеты, прокси и балансы не меняются.
 
 Дополнительно проверить `/`, `/dashboard`, `/balance`, `/admin/promos`, `/admin/stats`, `/support`; выполнить одну тестовую покупку/промокод в выделенном QA-аккаунте. После этого проверить backend/nginx логи и health контейнеров.
