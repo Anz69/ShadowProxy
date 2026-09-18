@@ -7,6 +7,7 @@ import {
     Logger,
     Req,
     BadRequestException,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { ProxyServerService } from '../proxy-server/proxy-server.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -64,6 +65,24 @@ export class ProxyNodeController {
     @Post('/traffic')
     @HttpCode(HttpStatus.OK)
     async receiveTraffic(@Body() body: any, @Req() req: any) {
+        const serverId = typeof body.server_id === 'string' ? body.server_id.trim() : '';
+        const reportingServer = serverId
+            ? await this.prisma.proxyServer.findFirst({
+                where: { host: serverId },
+                select: { host: true, token: true },
+            })
+            : null;
+
+        // Новые агенты передают реальный server_id. Для них проверяем тот же токен,
+        // которым защищён control-plane, и привязываем login к конкретному gateway.
+        // Legacy server_id пока принимается для плавного обновления старых нод.
+        if (reportingServer) {
+            const bearer = String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '');
+            if (!reportingServer.token || bearer !== reportingServer.token) {
+                throw new UnauthorizedException('Неверный токен прокси-сервера');
+            }
+        }
+
         if (isDevEnv) {
             const n = body.logs?.length ?? 0;
             this.logger.debug(
@@ -103,7 +122,10 @@ export class ProxyNodeController {
                 const totalBytes = traffic.inBytes + traffic.outBytes;
                 
                 const proxy = await this.prisma.proxy.findFirst({
-                    where: { userLogin: login },
+                    where: {
+                        userLogin: login,
+                        ...(reportingServer ? { serverHost: reportingServer.host } : {}),
+                    },
                     include: {
                         user: true,
                         userPackage: true,

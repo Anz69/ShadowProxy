@@ -7,7 +7,7 @@ describe('EmailConfirmationController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmailConfirmationController],
-    }).compile();
+    }).useMocker(() => ({})).compile();
 
     controller = module.get<EmailConfirmationController>(EmailConfirmationController);
   });

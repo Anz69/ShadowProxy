@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+    BadGatewayException,
+    BadRequestException,
+    Injectable,
+    Logger,
+    NotFoundException,
+    ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProxyServerStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -11,6 +18,8 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class ProxyServerService {
     private readonly logger = new Logger(ProxyServerService.name);
+    private readonly serverHealth = new Map<string, { healthy: boolean; expiresAt: number }>();
+    private readonly healthCacheMs = 5000;
 
     constructor(
         private prisma: PrismaService,
@@ -294,18 +303,62 @@ export class ProxyServerService {
         }
     }
 
-    /** V2: выбрать сервер с наименьшей загрузкой (порт 10000 общий) */
+    private rememberServerHealth(host: string, healthy: boolean): void {
+        this.serverHealth.set(host, {
+            healthy,
+            expiresAt: Date.now() + this.healthCacheMs,
+        });
+    }
+
+    private async isServerHealthy(server: { host: string; token: string | null }): Promise<boolean> {
+        if (!server.token) return false;
+
+        const cached = this.serverHealth.get(server.host);
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.healthy;
+        }
+
+        try {
+            const response = await axios.get(`http://${server.host}:808/health`, {
+                headers: { Authorization: `Bearer ${server.token}` },
+                timeout: 2500,
+            });
+            const healthy = response.status === 200 && response.data?.status === 'ok';
+            this.rememberServerHealth(server.host, healthy);
+            return healthy;
+        } catch (error: any) {
+            this.rememberServerHealth(server.host, false);
+            this.logger.warn(
+                `[ProxyServerService] Gateway ${server.host} недоступен: ${error?.code || error?.message || 'health-check failed'}`,
+            );
+            return false;
+        }
+    }
+
+    /** V2: выбрать живой ACTIVE-сервер с наименьшей загрузкой (порт 10000 общий) */
     async getServerForProxy(): Promise<{ serverHost: string }> {
         const servers = await this.prisma.proxyServer.findMany({
-            where: { status: ProxyServerStatus.ACTIVE },
+            where: {
+                status: ProxyServerStatus.ACTIVE,
+                token: { not: null },
+            },
         });
 
         if (servers.length === 0) {
-            throw new NotFoundException('Нет доступных активных прокси-серверов');
+            throw new ServiceUnavailableException('Нет настроенных активных прокси-серверов');
+        }
+
+        const health = await Promise.all(servers.map((server) => this.isServerHealthy(server)));
+        const healthyServers = servers.filter((_, index) => health[index]);
+
+        if (healthyServers.length === 0) {
+            throw new ServiceUnavailableException(
+                'Прокси-серверы временно недоступны. Повторите попытку через несколько секунд.',
+            );
         }
 
         const serversWithLoad = await Promise.all(
-            servers.map(async (server) => {
+            healthyServers.map(async (server) => {
                 const count = await this.prisma.proxy.count({
                     where: { serverHost: server.host },
                 });
@@ -399,19 +452,17 @@ export class ProxyServerService {
         proxyPassword: string,
         authToken: string
     ): Promise<void> {
-        const maxRetries = 3; // Максимум 3 попытки, чтобы не грузить сервер
+        const maxRetries = 2;
         let lastError: any = null;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                console.log(`[PROXY SERVER REQUEST] ${serverHost} -> ADD-PORT port ${port} (попытка ${attempt}/${maxRetries}):`, {
+                this.logger.log(`[ProxyServerService] ADD-PORT ${serverHost}:${port} (попытка ${attempt}/${maxRetries})`, {
                     port,
                     login,
-                    password,
                     proxyHost,
                     proxyPort,
                     proxyUsername,
-                    proxyPassword
                 });
 
                 const response = await axios.post(
@@ -431,36 +482,33 @@ export class ProxyServerService {
                             'Authorization': `Bearer ${authToken}`,
                             'Content-Type': 'application/json',
                         },
-                        timeout: 10000,
+                        timeout: 3000,
                     },
                 );
 
-                console.log(`[PROXY SERVER RESPONSE] ${serverHost} <- ADD-PORT port ${port}:`, response.data);
+                this.rememberServerHealth(serverHost, true);
                 this.logger.log(`[ProxyServerService] Порт ${port} успешно активирован на сервере ${serverHost} (попытка ${attempt})`);
                 return; // Успешно - выходим
             } catch (error: any) {
                 lastError = error;
-                console.error(`[PROXY SERVER ERROR] ${serverHost} -> ADD-PORT port ${port} (попытка ${attempt}/${maxRetries}):`, error.message);
+                this.rememberServerHealth(serverHost, false);
+                this.logger.warn(
+                    `[ProxyServerService] ADD-PORT ${serverHost}:${port} не выполнен (попытка ${attempt}/${maxRetries}): ${error?.code || error?.message}`,
+                );
 
                 if (attempt < maxRetries) {
-                    console.log(`[PROXY SERVER RETRY] Повтор через 5 секунд...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    await new Promise(resolve => setTimeout(resolve, 300));
                 } else {
                     this.logger.error(`[ProxyServerService] Ошибка при активации порта ${port} на сервере ${serverHost} после ${maxRetries} попыток: ${error.message}`);
                 }
             }
         }
 
-        // Все попытки исчерпаны — снимаем порт с сервера (забываем комбинацию активации)
-        this.logger.warn(`[ProxyServerService] Снятие порта ${port} с сервера ${serverHost} после неудачной активации...`);
-        try {
-            await this.releasePortOnServer(serverHost, port, authToken);
-            this.logger.log(`[ProxyServerService] Порт ${port} снят с сервера ${serverHost} после неудачной активации`);
-        } catch (cleanupError: any) {
-            this.logger.warn(`[ProxyServerService] Не удалось снять порт ${port} при очистке: ${cleanupError?.message || cleanupError}`);
-        }
-
-        throw lastError;
+        // В V2 порт 10000 общий. STOP здесь удалил бы доступ остальных пользователей,
+        // поэтому при ошибке активации только возвращаем безопасную понятную ошибку.
+        throw new BadGatewayException(
+            `Gateway ${serverHost} не подтвердил активацию прокси: ${lastError?.code || 'upstream unavailable'}`,
+        );
     }
 
     // Cron задача: удаление неактивных портов (>30 дней) для всех типов прокси

@@ -4,9 +4,8 @@
 # CONFIG - Edit these before running
 # =============================================================================
 CORE_URL="${CORE_URL:-https://dev.shadowproxy.io/}"
-# CORE_URL="${CORE_URL:-https://treva-prissy-unconceptually.ngrok-free.dev}"
-AUTH_TOKEN="${AUTH_TOKEN:-324fd5f0-2382-47b0-9d02-6a81496ff2ff}"
-# AUTH_TOKEN="${AUTH_TOKEN:-6818dd6a-bf97-4c28-ada5-6784c750401a}"
+AUTH_TOKEN="${AUTH_TOKEN:-}"
+SERVER_ID="${SERVER_ID:-}"
 PROXY_PORT="${PROXY_PORT:-10000}"
 API_PORT="${API_PORT:-808}"
 
@@ -15,22 +14,28 @@ API_PORT="${API_PORT:-808}"
 DEBUG_LOGIN_ENABLED="${DEBUG_LOGIN_ENABLED:-0}"
 DEBUG_LOGIN="${DEBUG_LOGIN:-debug}"
 DEBUG_PASSWORD="${DEBUG_PASSWORD:-debug123}"
-DEBUG_UPSTREAM_HOST="${DEBUG_UPSTREAM_HOST:-43.159.28.126}"
-DEBUG_UPSTREAM_PORT="${DEBUG_UPSTREAM_PORT:-2333}"
-DEBUG_UPSTREAM_USER="${DEBUG_UPSTREAM_USER:-cfJ6r2pCwbtR-zone-custom-region-GB}"
-DEBUG_UPSTREAM_PASSWORD="${DEBUG_UPSTREAM_PASSWORD:-kazSpWBLvlRP}"
+DEBUG_UPSTREAM_HOST="${DEBUG_UPSTREAM_HOST:-}"
+DEBUG_UPSTREAM_PORT="${DEBUG_UPSTREAM_PORT:-0}"
+DEBUG_UPSTREAM_USER="${DEBUG_UPSTREAM_USER:-}"
+DEBUG_UPSTREAM_PASSWORD="${DEBUG_UPSTREAM_PASSWORD:-}"
 # =============================================================================
 
 set -e
 
 echo "Proxy Server V2 - Setup"
-echo "Config: CORE_URL=$CORE_URL, PROXY_PORT=$PROXY_PORT, API_PORT=$API_PORT"
+echo "Config: CORE_URL=$CORE_URL, SERVER_ID=$SERVER_ID, PROXY_PORT=$PROXY_PORT, API_PORT=$API_PORT"
 echo "Debug login: $([ "$DEBUG_LOGIN_ENABLED" = "1" ] && echo "ENABLED ($DEBUG_LOGIN)" || echo "disabled")"
 echo ""
 
 if [[ $EUID -ne 0 ]]; then
    echo "Run as root: bash setup.sh"
    exit 1
+fi
+
+if [ -z "$AUTH_TOKEN" ] || [ -z "$SERVER_ID" ]; then
+    echo "AUTH_TOKEN and SERVER_ID are required"
+    echo "Example: AUTH_TOKEN=... SERVER_ID=203.0.113.10 bash setup.sh"
+    exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -95,6 +100,7 @@ CORE_URL_CLEAN=$(echo "$CORE_URL" | sed 's|/$||')
 tee /etc/default/proxy-agent-v2 > /dev/null <<EOF
 CORE_URL=$CORE_URL_CLEAN
 AUTH_TOKEN=$AUTH_TOKEN
+SERVER_ID=$SERVER_ID
 PROXY_PORT=$PROXY_PORT
 API_PORT=$API_PORT
 DEBUG_LOGIN_ENABLED=$DEBUG_LOGIN_ENABLED
@@ -118,7 +124,7 @@ Type=simple
 User=root
 WorkingDirectory=$AGENT_DIR
 EnvironmentFile=-/etc/default/proxy-agent-v2
-ExecStart=$AGENT_DIR/agent --core-url=${CORE_URL_CLEAN} --auth-token=${AUTH_TOKEN} --proxy-port=${PROXY_PORT} --api-port=${API_PORT}
+ExecStart=/bin/sh -c 'exec $AGENT_DIR/agent --core-url="\$CORE_URL" --auth-token="\$AUTH_TOKEN" --server-id="\$SERVER_ID" --proxy-port="\$PROXY_PORT" --api-port="\$API_PORT"'
 Restart=always
 RestartSec=5
 StandardOutput=journal
