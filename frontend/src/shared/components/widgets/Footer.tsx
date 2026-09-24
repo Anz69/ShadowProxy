@@ -89,6 +89,7 @@ const Footer: FC<FooterProps> = ({ locale: localeProp }) => {
 					<div className="ft__col">
 						<h4>{T("footer.columns.product")}</h4>
 						<Link href={link("/")}>{T("footer.product.residential")}</Link>
+						<Link href={link("/")}>{T("footer.product.ispUsa")}</Link>
 						<Link href={link("/")}>{T("footer.product.ispEu")}</Link>
 						<Link href={link("/")}>{T("footer.product.residentialLite")}</Link>
 						<Link href={link("/")}>{T("footer.product.mobile")}</Link>

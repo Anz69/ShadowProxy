@@ -20,6 +20,7 @@ const PACKAGE_GROUPS: { type: string; label: string }[] = [
 	{ type: "MOBILE", label: "Premium Mobile" },
 	{ type: "MOBILE_GB", label: "Mobile ГБ" },
 	{ type: "IPV6_GB", label: "IPv6 ГБ" },
+	{ type: "ISP_USA", label: "ISP USA" },
 	{ type: "ISP_EU", label: "ISP Netherlands" },
 	{ type: "RESIDENTIAL_LITE", label: "Residential Lite" }
 ]

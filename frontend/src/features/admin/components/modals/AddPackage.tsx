@@ -93,7 +93,7 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 				Пакет — это быстрый объём (пресет) на странице оплаты с заданной ценой.
 			</p>
 			<SegmentedControl
-				options={["Residential", "Premium Residential", "Premium Mobile", "Mobile ГБ", "IPv6 ГБ", "ISP Netherlands", "Residential Lite"]}
+				options={["Residential", "Premium Residential", "Premium Mobile", "Mobile ГБ", "IPv6 ГБ", "ISP USA", "ISP Netherlands", "Residential Lite"]}
 				value={typeLabels[watch("type") as RechargeableProxyType]}
 				onChange={val => setValue("type", reverseTypeLabels.get(val) ?? "RESIDENT_PREMIUM")}
 			/>

@@ -58,10 +58,10 @@ const ProxyPricesModifier: FC<ProxyPricesModifierProps> = ({ prices }) => {
 		{ name: "resident_premium" as const, label: "Residential Proxy", hint: "Основной residential-тариф", premium: false },
 		{ name: "premium_residential" as const, label: "Premium Residential", hint: "Премиальный residential-пул", premium: true },
 		{ name: "mobile_gb" as const, label: "Premium Mobile", hint: "Мобильные 4G/5G по трафику", premium: true },
-		{ name: "isp_eu" as const, label: "ISP Netherlands", hint: "Единственное доступное ISP-гео — NL", premium: false },
+		{ name: "isp_eu" as const, label: "ISP Netherlands", hint: "ISP-тариф с гео NL", premium: false },
 		{ name: "residential_lite" as const, label: "Residential Lite", hint: "Доступный residential-тариф", premium: false },
 		{ name: "ipv6_gb" as const, label: "IPv6 GB", hint: "Legacy-тариф IPv6", premium: false },
-		{ name: "isp_usa" as const, label: "ISP USA (legacy)", hint: "Продажа закрыта, цена сохранена для старых пакетов", premium: false }
+		{ name: "isp_usa" as const, label: "ISP USA", hint: "ISP-тариф с гео US", premium: false }
 	]
 
 	return (
