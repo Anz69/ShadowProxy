@@ -433,10 +433,10 @@
 		"emailVerification": {
 			"title": "Подтверждение почты",
 			"message": "Пожалуйста, подождите",
-			"enterTokenTitle": "Введите код подтверждения",
-			"enterTokenPlaceholder": "Код из письма",
+			"enterTokenTitle": "Введите токен подтверждения",
+			"enterTokenPlaceholder": "Токен из ссылки",
 			"submit": "Подтвердить",
-			"noTokenMessage": "Перейдите по ссылке из письма или введите код вручную"
+			"noTokenMessage": "Перейдите по ссылке из письма или вставьте токен вручную"
 		},
 		"mailSent": {
 			"emailConfirmationTitle": "Осталось подтвердить адрес электроной почты",

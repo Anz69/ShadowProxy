@@ -120,10 +120,13 @@ func handleHTTPForward(conn net.Conn, _ *bufio.Reader, req *httpRequest, rawReq 
 	if _, err := upstreamConn.Write(rawReq); err != nil {
 		return
 	}
-	tracker.AddBytes(cfg.Login, "out", int64(len(rawReq)))
+	// Client request bytes are traffic in; the response below is traffic out.
+	tracker.AddBytes(cfg.Login, "in", int64(len(rawReq)))
 
-	// Пересылаем ответ клиенту (для GET/HEAD body нет)
-	io.Copy(conn, upstreamConn)
+	// Пересылаем ответ клиенту и учитываем его полностью. Раньше HTTP-forward
+	// учитывал только заголовки запроса, из-за чего часть трафика терялась.
+	upstreamOut := &countingConn{upstreamConn, cfg.Login, tracker, "out"}
+	io.Copy(conn, upstreamOut)
 }
 
 type httpRequest struct {

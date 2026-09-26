@@ -235,6 +235,28 @@ func (c *countingConn) Close() error {
 	return c.conn.Close()
 }
 
+// WriteTo keeps io.Copy's fast path while preserving accounting. The fallback
+// must use a reader-only wrapper: calling io.Copy(w, c) from here would call
+// WriteTo again and recurse until the agent crashes with stack overflow.
+func (c *countingConn) WriteTo(w io.Writer) (int64, error) {
+	if wt, ok := c.conn.(io.WriterTo); ok {
+		n, err := wt.WriteTo(w)
+		if n > 0 {
+			c.tracker.AddBytes(c.login, c.direction, n)
+		}
+		return n, err
+	}
+
+	n, err := io.Copy(w, readerOnly{Reader: c})
+	return n, err
+}
+
+// readerOnly intentionally exposes only io.Reader so io.Copy cannot dispatch
+// back to countingConn.WriteTo in the fallback path above.
+type readerOnly struct {
+	io.Reader
+}
+
 // countingReader wraps io.Reader for tunnel traffic accounting (client->upstream via bufio)
 type countingReader struct {
 	r         io.Reader
@@ -254,3 +276,4 @@ func (c *countingReader) Read(p []byte) (int, error) {
 var _ io.Reader = (*countingConn)(nil)
 var _ io.Reader = (*countingReader)(nil)
 var _ io.Writer = (*countingConn)(nil)
+var _ io.WriterTo = (*countingConn)(nil)

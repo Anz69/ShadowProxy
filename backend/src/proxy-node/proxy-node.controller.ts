@@ -12,10 +12,22 @@ import {
 import { ProxyServerService } from '../proxy-server/proxy-server.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoggerService } from '../logger/logger.service';
-import { UserService } from '../user/user.service';
 import { ProxyStatus, ProxyType } from '@prisma/client';
 import { isDevEnv } from '../shared/utils/is-dev';
 import { NodeService } from '../node/node.service';
+
+// These are the only database columns used by traffic accounting. Keep this
+// allowlist next to the raw SQL below so the dynamic identifier can never come
+// from a request body.
+const TRAFFIC_DB_COLUMN_BY_FIELD: Record<string, string> = {
+    residentTrafficLeft: 'resident_traffic_left',
+    premiumTrafficLeft: 'premium_trafic_left',
+    mobileGbTrafficLeft: 'mobile_gb_traffic_left',
+    ipv6GbTrafficLeft: 'ipv6_gb_traffic_left',
+    ispUsaTrafficLeft: 'isp_usa_traffic_left',
+    ispEuTrafficLeft: 'isp_eu_traffic_left',
+    residentialLiteTrafficLeft: 'residential_lite_traffic_left',
+};
 
 @Controller('proxy-node')
 export class ProxyNodeController {
@@ -25,7 +37,6 @@ export class ProxyNodeController {
         private proxyServerService: ProxyServerService,
         private prisma: PrismaService,
         private loggerService: LoggerService,
-        private userService: UserService,
         private nodeService: NodeService,
     ) {}
 
@@ -136,14 +147,17 @@ export class ProxyNodeController {
                     continue;
                 }
                 
-                // Обновляем lastActivityAt и trafficUsed
-                await this.prisma.proxy.update({
-                    where: { id: proxy.id },
-                    data: {
-                        lastActivityAt: now,
-                        trafficUsed: (BigInt(proxy.trafficUsed || '0') + totalBytes).toString(),
-                    },
-                });
+                // Делает счётчик прокси атомарным: два параллельных отчёта не
+                // могут затереть друг другу trafficUsed старым snapshot-ом.
+                await this.prisma.$executeRawUnsafe(
+                    `UPDATE "proxies"
+                     SET "last_activity_at" = $1,
+                         "traffic_used" = (CAST("traffic_used" AS NUMERIC) + $2::numeric)::text
+                     WHERE "id" = $3`,
+                    now,
+                    totalBytes.toString(),
+                    proxy.id,
+                );
                 
                 // Обновляем updatedAt UserPackage, если он есть
                 if (proxy.userPackageId) {
@@ -194,14 +208,21 @@ export class ProxyNodeController {
                     typeLabel = 'RESIDENTIAL_LITE';
                 }
 
-                // Списываем трафик с баланса пользователя
+                // Списываем трафик с баланса пользователя атомарно. Старый код
+                // читал proxy.user один раз и затем делал обычный update; при
+                // одновременных отчётах это могло преждевременно поставить
+                // баланс в 0 и заблокировать все прокси пакета.
                 if (trafficField) {
-                    const currentBalance = BigInt((proxy.user as any)[trafficField] || '0');
-                    const newBalance = currentBalance > totalBytes ? currentBalance - totalBytes : 0n;
-                    
-                    await this.userService.updateById(proxy.userId!, {
-                        [trafficField]: newBalance.toString(),
-                    } as any);
+                    const trafficColumn = TRAFFIC_DB_COLUMN_BY_FIELD[trafficField];
+                    const balanceRows = await this.prisma.$queryRawUnsafe<Array<{ balance: string }>>(
+                        `UPDATE "users"
+                         SET "${trafficColumn}" = GREATEST(CAST("${trafficColumn}" AS NUMERIC) - $1::numeric, 0)::text
+                         WHERE "id" = $2
+                         RETURNING "${trafficColumn}" AS balance`,
+                        totalBytes.toString(),
+                        proxy.userId,
+                    );
+                    const newBalance = BigInt(balanceRows[0]?.balance || '0');
                     
                     // Логируем использование трафика
                     await this.loggerService.log(

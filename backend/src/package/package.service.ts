@@ -986,26 +986,20 @@ export class PackageService {
                 },
             });
 
-            // Фоновая верификация (не блокирует ответ).
+            // Фоновая диагностика (не блокирует ответ и не имеет права убивать
+            // выданный прокси). Апстримы FlashProxy/Mango могут дать временный
+            // timeout на health-check, хотя пользовательский туннель уже жив.
+            // Раньше один такой timeout блокировал логин и ставил прокси в
+            // SUSPENDED — именно поэтому прокси часто умирали сразу после
+            // первых байтов трафика.
             const verifyHost = server.host;
-            const verifyToken = server.token;
             void (async () => {
                 await this.acquireHealthSlot();
                 try {
                     const ok = await this.proxyService.verifyIssuedProxyWorks(verifyHost, port, login, password);
-                    if (ok) return;
-                    if (verifyToken) {
-                        try {
-                            await this.proxyServerService.blockLoginOnServer(verifyHost, login, verifyToken);
-                        } catch (e) {
-                            console.error(`[PACKAGE SERVICE] Не удалось заблокировать логин после фоновой проверки: ${e}`);
-                        }
+                    if (!ok) {
+                        console.warn(`[PACKAGE SERVICE] Диагностическая проверка прокси ${proxy.id} не прошла; прокси оставлен ACTIVE для реального трафика`);
                     }
-                    await this.prisma.proxy.update({
-                        where: { id: proxy.id },
-                        data: { status: "SUSPENDED" as any },
-                    });
-                    console.warn(`[PACKAGE SERVICE] Прокси ${proxy.id} не прошёл фоновую проверку → SUSPENDED`);
                 } catch (e) {
                     console.error(`[PACKAGE SERVICE] Фоновая проверка прокси ${proxy.id} упала: ${e}`);
                 } finally {

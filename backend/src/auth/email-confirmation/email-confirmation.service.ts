@@ -1,4 +1,4 @@
-import { BadRequestException, forwardRef, HttpException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, forwardRef, HttpException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { TokenType, User } from "@prisma/client";
 import { Request } from "express";
 import { ConfirmationDto } from "./dtos/confirmation.dto";
@@ -51,7 +51,22 @@ export class EmailConfirmationService {
             }),
         );
 
-        return this.mailingService.sendMail(user.email, this.i18nService.t("mailing.subject.confirmation"), template);
+        const result = await this.mailingService.sendMail(user.email, this.i18nService.t("mailing.subject.confirmation"), template);
+        if (!result?.success) {
+            // Не оставляем токен от неотправленного письма: иначе следующий
+            // вход упирается в cooldown и пользователь не может запросить новую
+            // ссылку, хотя первое письмо фактически не ушло.
+            await this.tokenService.deleteById(token.id).catch(() => undefined);
+            await this.loggerService.error(
+                "Не удалось отправить письмо подтверждения почты через SMTP",
+                user.id,
+                { provider: "smtp", reason: "error" in result && result.error ? String(result.error).slice(0, 240) : "unknown" },
+                true,
+            ).catch(() => undefined);
+            throw new ServiceUnavailableException("errors.email_sending_error");
+        }
+
+        return { success: true };
     }
 
     async verifyEmail(req: Request, dto: ConfirmationDto) {

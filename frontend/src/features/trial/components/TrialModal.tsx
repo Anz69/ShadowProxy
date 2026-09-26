@@ -8,6 +8,8 @@ import type { FC } from "react"
 import { getLocaleFromPath } from "@/shared/utils/getLocaleFromPath"
 import { t } from "@/shared/utils/i18n"
 import { useTrial } from "@/features/trial/hooks/useTrial"
+import { usePrices } from "@/features/proxy/hooks/usePrices"
+import type { Prices } from "@/features/proxy/types/proxy.types"
 import { accountLinkService } from "@/features/user/services/account-link.service"
 import { useTelegramLink } from "@/features/user/hooks/useTelegramLink"
 import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
@@ -28,6 +30,13 @@ const TARIFFS: TariffMeta[] = [
 	{ type: "ISP_EU", tKey: "ispEu", icon: "/tariff-resident.svg", tagline: "NL only · ISP" },
 	{ type: "RESIDENTIAL_LITE", tKey: "residentialLite", icon: "/tariff-resident.svg", tagline: "Any country · budget" }
 ]
+
+const TRIAL_PRICE_KEY: Partial<Record<TariffMeta["type"], keyof NonNullable<Prices["minimum_prices"]>>> = {
+	RESIDENT_PREMIUM: "resident_premium",
+	ISP_USA: "isp_usa",
+	ISP_EU: "isp_eu",
+	RESIDENTIAL_LITE: "residential_lite"
+}
 
 const SparkIcon = () => (
 	<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -68,6 +77,7 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 
 	const [selectedType, setSelectedType] = useState<TariffMeta["type"]>(TARIFFS[0].type)
 	const { getTrial, isLoading } = useTrial()
+	const { prices } = usePrices()
 	const { startLink: startTelegramLink } = useTelegramLink()
 
 	// Показываем все тарифы, не отключённые спринт-гейтингом. Локации больше не фильтруем:
@@ -126,6 +136,13 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 								</span>
 								<span className="trial-tariff__body">
 									<span className="trial-tariff__title">{T(`trialModal.tariffs.${tariff.tKey}`)}</span>
+									{(() => {
+										const key = TRIAL_PRICE_KEY[tariff.type]
+										const minPrice = key ? prices?.minimum_prices?.[key] : undefined
+										return minPrice && minPrice > 0 ? (
+											<span className="trial-tariff__price">{T("package.from")} {minPrice}$ {T("package.perGb")}</span>
+										) : null
+									})()}
 									<span className="trial-tariff__tagline">{tariff.tagline}</span>
 								</span>
 								<span className={`trial-tariff__mark ${isActive ? "trial-tariff__mark--on" : ""}`} aria-hidden="true">

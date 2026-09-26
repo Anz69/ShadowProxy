@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -21,6 +22,7 @@ func main() {
 	debug := flag.Bool("debug", false, "Enable debug logging")
 	debugLogin := flag.String("debug-login", "", "Test login for debugging (env: DEBUG_LOGIN)")
 	debugPassword := flag.String("debug-password", "", "Test password for debugging (env: DEBUG_PASSWORD)")
+	skipCoreRegister := flag.Bool("skip-core-register", false, "Do not request active-port sync from CORE at startup")
 	flag.Parse()
 
 	// Debug login: only when DEBUG_LOGIN_ENABLED=1 (allows runtime config via /etc/default)
@@ -98,6 +100,15 @@ func main() {
 			logrus.Errorf("API server error: %v", err)
 		}
 	}()
+
+	if !*skipCoreRegister {
+		go func() {
+			// The API listener must be ready before CORE sends the authoritative
+			// active-port snapshot after a restart.
+			time.Sleep(2 * time.Second)
+			notifyCoreAfterStart(config)
+		}()
+	}
 
 	logrus.Info("Proxy agent v2 started")
 

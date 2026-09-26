@@ -273,11 +273,6 @@ export class ProxyServerService {
             } as any,
         });
 
-        if (activeProxies.length === 0) {
-            console.log(`[ProxyServerService] syncAllActivePortsToServer(${serverHost}): нет ACTIVE прокси для синка`);
-            return { success: 0, failed: 0 };
-        }
-
         const ports = activeProxies.map((proxy: any) => ({
             port: proxy.userPort!,
             login: proxy.userLogin!,
@@ -290,16 +285,90 @@ export class ProxyServerService {
 
         try {
             console.log(`[ProxyServerService] syncAllActivePortsToServer(${serverHost}): отправка ${ports.length} портов`);
-            await axios.post(
-                `http://${serverHost}:808/add-ports`,
-                { ports },
-                { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, timeout: 30000 },
-            );
+
+            const requestConfig = {
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                timeout: 30000,
+            };
+
+            // sync_active_ports заменяет in-memory registry целиком. Это важно
+            // после рестарта агента: add-ports оставлял старый/неполный набор и
+            // существующие логины получали 403 до следующего ручного синка.
+            try {
+                await axios.post(
+                    `http://${serverHost}:808/sync_active_ports`,
+                    { activePorts: ports, timestamp: Date.now() },
+                    requestConfig,
+                );
+            } catch (syncError: any) {
+                // Совместимость со старой нодой без endpoint-а полной синхронизации.
+                if (ports.length === 0 || syncError?.response?.status !== 404) throw syncError;
+                await axios.post(`http://${serverHost}:808/add-ports`, { ports }, requestConfig);
+            }
+
             console.log(`[ProxyServerService] syncAllActivePortsToServer(${serverHost}): OK (${ports.length})`);
             return { success: ports.length, failed: 0 };
         } catch (e: any) {
-            console.warn(`[ProxyServerService] syncAllActivePortsToServer(${serverHost}): batch failed (${e?.response?.status || e?.code}). Fallback не реализован — достаточно batch.`);
+            console.warn(`[ProxyServerService] syncAllActivePortsToServer(${serverHost}): batch failed (${e?.response?.status || e?.code})`);
             return { success: 0, failed: ports.length };
+        }
+    }
+
+    /**
+     * Self-healing реестра gateway-агента. Агент держит логины только в памяти:
+     * после рестарта его процесса все ранее выданные прокси мгновенно перестают
+     * работать («Auth failed: not in registry»). Раз в 5 минут сверяем количество
+     * логинов на агенте (GET /health -> count) с количеством ACTIVE прокси в БД
+     * и при любом расхождении делаем authoritative sync через /sync_active_ports.
+     */
+    @Cron(CronExpression.EVERY_5_MINUTES)
+    async resyncGatewayRegistries() {
+        const servers = await this.prisma.proxyServer.findMany({
+            where: { status: ProxyServerStatus.ACTIVE, token: { not: null } },
+        });
+
+        for (const server of servers) {
+            try {
+                const health = await axios.get(`http://${server.host}:808/health`, {
+                    headers: { Authorization: `Bearer ${server.token}` },
+                    timeout: 2500,
+                });
+                if (health.status !== 200 || health.data?.status !== 'ok') continue;
+
+                const dbProxies = await this.prisma.proxy.findMany({
+                    where: {
+                        serverHost: server.host,
+                        status: 'ACTIVE',
+                        userLogin: { not: null },
+                    } as any,
+                    select: { userLogin: true },
+                });
+
+                const dbLogins = new Set(dbProxies.map((proxy) => proxy.userLogin).filter((login): login is string => Boolean(login)));
+                const healthLogins = Array.isArray(health.data?.active_logins)
+                    ? new Set(
+                        health.data.active_logins
+                            .map((entry: any) => entry?.login)
+                            .filter((login: unknown): login is string => typeof login === 'string' && login.length > 0),
+                    )
+                    : null;
+
+                const registryMatches = healthLogins
+                    ? healthLogins.size === dbLogins.size && [...dbLogins].every((login) => healthLogins.has(login))
+                    : Number(health.data?.count ?? -1) === dbLogins.size;
+                if (registryMatches) continue;
+
+                this.logger.warn(
+                    `[ProxyServerService] ${server.host}: расхождение реестра gateway (agent=${healthLogins?.size ?? health.data?.count ?? "?"}, db=${dbLogins.size}) — полный resync`,
+                );
+                await this.syncAllActivePortsToServer(server.host, server.token!);
+            } catch (e: any) {
+                // Агент недоступен — health-aware выбор сервера разрулит выдачу,
+                // здесь просто пробуем снова на следующем тике.
+                this.logger.warn(
+                    `[ProxyServerService] resync ${server.host}: агент недоступен (${e?.code || e?.message})`,
+                );
+            }
         }
     }
 

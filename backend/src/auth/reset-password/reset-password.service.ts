@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, HttpException, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { TokenService } from "../../token/token.service";
 import { Request } from "express";
 import { ResetPasswordDto } from "./dtos/reset-password.dto";
@@ -61,7 +61,11 @@ export class ResetPasswordService {
 
         await this.logger.log("SYSTEM", `Пользователь ${isUserExists.id} отправил письмо для сброса пароля`, isUserExists.id);
 
-        this.mailingService.sendMail(email, this.i18nService.t("mailing.subject.password_reset"), template);
+        const result = await this.mailingService.sendMail(email, this.i18nService.t("mailing.subject.password_reset"), template);
+        if (!result?.success) {
+            await this.tokenService.deleteById(token.id).catch(() => undefined);
+            throw new ServiceUnavailableException("errors.email_sending_error");
+        }
 
         return {
             success: true,

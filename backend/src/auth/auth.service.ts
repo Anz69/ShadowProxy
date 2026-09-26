@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, forwardRef, Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, forwardRef, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { RegisterDto } from "./dtos/register.dto";
 import { UserService } from "../user/user.service";
 import { AuthMethod, TokenType, User, UserRegion } from "@prisma/client";
@@ -52,7 +52,7 @@ export class AuthService {
             referrerId: referrerId || undefined,
         } as any);
 
-        this.emailConfirmationService.sendVerificationEmail(user);
+        await this.emailConfirmationService.sendVerificationEmail(user);
 
         await this.logger.log("SYSTEM", `Успешная регистрация пользователя ${user.id}. Отправлено письмо для подтверждения почты.`, user.id);
 
@@ -77,7 +77,16 @@ export class AuthService {
         }
 
         if (!isExists.emailVerified) {
-            this.emailConfirmationService.sendVerificationEmail(isExists);
+            try {
+                await this.emailConfirmationService.sendVerificationEmail(isExists);
+            } catch (error) {
+                // Если письмо уже ушло в последнюю минуту, не маскируем это
+                // cooldown-ом: пользователь всё равно должен увидеть понятное
+                // сообщение о необходимости открыть ссылку из письма.
+                if (!(error instanceof HttpException) || error.getStatus() !== 429) {
+                    throw error;
+                }
+            }
 
             throw new BadRequestException("errors.email_unverified");
         }

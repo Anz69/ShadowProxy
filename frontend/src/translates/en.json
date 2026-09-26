@@ -432,10 +432,10 @@
 		"emailVerification": {
 			"title": "Email Verification",
 			"message": "Please wait",
-			"enterTokenTitle": "Enter verification code",
-			"enterTokenPlaceholder": "Code from email",
+			"enterTokenTitle": "Enter verification token",
+			"enterTokenPlaceholder": "Token from the link",
 			"submit": "Verify",
-			"noTokenMessage": "Click the link in the email or enter the code manually"
+			"noTokenMessage": "Click the link in the email or paste the token manually"
 		},
 		"mailSent": {
 			"emailConfirmationTitle": "Please confirm your email address",
