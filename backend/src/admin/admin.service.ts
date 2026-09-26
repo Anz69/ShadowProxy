@@ -426,7 +426,7 @@ export class AdminService {
             this.prisma.$queryRaw<Array<{ b: string; t: string | null; used: number }>>`
                 SELECT ${Prisma.raw(bucketSql)} AS b,
                        metadata->>'type' AS t,
-                       SUM(CASE WHEN metadata->>'used' ~ '^\d+$' THEN (metadata->>'used')::numeric ELSE 0 END)::float8 AS used
+                       SUM(CASE WHEN metadata->>'used' ~ '^\\d+$' THEN (metadata->>'used')::numeric ELSE 0 END)::float8 AS used
                 FROM logs
                 WHERE type = 'USAGE' AND "createdAt" >= ${monthAgo}
                 GROUP BY 1, 2`;
