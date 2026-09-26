@@ -29,6 +29,7 @@ type Target = {
     country: string;
     source: "provider" | "database";
     upstream?: Upstream;
+    proxyEmpireType?: "mobile" | "residential";
     unavailableReason?: string;
 };
 
@@ -230,7 +231,7 @@ export class ProxyTestService implements OnModuleInit {
         const targets: Target[] = [];
 
         for (const type of types) {
-            const providerTarget = await this.buildProviderTarget(type, country);
+            const providerTarget = this.buildProviderTarget(type, country);
             if (providerTarget) {
                 targets.push(providerTarget);
                 continue;
@@ -279,18 +280,18 @@ export class ProxyTestService implements OnModuleInit {
         return targets;
     }
 
-    private async buildProviderTarget(type: ProxyType, requestedCountry: string | null): Promise<Target | null> {
+    private buildProviderTarget(type: ProxyType, requestedCountry: string | null): Target | null {
         try {
             if (type === ProxyType.MOBILE || type === ProxyType.PREMIUM_RESIDENTIAL) {
                 const country = requestedCountry || "US";
-                const proxies = await this.proxyEmpireProvider.generateProxyList({
-                    proxyType: type === ProxyType.MOBILE ? "mobile" : "residential",
+                return {
+                    id: `provider-${type}`,
+                    type,
+                    label: LABELS[type],
                     country,
-                    length: 100,
-                });
-                const proxy = proxies[0];
-                if (!proxy) throw new Error("ProxyEmpire не вернул тестовый upstream");
-                return this.providerTarget(type, country, proxy);
+                    source: "provider",
+                    proxyEmpireType: type === ProxyType.MOBILE ? "mobile" : "residential",
+                };
             }
             if (type === ProxyType.ISP_EU) {
                 const proxy = this.ispEuProvider.createProxy("NL");
@@ -340,7 +341,7 @@ export class ProxyTestService implements OnModuleInit {
                 if (!target) return;
                 const result = job.results.find((item) => item.id === target.id);
                 if (!result) continue;
-                if (!target.upstream) {
+                if (!target.upstream && !target.proxyEmpireType) {
                     result.status = "unavailable";
                     result.error = target.unavailableReason || "Тестовый upstream недоступен";
                     result.finishedAt = new Date().toISOString();
@@ -364,15 +365,27 @@ export class ProxyTestService implements OnModuleInit {
         result.startedAt = new Date().toISOString();
         await this.persistJob(job);
         try {
+            let upstream = target.upstream;
+            if (target.proxyEmpireType) {
+                const proxies = await this.proxyEmpireProvider.generateProxyList({
+                    proxyType: target.proxyEmpireType,
+                    country: target.country,
+                    length: 100,
+                });
+                upstream = proxies[0];
+                if (!upstream) throw new Error("ProxyEmpire не вернул тестовый upstream");
+            }
+            if (!upstream) throw new Error("Для тарифа не настроен тестовый upstream");
+
             await axios.post(`http://${gatewayHost}:808/add-port`, {
                 port: 10000,
                 user_id: "admin-proxy-test",
                 login,
                 password,
-                proxy_host: target.upstream!.host,
-                proxy_port: target.upstream!.port,
-                proxy_username: target.upstream!.username,
-                proxy_password: target.upstream!.password,
+                proxy_host: upstream.host,
+                proxy_port: upstream.port,
+                proxy_username: upstream.username,
+                proxy_password: upstream.password,
             }, { headers: { Authorization: `Bearer ${gatewayToken}` }, timeout: 5000 });
 
             const proxyUrl = `http://${encodeURIComponent(login)}:${encodeURIComponent(password)}@${gatewayHost}:10000`;
@@ -495,7 +508,7 @@ export class ProxyTestService implements OnModuleInit {
             label: target.label,
             country: target.country,
             source: target.source,
-            status: target.upstream ? "pending" : "unavailable",
+            status: target.upstream || target.proxyEmpireType ? "pending" : "unavailable",
             latencyMs: null,
             downloadedBytes: 0,
             gatewayInBytes: 0,
