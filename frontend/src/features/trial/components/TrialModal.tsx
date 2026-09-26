@@ -24,10 +24,9 @@ type TariffMeta = {
 // Скрываем только те, что отключены спринт-гейтингом.
 const TARIFFS: TariffMeta[] = [
 	{ type: "RESIDENT_PREMIUM", tKey: "resident", icon: "/tariff-resident.svg", tagline: "150M+ IPs · global pool" },
+	{ type: "ISP_USA", tKey: "ispUsa", icon: "/tariff-resident.svg", tagline: "US only · ISP" },
 	{ type: "ISP_EU", tKey: "ispEu", icon: "/tariff-resident.svg", tagline: "NL only · ISP" },
-	{ type: "RESIDENTIAL_LITE", tKey: "residentialLite", icon: "/tariff-resident.svg", tagline: "Any country · budget" },
-	{ type: "MOBILE", tKey: "mobile", icon: "/tariff-mobile-gb.svg", tagline: "Premium 4G · 5G · carrier-grade" },
-	{ type: "IPV6_GB", tKey: "ipv6", icon: "/tariff-ipv6.svg", tagline: "Server IPv6 · стабильный" }
+	{ type: "RESIDENTIAL_LITE", tKey: "residentialLite", icon: "/tariff-resident.svg", tagline: "Any country · budget" }
 ]
 
 const SparkIcon = () => (
