@@ -1,11 +1,14 @@
 "use client"
 
-import { ArrowDown, ArrowUp, Download, Trash2 } from "lucide-react"
+import { Download, Trash2 } from "lucide-react"
 import { type FC, useEffect, useState } from "react"
 
+import {
+	KEY_TARIFF_LABELS,
+	LEGACY_KEY_TARIFF_LABELS
+} from "@/features/keys/constants/key-tariffs"
 import { useDeleteKeys } from "@/features/keys/hooks/useDeleteKeys"
 import type { Key } from "@/features/keys/types/keys.types"
-import type { ProxiesSort } from "@/features/proxy/types/get-proxies.types"
 
 import Button from "@/shared/components/ui/Button"
 import Card from "@/shared/components/ui/Card"
@@ -18,16 +21,6 @@ import { sortByCreatedAtDesc } from "@/shared/utils/sort-by-created-at-desc"
 
 type KeyControlsProps = {
 	keys: Key[]
-}
-
-const typeLabels: Record<string, string> = {
-	RESIDENT: "Резидентских прокси",
-	RESIDENT_PREMIUM: "Residential Proxy прокси",
-	PREMIUM_RESIDENTIAL: "Premium Residential прокси",
-	ISP: "ISP прокси",
-	MOBILE: "Mobile прокси",
-	MOBILE_GB: "Mobile GB прокси",
-	IPV6_GB: "IPv6 прокси"
 }
 
 type Sort = "all" | "activated" | "new"
@@ -46,7 +39,6 @@ const KeysList: FC<KeyControlsProps> = ({ keys }) => {
 	const { deleteKeys, isLoading } = useDeleteKeys()
 	const [selectedKeys, setSelectedKeys] = useState<string[]>([])
 	const [sort, setSort] = useState<Sort>("all")
-	console.log(keys, selectedKeys)
 
 	useEffect(() => {
 		setSelectedKeys([])
@@ -159,8 +151,13 @@ const KeysList: FC<KeyControlsProps> = ({ keys }) => {
 								<Copy value={el.key.toUpperCase()} />
 							</span>
 							<span className="text-body font-semibold">
-								{el.contents} {(el.type as string) === "ISP" ? "IP" : "Гб"}{" "}
-								{typeLabels[el.type]}
+								{el.contents}{" "}
+								{(el.type as string) === "ISP" ? "IP" : "ГБ"}{" "}
+								{KEY_TARIFF_LABELS[
+									el.type as keyof typeof KEY_TARIFF_LABELS
+								] ??
+									LEGACY_KEY_TARIFF_LABELS[el.type] ??
+									el.type}
 							</span>
 							<span
 								className={`${el.status === "ACTIVATED" ? "text-error" : "text-body/50"} text-body flex flex-row items-center gap-4 font-semibold`}

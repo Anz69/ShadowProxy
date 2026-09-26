@@ -1,9 +1,9 @@
 import { z } from "zod"
 
+import { ACTIVE_KEY_TARIFFS } from "@/features/keys/constants/key-tariffs"
+
 export const createKeySchema = z.object({
-	tariff: z.string({
-		error: "Должно быть строкой"
-	}),
+	tariff: z.enum(ACTIVE_KEY_TARIFFS),
 	contents: z
 		.number({
 			error: "Должно быть числом"
@@ -18,9 +18,6 @@ export const createKeySchema = z.object({
 		.min(1, {
 			error: "Не может быть меньше 1"
 		})
-}).refine(data => ["RESIDENT_PREMIUM", "PREMIUM_RESIDENTIAL", "MOBILE", "MOBILE_GB", "IPV6_GB"].includes(data.tariff), {
-	error: "Неверный тариф",
-	path: ["tariff"]
 })
 
 export type CreateKeyDto = z.infer<typeof createKeySchema>
