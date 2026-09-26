@@ -29,7 +29,7 @@ const ProxyTypeCard: FC<ProxyTypeCardProps> = ({
 	const isPremium = tier === "premium"
 
 	const cls = [
-		"group relative flex w-full flex-col gap-3 overflow-hidden rounded-[16px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5",
+		"group relative flex w-full cursor-pointer flex-col gap-3 overflow-hidden rounded-[16px] border p-5 text-left transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6aa5ff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e1830] light:focus-visible:ring-offset-white",
 		isActive
 			? "border-[#6aa5ff]/55 bg-[#2f6bff]/[0.10] ring-1 ring-[#6aa5ff]/30 shadow-[0_24px_60px_-36px_rgba(47,107,255,0.9)] light:border-[#2f6bff]/45 light:bg-[#2f6bff]/[0.06] light:ring-[#2f6bff]/15 light:shadow-[0_22px_50px_-28px_rgba(47,107,255,0.35)]"
 			: "border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] hover:border-white/20 hover:from-white/[0.08] hover:to-white/[0.03] light:border-[#e4e7ee] light:from-white light:to-white light:shadow-[0_14px_34px_-22px_rgba(14,16,25,0.20)] light:hover:border-[#cfd6e4] light:hover:from-[#f8fafc] light:hover:to-[#f8fafc]",

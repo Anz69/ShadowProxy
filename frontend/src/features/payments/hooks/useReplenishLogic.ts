@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import type { UseFormSetError } from "react-hook-form"
@@ -92,10 +92,10 @@ export function useReplenishLogic({
 		[availablePackages, selectedPackageId]
 	)
 
-	const setTariff = (nextTariff: ReplenishTariff) => {
+	const setTariff = useCallback((nextTariff: ReplenishTariff) => {
 		setSelectedPackageId(null)
 		setTariffState(nextTariff)
-	}
+	}, [])
 
 	const selectPackage = (packageId: string): number | null => {
 		const pkg = availablePackages.find(item => item.id === packageId)
