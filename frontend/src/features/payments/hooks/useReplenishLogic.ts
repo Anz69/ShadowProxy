@@ -1,13 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import type { UseFormSetError } from "react-hook-form"
 
-import type {
-	Package,
-	Package as PackageType
-} from "@/features/packages/types/packages.types"
-import { useIspPayment } from "@/features/payments/hooks/useIspPayment"
+import type { Package } from "@/features/packages/types/packages.types"
 import { usePackagePayment } from "@/features/payments/hooks/usePackagePayment"
 import { useResidentPayment } from "@/features/payments/hooks/useResidentPayment"
 import type {
@@ -17,8 +13,41 @@ import type {
 	Merchant,
 	ResidentTariff
 } from "@/features/payments/types/payment.types"
-import type { Prices } from "@/features/proxy/types/proxy.types"
+import type { Prices, RechargeableProxyType } from "@/features/proxy/types/proxy.types"
 import { getLocaleFromPath, addLocaleToPath } from "@/shared/utils/getLocaleFromPath"
+
+type ReplenishTariff = ResidentTariff | "IPV6"
+
+const packageTrafficGb = (pkg: Package): number =>
+	Number(BigInt(pkg.traffic)) / 1024 ** 3
+
+const packageTypeForTariff = (tariff: ReplenishTariff): RechargeableProxyType =>
+	tariff === "IPV6" ? "IPV6_GB" : tariff as RechargeableProxyType
+
+const pricePerGbForTariff = (tariff: ReplenishTariff, prices: Prices): number => {
+	switch (tariff) {
+		case "RESIDENT":
+		case "RESIDENT_PREMIUM":
+			return prices.resident_premium
+		case "PREMIUM_RESIDENTIAL":
+			return prices.premium_residential || 0
+		case "MOBILE_GB":
+			return prices.mobile_gb || 0
+		case "MOBILE":
+			return typeof prices.mobile === "number" ? prices.mobile : 0
+		case "IPV6":
+		case "IPV6_GB":
+			return prices.ipv6_gb
+		case "ISP_USA":
+			return prices.isp_usa || 0
+		case "ISP_EU":
+			return prices.isp_eu || 0
+		case "RESIDENTIAL_LITE":
+			return prices.residential_lite || 0
+		default:
+			return 0
+	}
+}
 
 type UseReplenishLogicProps = {
 	packages: Package[]
@@ -39,96 +68,65 @@ export function useReplenishLogic({
 	const pathname = usePathname()
 	const queryClient = useQueryClient()
 	const currentLocale = getLocaleFromPath(pathname)
-	const [tariff, setTariff] = useState<ResidentTariff | "MOBILE" | "MOBILE_GB" | "IPV6" | "PREMIUM_RESIDENTIAL" | "ISP_USA" | "ISP_EU" | "RESIDENTIAL_LITE">("RESIDENT_PREMIUM")
+	const [tariff, setTariffState] = useState<ReplenishTariff>("RESIDENT_PREMIUM")
 	const [merchant, setMerchant] = useState<Merchant>("CRYPTO_BOT")
 	const [asset, setAsset] = useState<AvailableAssets>("USDT")
 	const [isSuccess, setIsSuccess] = useState(false)
-	const [selectedPackage, setSelectedPackage] = useState<PackageType | null>(
-		null
-	)
+	const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null)
 	const [price, setPrice] = useState(0)
 	const [assetPrice, setAssetPrice] = useState(0)
 	const { createResidentInvoice, isResidentInvoiceLoading } =
 		useResidentPayment()
 	const { createPackageInvoice, isPackageInvoiceLoading } =
 		usePackagePayment()
-	const { createIspInvoice, isIspInvoiceLoading } = useIspPayment()
+	const packageType = packageTypeForTariff(tariff)
+	const availablePackages = useMemo(
+		() =>
+			packages
+				.filter(pkg => pkg.type === packageType)
+				.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+		[packages, packageType]
+	)
+	const selectedPackage = useMemo(
+		() => availablePackages.find(pkg => pkg.id === selectedPackageId) ?? null,
+		[availablePackages, selectedPackageId]
+	)
+
+	const setTariff = (nextTariff: ReplenishTariff) => {
+		setSelectedPackageId(null)
+		setTariffState(nextTariff)
+	}
+
+	const selectPackage = (packageId: string): number | null => {
+		const pkg = availablePackages.find(item => item.id === packageId)
+		if (!pkg) return null
+		setSelectedPackageId(pkg.id)
+		return packageTrafficGb(pkg)
+	}
+
+	const clearPackageSelection = () => setSelectedPackageId(null)
 
 	useEffect(() => {
-		setSelectedPackage(null)
-		const filterType =
-			tariff === "IPV6"
-				? "ISP"
-				: tariff === "MOBILE_GB"
-					? "MOBILE_GB"
-					: tariff === "MOBILE"
-						? "MOBILE"
-						: tariff === "PREMIUM_RESIDENTIAL"
-							? "PREMIUM_RESIDENTIAL"
-							: tariff === "ISP_USA"
-								? "ISP_USA"
-								: tariff === "ISP_EU"
-									? "ISP_EU"
-									: tariff === "RESIDENTIAL_LITE"
-										? "RESIDENTIAL_LITE"
-										: tariff
-		const serializedPackages = packages
-			.filter(el => el.type === filterType)
-			.map(el => ({
-				id: el.id,
-				traffic: Number(BigInt(el.traffic) / BigInt(1024 ** 3)),
-				price: el.price
-			}))
-		// Пакеты теперь = объёмы-пресеты без цены (price: 0). Цена считается
-		// из тарификации, поэтому НЕ перехватываем расчёт пакетом с нулевой
-		// ценой (иначе Итого = 0). Используем пакет как priced-бандл только
-		// если у него реально задана цена (легаси-пакеты).
-		const currentPackage = serializedPackages.find(
-			el => el.traffic === traffic && Number(el.price) > 0
-		)
-		const calculateAssetPrice = (price: number) => {
-			if (asset.startsWith("USD")) {
-				setAssetPrice(price)
-			} else {
-				setAssetPrice(
-					price /
-						exchangeRates[
-							asset as Exclude<AvailableAssets, "USDT" | "USDC">
-						]
-				)
-			}
-		}
+		const packagePrice = selectedPackage ? Number(selectedPackage.price) : 0
+		const hasMatchingPaidPackage =
+			selectedPackage &&
+			Math.abs(packageTrafficGb(selectedPackage) - traffic) < 0.0001 &&
+			Number.isFinite(packagePrice) &&
+			packagePrice > 0
+		const nextPrice = hasMatchingPaidPackage
+			? packagePrice
+			: traffic * pricePerGbForTariff(tariff, prices)
 
-		if (currentPackage) {
-			setPrice(Number(currentPackage.price))
-			calculateAssetPrice(Number(currentPackage.price))
-			setSelectedPackage(
-				packages.find(el => el.id === currentPackage.id)!
-			)
+		setPrice(nextPrice)
+		if (asset.startsWith("USD")) {
+			setAssetPrice(nextPrice)
 		} else {
-			const exchangeRate =
-				tariff === "RESIDENT_PREMIUM"
-					? prices.resident_premium
-					: tariff === "PREMIUM_RESIDENTIAL"
-						? (prices.premium_residential || 0)
-						: tariff === "MOBILE_GB"
-							? (prices.mobile_gb || 0)
-							: tariff === "MOBILE"
-								? (typeof prices.mobile === "number" ? prices.mobile : 0)
-								: tariff === "IPV6"
-									? prices.ipv6_gb
-									: tariff === "ISP_USA"
-										? (prices.isp_usa || 0)
-										: tariff === "ISP_EU"
-											? (prices.isp_eu || 0)
-											: tariff === "RESIDENTIAL_LITE"
-												? (prices.residential_lite || 0)
-												: prices.ipv6_gb
-			const price = traffic * exchangeRate
-			setPrice(price)
-			calculateAssetPrice(price)
+			setAssetPrice(
+				nextPrice /
+					exchangeRates[asset as Exclude<AvailableAssets, "USDT" | "USDC">]
+			)
 		}
-	}, [traffic, asset, tariff])
+	}, [asset, exchangeRates, prices, selectedPackage, tariff, traffic])
 
 	const onSubmit = (dto: { traffic: number; merchant?: Merchant; asset?: AvailableAssets }) => {
 		const options = {
@@ -167,10 +165,15 @@ export function useReplenishLogic({
 		const finalMerchant = dto.merchant ?? merchant
 		const finalAsset = dto.asset ?? asset
 
-		if (selectedPackage) {
+		const billablePackage =
+			selectedPackage && Number(selectedPackage.price) > 0
+				? selectedPackage
+				: null
+
+		if (billablePackage) {
 			createPackageInvoice(
 				{
-					package: selectedPackage.id,
+					package: billablePackage.id,
 					asset: finalAsset,
 					merchant: finalMerchant
 				},
@@ -242,9 +245,12 @@ export function useReplenishLogic({
 		assetPrice,
 		price,
 		isSuccess,
-		isLoading:
-			isResidentInvoiceLoading ||
-			isPackageInvoiceLoading ||
-			isIspInvoiceLoading
+			isLoading:
+				isResidentInvoiceLoading ||
+				isPackageInvoiceLoading,
+			availablePackages,
+			selectedPackage,
+			selectPackage,
+			clearPackageSelection
 	}
 }

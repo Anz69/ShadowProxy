@@ -483,6 +483,16 @@
 		"currentBalance": "当前余额",
 		"balanceAfterReplenish": "充值后余额",
 		"packages": "套餐",
+		"packagePresets": {
+			"title": "现成套餐",
+			"subtitle": "选择现成流量，流量和价格会自动应用。",
+			"available": "个可用",
+			"traffic": "流量",
+			"fixedPrice": "固定价格",
+			"tariffPrice": "按套餐价格",
+			"selected": "已选择",
+			"choose": "选择"
+		},
 		"merchant": "商户",
 		"balance": "余额",
 		"referralBalance": "推荐余额",
@@ -500,6 +510,7 @@
 		"unknown": "未知",
 		"unknownPackage": "未知套餐",
 		"units": {
+			"mb": "MB",
 			"gb": "GB",
 			"ip": "IP",
 			"sec": "秒",

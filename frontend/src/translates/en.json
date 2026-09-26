@@ -482,6 +482,16 @@
 		"currentBalance": "Current balance",
 		"balanceAfterReplenish": "Balance after replenish",
 		"packages": "Packages",
+		"packagePresets": {
+			"title": "Ready-made packages",
+			"subtitle": "Choose a ready-made volume — traffic and price will be applied automatically.",
+			"available": "available",
+			"traffic": "Traffic",
+			"fixedPrice": "Fixed price",
+			"tariffPrice": "Tariff price",
+			"selected": "Selected",
+			"choose": "Choose"
+		},
 		"merchant": "Merchant",
 		"balance": "Balance",
 		"referralBalance": "Referral Balance",
@@ -499,6 +509,7 @@
 		"unknown": "Unknown",
 		"unknownPackage": "Unknown package",
 		"units": {
+			"mb": "MB",
 			"gb": "GB",
 			"ip": "IP",
 			"sec": "sec",

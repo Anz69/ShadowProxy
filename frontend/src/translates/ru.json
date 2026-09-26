@@ -483,6 +483,16 @@
 		"currentBalance": "Текущий баланс",
 		"balanceAfterReplenish": "Баланс после пополнения",
 		"packages": "Пакеты",
+		"packagePresets": {
+			"title": "Готовые пакеты",
+			"subtitle": "Выберите готовый объём — трафик и цена применятся автоматически.",
+			"available": "доступно",
+			"traffic": "Трафика",
+			"fixedPrice": "Фиксированная цена",
+			"tariffPrice": "По тарифу",
+			"selected": "Выбрано",
+			"choose": "Выбрать"
+		},
 		"merchant": "Мерчант",
 		"balance": "Баланс",
 		"referralBalance": "Реферальный баланс",
@@ -500,6 +510,7 @@
 		"unknown": "Неизвестно",
 		"unknownPackage": "Неизвестный пакет",
 		"units": {
+			"mb": "МБ",
 			"gb": "ГБ",
 			"ip": "IP",
 			"sec": "сек",

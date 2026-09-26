@@ -6,6 +6,7 @@ import { type FC, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 
 import type { Package as PackageType } from "@/features/packages/types/packages.types"
+import PackagePresetSelector from "@/features/payments/components/PackagePresetSelector"
 import PaymentModal from "@/features/payments/components/PaymentModal"
 import ProxyTypeCard from "@/features/payments/components/ProxyTypeCard"
 import TrafficInput from "@/features/payments/components/TrafficInput"
@@ -76,7 +77,11 @@ const Replenish: FC<ReplenishProps> = ({
 		assetPrice,
 		price,
 		isSuccess,
-		isLoading
+		isLoading,
+		availablePackages,
+		selectedPackage,
+		selectPackage,
+		clearPackageSelection
 	} = useReplenishLogic({
 		traffic: watch("traffic"),
 		setError,
@@ -99,6 +104,18 @@ const Replenish: FC<ReplenishProps> = ({
 			setTariff(tariffParam as "RESIDENT_PREMIUM" | "PREMIUM_RESIDENTIAL" | "MOBILE" | "MOBILE_GB" | "IPV6" | "ISP_USA" | "ISP_EU" | "RESIDENTIAL_LITE")
 		}
 	}, [searchParams, setTariff])
+
+	const handlePackageSelect = (packageId: string) => {
+		const trafficGb = selectPackage(packageId)
+		if (trafficGb !== null) {
+			setValue("traffic", trafficGb, { shouldValidate: true, shouldDirty: true })
+		}
+	}
+
+	const handleTrafficChange = (valueGb: number) => {
+		clearPackageSelection()
+		setValue("traffic", valueGb, { shouldValidate: true, shouldDirty: true })
+	}
 
 	const getPaymentModalContent = useCallback(
 		() => (
@@ -244,9 +261,18 @@ const Replenish: FC<ReplenishProps> = ({
 								</div>
 							</div>
 
+							{availablePackages.length > 0 && (
+								<PackagePresetSelector
+									packages={availablePackages}
+									selectedPackageId={selectedPackage?.id ?? null}
+									onSelect={handlePackageSelect}
+									locale={locale}
+								/>
+							)}
+
 							<TrafficInput
 								valueGb={watch("traffic")}
-								onChangeGb={val => setValue("traffic", val, { shouldValidate: true })}
+								onChangeGb={handleTrafficChange}
 								error={errors.traffic?.message}
 								locale={locale}
 							/>
