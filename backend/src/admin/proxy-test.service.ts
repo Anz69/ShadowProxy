@@ -13,8 +13,7 @@ import {
 import { IspEuProvider } from "../proxy/providers/services/isp-eu.provider";
 import { IspUsaProvider } from "../proxy/providers/services/isp-usa.provider";
 import { ResidentialLiteProvider } from "../proxy/providers/services/residential-lite.provider";
-import { MobileGbProvider } from "../proxy/providers/services/mobile-gb.provider";
-import { Proxy922Provider } from "../proxy/providers/services/proxy-922.provider";
+import { ProxyEmpireProvider } from "../proxy/providers/services/proxy-empire.provider";
 
 type Upstream = {
     host: string;
@@ -82,7 +81,18 @@ const LABELS: Record<ProxyType, string> = {
 
 const MAX_JOB_AGE_MS = 60 * 60 * 1000;
 const DOWNLOAD_BASE_URL = "https://speed.cloudflare.com/__down?bytes=";
-const LATENCY_URL = "https://api.ipify.org";
+const LATENCY_URLS = ["https://api.ipify.org", "https://ifconfig.me/ip"] as const;
+const LATENCY_TIMEOUT_MS = 15_000;
+const DOWNLOAD_TIMEOUT_MS = 180_000;
+const GATEWAY_STATS_WAIT_MS = 15_000;
+const GATEWAY_STATS_POLL_MS = 500;
+const DIRECT_PROVIDER_TEST_TYPES = new Set<ProxyType>([
+    ProxyType.MOBILE,
+    ProxyType.PREMIUM_RESIDENTIAL,
+    ProxyType.ISP_USA,
+    ProxyType.ISP_EU,
+    ProxyType.RESIDENTIAL_LITE,
+]);
 
 @Injectable()
 export class ProxyTestService implements OnModuleInit {
@@ -96,8 +106,7 @@ export class ProxyTestService implements OnModuleInit {
         private readonly ispEuProvider: IspEuProvider,
         private readonly ispUsaProvider: IspUsaProvider,
         private readonly residentialLiteProvider: ResidentialLiteProvider,
-        private readonly mobileGbProvider: MobileGbProvider,
-        private readonly proxy922Provider: Proxy922Provider,
+        private readonly proxyEmpireProvider: ProxyEmpireProvider,
     ) {}
 
     async onModuleInit() {
@@ -130,13 +139,7 @@ export class ProxyTestService implements OnModuleInit {
                 type,
                 label: LABELS[type],
                 activeProxyCount: countByType.get(type) ?? 0,
-                safeQaAvailable: ([
-                    ProxyType.MOBILE_GB,
-                    ProxyType.IPV6_GB,
-                    ProxyType.ISP_USA,
-                    ProxyType.ISP_EU,
-                    ProxyType.RESIDENTIAL_LITE,
-                ] as ProxyType[]).includes(type),
+                safeQaAvailable: DIRECT_PROVIDER_TEST_TYPES.has(type) || (countByType.get(type) ?? 0) > 0,
             })),
         };
     }
@@ -227,7 +230,7 @@ export class ProxyTestService implements OnModuleInit {
         const targets: Target[] = [];
 
         for (const type of types) {
-            const providerTarget = this.buildProviderTarget(type, country);
+            const providerTarget = await this.buildProviderTarget(type, country);
             if (providerTarget) {
                 targets.push(providerTarget);
                 continue;
@@ -276,8 +279,19 @@ export class ProxyTestService implements OnModuleInit {
         return targets;
     }
 
-    private buildProviderTarget(type: ProxyType, requestedCountry: string | null): Target | null {
+    private async buildProviderTarget(type: ProxyType, requestedCountry: string | null): Promise<Target | null> {
         try {
+            if (type === ProxyType.MOBILE || type === ProxyType.PREMIUM_RESIDENTIAL) {
+                const country = requestedCountry || "US";
+                const proxies = await this.proxyEmpireProvider.generateProxyList({
+                    proxyType: type === ProxyType.MOBILE ? "mobile" : "residential",
+                    country,
+                    length: 100,
+                });
+                const proxy = proxies[0];
+                if (!proxy) throw new Error("ProxyEmpire не вернул тестовый upstream");
+                return this.providerTarget(type, country, proxy);
+            }
             if (type === ProxyType.ISP_EU) {
                 const proxy = this.ispEuProvider.createProxy("NL");
                 return this.providerTarget(type, "NL", proxy);
@@ -289,16 +303,6 @@ export class ProxyTestService implements OnModuleInit {
             if (type === ProxyType.RESIDENTIAL_LITE) {
                 const geo = requestedCountry || "US";
                 const proxy = this.residentialLiteProvider.createProxy(geo);
-                return this.providerTarget(type, geo, proxy);
-            }
-            if (type === ProxyType.MOBILE_GB) {
-                const geo = requestedCountry || "US";
-                const proxy = this.mobileGbProvider.createProxy(geo);
-                return this.providerTarget(type, geo, proxy);
-            }
-            if (type === ProxyType.IPV6_GB) {
-                const geo = requestedCountry || "US";
-                const proxy = this.proxy922Provider.createProxy(geo);
                 return this.providerTarget(type, geo, proxy);
             }
         } catch (error: unknown) {
@@ -406,23 +410,36 @@ export class ProxyTestService implements OnModuleInit {
     }
 
     private async measureLatency(agent: HttpsProxyAgent<string>) {
-        let best = Number.POSITIVE_INFINITY;
-        let exitIp = "";
-        for (let i = 0; i < 2; i++) {
-            const started = Date.now();
-            const response = await axios.get<string>(LATENCY_URL, {
-                httpsAgent: agent,
-                proxy: false,
-                responseType: "text",
-                timeout: 15000,
-                validateStatus: () => true,
-                headers: { "User-Agent": "ShadowProxy-Admin-Tester/1.0" },
-            });
-            if (response.status < 200 || response.status >= 400) throw new Error(`latency HTTP ${response.status}`);
-            best = Math.min(best, Date.now() - started);
-            if (!exitIp) exitIp = String(response.data).trim().slice(0, 45);
+        let lastError: unknown;
+        for (const url of LATENCY_URLS) {
+            let best = Number.POSITIVE_INFINITY;
+            let exitIp = "";
+            let success = false;
+            for (let i = 0; i < 2; i++) {
+                const started = Date.now();
+                try {
+                    const response = await axios.get<string>(url, {
+                        httpsAgent: agent,
+                        proxy: false,
+                        responseType: "text",
+                        timeout: LATENCY_TIMEOUT_MS,
+                        validateStatus: () => true,
+                        headers: { "User-Agent": "ShadowProxy-Admin-Tester/1.0" },
+                    });
+                    if (response.status < 200 || response.status >= 400) {
+                        throw new Error(`latency HTTP ${response.status}`);
+                    }
+                    best = Math.min(best, Date.now() - started);
+                    if (!exitIp) exitIp = String(response.data).trim().slice(0, 45);
+                    success = true;
+                } catch (error: unknown) {
+                    lastError = error;
+                    break;
+                }
+            }
+            if (success) return { ms: Number.isFinite(best) ? best : null, exitIp };
         }
-        return { ms: Number.isFinite(best) ? best : null, exitIp };
+        throw lastError ?? new Error("Не удалось определить внешний IP через прокси");
     }
 
     private async measureDownload(agent: HttpsProxyAgent<string>, sizeMb: number) {
@@ -432,7 +449,7 @@ export class ProxyTestService implements OnModuleInit {
             httpsAgent: agent,
             proxy: false,
             responseType: "arraybuffer",
-            timeout: 90000,
+            timeout: DOWNLOAD_TIMEOUT_MS,
             maxContentLength: 30 * 1_000_000,
             maxBodyLength: 30 * 1_000_000,
             maxRedirects: 3,
@@ -447,7 +464,8 @@ export class ProxyTestService implements OnModuleInit {
 
     private async waitForGatewayStats(host: string, token: string, login: string, minimumBytes: number) {
         let latest = { inBytes: 0, outBytes: 0, reportedInBytes: 0, reportedOutBytes: 0 };
-        for (let i = 0; i < 12; i++) {
+        const attempts = Math.ceil(GATEWAY_STATS_WAIT_MS / GATEWAY_STATS_POLL_MS);
+        for (let i = 0; i < attempts; i++) {
             const response = await axios.get<{
                 in_bytes?: number;
                 out_bytes?: number;
@@ -465,7 +483,7 @@ export class ProxyTestService implements OnModuleInit {
                 reportedOutBytes: Number(response.data.reported_out_bytes || 0),
             };
             if (latest.inBytes + latest.outBytes >= Math.floor(minimumBytes * 0.7)) return latest;
-            await new Promise((resolve) => setTimeout(resolve, 250));
+            await new Promise((resolve) => setTimeout(resolve, GATEWAY_STATS_POLL_MS));
         }
         return latest;
     }
@@ -566,6 +584,7 @@ export class ProxyTestService implements OnModuleInit {
     private safeError(error: unknown) {
         if (error instanceof AxiosError) {
             if (error.response?.status) return `HTTP ${error.response.status}`;
+            if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return "Тайм-аут при обращении к апстриму";
             if (error.code) return error.code;
         }
         if (error instanceof Error) return error.message.replace(/https?:\/\/[^\s]+/g, "upstream").slice(0, 180);

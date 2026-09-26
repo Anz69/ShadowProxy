@@ -3,11 +3,8 @@ import { IsIn, IsInt, IsNumber, IsOptional, IsString, Matches, Max, Min } from "
 import { ProxyType } from "@prisma/client";
 
 export const ADMIN_PROXY_TEST_TYPES = [
-    ProxyType.RESIDENT,
     ProxyType.RESIDENT_PREMIUM,
     ProxyType.MOBILE,
-    ProxyType.MOBILE_GB,
-    ProxyType.IPV6_GB,
     ProxyType.PREMIUM_RESIDENTIAL,
     ProxyType.ISP_USA,
     ProxyType.ISP_EU,

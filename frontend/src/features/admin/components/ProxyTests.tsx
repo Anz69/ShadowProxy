@@ -51,6 +51,14 @@ const FALLBACK_LABELS: Record<ProxyTestType, string> = {
 
 const ALL_TARGET = "ALL" as const
 const EMPTY_RESULTS: ProxyTestResult[] = []
+const CURRENT_PROXY_TEST_TYPES = new Set<ProxyTestType>([
+	"RESIDENT_PREMIUM",
+	"MOBILE",
+	"PREMIUM_RESIDENTIAL",
+	"ISP_USA",
+	"ISP_EU",
+	"RESIDENTIAL_LITE"
+])
 
 function formatBytes(bytes: number) {
 	if (!bytes) return "0 B"
@@ -175,7 +183,11 @@ const ProxyTests: FC = () => {
 		setPolling(run.status === "queued" || run.status === "running")
 	}, [run])
 
-	const results = run?.results ?? EMPTY_RESULTS
+	const allResults = run?.results ?? EMPTY_RESULTS
+	const results = allResults.filter(result =>
+		CURRENT_PROXY_TEST_TYPES.has(result.type)
+	)
+	const hiddenLegacyResults = allResults.length - results.length
 	const summary = useMemo(() => {
 		const passed = results.filter(item => item.status === "ok").length
 		const failed = results.filter(item => item.status === "failed").length
@@ -355,7 +367,12 @@ const ProxyTests: FC = () => {
 										key={item.type}
 										value={item.type}
 									>
-										{item.label}
+										<span>{item.label}</span>
+										{!item.safeQaAvailable ? (
+											<span className="rounded-full bg-amber-300/10 px-2 py-0.5 text-[10px] text-amber-200/80">
+												нет образца
+											</span>
+										) : null}
 									</Select.Option>
 								))}
 							</Select>
@@ -558,7 +575,7 @@ const ProxyTests: FC = () => {
 								</h2>
 								<p className="mt-1 text-sm text-white/40">
 									{run
-										? `${results.length} образцов · ${run.sizeMb} MB каждый · ${run.status === "completed" ? "завершено" : "обновляется"}`
+										? `${results.length} актуальных образцов · ${run.sizeMb} MB каждый · ${run.status === "completed" ? "завершено" : "обновляется"}${hiddenLegacyResults ? ` · ${hiddenLegacyResults} архивных скрыто` : ""}`
 										: "Запустите проверку, чтобы увидеть живые метрики"}
 								</p>
 							</div>
