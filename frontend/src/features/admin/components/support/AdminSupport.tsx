@@ -11,7 +11,6 @@ import { adminSupportService, type AdminTicketFilter } from "@/features/support/
 import { supportFileUrl, type SupportAttachment, type SupportMessage, type SupportTicketStatus } from "@/features/support/types/support.types"
 
 import Loader from "@/shared/components/ui/Loader/Loader"
-import { formatDate } from "@/shared/utils/format-date"
 
 const PAGE_SIZE = 30
 
@@ -179,13 +178,13 @@ const AdminSupport = () => {
 	const totalPages = Math.max(1, Math.ceil((list?.total ?? 0) / PAGE_SIZE))
 
 	return (
-		<div className="relative z-[1] flex w-full min-w-0 max-w-full flex-col gap-6">
+		<div className="relative z-[1] flex h-[calc(100dvh-180px)] min-h-0 w-full min-w-0 max-w-full flex-col gap-6 overflow-hidden">
 			<h1 className="font-[TalosDisplay] text-4xl font-semibold text-white md:text-5xl">Поддержка</h1>
 			<AdminNav active="/admin/support" />
 
-			<div className="grid min-h-[70vh] grid-cols-1 gap-5 lg:grid-cols-[minmax(280px,340px)_1fr]">
+			<div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-[minmax(280px,340px)_1fr]">
 				{/* Список тикетов */}
-				<div className={`flex flex-col gap-3 ${activeTicketId ? "hidden lg:flex" : "flex"}`}>
+				<div className={`flex min-h-0 flex-col gap-3 ${activeTicketId ? "hidden lg:flex" : "flex"}`}>
 					<div className="relative">
 						<Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/35" />
 						<input
@@ -213,7 +212,7 @@ const AdminSupport = () => {
 						))}
 					</div>
 
-					<div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-[16px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)] p-2">
+					<div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain rounded-[16px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)] p-2">
 						{listLoading && !list ? (
 							<div className="flex flex-1 items-center justify-center py-8">
 								<Loader weight={4} size={40} />
@@ -281,7 +280,7 @@ const AdminSupport = () => {
 				</div>
 
 				{/* Диалог + быстрые действия */}
-				<div className={`${activeTicketId ? "flex" : "hidden lg:flex"} min-w-0 flex-col`}>
+				<div className={`${activeTicketId ? "flex" : "hidden lg:flex"} min-h-0 min-w-0 flex-1 flex-col`}>
 					{!activeTicketId ? (
 						<div className="flex flex-1 items-center justify-center rounded-[16px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)] text-[14px] text-white/40">
 							Выберите обращение слева
@@ -291,9 +290,9 @@ const AdminSupport = () => {
 							<Loader weight={4} size={48} />
 						</div>
 					) : detail ? (
-						<div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
+						<div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
 							{/* Чат */}
-							<div className="flex min-w-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)]">
+							<div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)]">
 								{/* Хедер диалога */}
 								<div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] p-3">
 									<div className="flex items-center gap-2">
@@ -320,7 +319,7 @@ const AdminSupport = () => {
 								</div>
 
 								{/* Сообщения */}
-								<div ref={scrollRef} className="flex min-h-[320px] flex-1 flex-col gap-3 overflow-y-auto p-4">
+								<div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4">
 									{messages.length === 0 ? (
 										<div className="flex flex-1 items-center justify-center text-[13px] text-white/40">Сообщений нет</div>
 									) : (
@@ -381,7 +380,7 @@ const AdminSupport = () => {
 							</div>
 
 							{/* Быстрые действия */}
-							<div className="overflow-y-auto">
+							<div className="min-h-0 overflow-y-auto overscroll-contain">
 								<QuickActions user={detail.ticket.user} />
 							</div>
 						</div>
