@@ -415,7 +415,31 @@ export class AdminService {
         const hour24Ago = new Date(now.getTime() - 24 * msHour);
         const day24Ago = new Date(now.getTime() - 24 * msDay);
 
-        const [replenishLogs, allUsers, usageLogs, logs24h, logs24d, logs12w, logs12m, proxies24h, proxies24d, proxies12w, proxies12m, proxyStats] = await Promise.all([
+        // Агрегация в Postgres: раньше endpoint выгружал ~1 млн строк logs в JS
+        // (~35 с на запрос). Теперь БД возвращает только посчитанные бакеты.
+        const DAY_BUCKET_SQL = `to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD')`;
+        const WEEK_BUCKET_SQL = `to_char(date_trunc('week', "createdAt"), 'YYYY-MM-DD')`;
+        const MONTH_BUCKET_SQL = `to_char(date_trunc('month', "createdAt"), 'YYYY-MM-DD')`;
+        const HOUR_BUCKET_SQL = `to_char(date_trunc('hour', "createdAt"), 'YYYY-MM-DD"T"HH24')`;
+
+        const usageBucketQuery = (bucketSql: string) =>
+            this.prisma.$queryRaw<Array<{ b: string; t: string | null; used: number }>>`
+                SELECT ${Prisma.raw(bucketSql)} AS b,
+                       metadata->>'type' AS t,
+                       SUM(CASE WHEN metadata->>'used' ~ '^\d+$' THEN (metadata->>'used')::numeric ELSE 0 END)::float8 AS used
+                FROM logs
+                WHERE type = 'USAGE' AND "createdAt" >= ${monthAgo}
+                GROUP BY 1, 2`;
+
+        const activeBucketQuery = (bucketSql: string, since: Date) =>
+            this.prisma.$queryRaw<Array<{ b: string; count: number }>>`
+                SELECT ${Prisma.raw(bucketSql)} AS b,
+                       COUNT(DISTINCT "userId")::int AS count
+                FROM logs
+                WHERE "createdAt" >= ${since}
+                GROUP BY 1`;
+
+        const [replenishLogs, allUsers, usageDay, usageWeek, usageMonth, activeHourRows, activeDayRows, activeWeekRows, activeMonthRows, proxies24h, proxies24d, proxies12w, proxies12m, proxyStats] = await Promise.all([
             this.logger.getLogs({
                 where: { type: LogType.REPLENISH, createdAt: { gte: monthAgo } },
             }),
@@ -423,28 +447,13 @@ export class AdminService {
                 where: { createdAt: { gte: monthAgo } },
                 select: { createdAt: true },
             }),
-            this.logger.getLogs({
-                where: {
-                    type: LogType.USAGE,
-                    createdAt: { gte: monthAgo },
-                },
-            }),
-            this.prisma.log.findMany({
-                where: { createdAt: { gte: hour24Ago } },
-                select: { userId: true, createdAt: true },
-            }),
-            this.prisma.log.findMany({
-                where: { createdAt: { gte: day24Ago } },
-                select: { userId: true, createdAt: true },
-            }),
-            this.prisma.log.findMany({
-                where: { createdAt: { gte: new Date(now.getTime() - 12 * msWeek) } },
-                select: { userId: true, createdAt: true },
-            }),
-            this.prisma.log.findMany({
-                where: { createdAt: { gte: monthAgo } },
-                select: { userId: true, createdAt: true },
-            }),
+            usageBucketQuery(DAY_BUCKET_SQL),
+            usageBucketQuery(WEEK_BUCKET_SQL),
+            usageBucketQuery(MONTH_BUCKET_SQL),
+            activeBucketQuery(HOUR_BUCKET_SQL, hour24Ago),
+            activeBucketQuery(DAY_BUCKET_SQL, day24Ago),
+            activeBucketQuery(WEEK_BUCKET_SQL, new Date(now.getTime() - 12 * msWeek)),
+            activeBucketQuery(MONTH_BUCKET_SQL, monthAgo),
             this.prisma.proxy.findMany({
                 where: { createdAt: { gte: hour24Ago } },
                 select: { createdAt: true, type: true },
@@ -504,58 +513,18 @@ export class AdminService {
         const trafficByWeek: Record<string, TrafficBucket> = {};
         const trafficByMonth: Record<string, TrafficBucket> = {};
         const GB = 1024 ** 3;
-        for (const log of usageLogs) {
-            let used = 0;
-            try {
-                const raw = ((log?.metadata as { used?: string | number })?.used ?? "0").toString();
-                used = Number(BigInt(raw));
-            } catch {}
-            const d = new Date(log.createdAt);
-            const dKey = dayStart(d);
-            const wKey = weekStart(d);
-            const mKey = monthStart(d);
-            const typeKey = mapType((log?.metadata as { type?: string })?.type);
-            const gb = used / GB;
-            if (!trafficByDay[dKey]) trafficByDay[dKey] = emptyTraffic();
-            trafficByDay[dKey].totalGb += gb;
-            if (typeKey) trafficByDay[dKey][typeKey] += gb;
-            if (!trafficByWeek[wKey]) trafficByWeek[wKey] = emptyTraffic();
-            trafficByWeek[wKey].totalGb += gb;
-            if (typeKey) trafficByWeek[wKey][typeKey] += gb;
-            if (!trafficByMonth[mKey]) trafficByMonth[mKey] = emptyTraffic();
-            trafficByMonth[mKey].totalGb += gb;
-            if (typeKey) trafficByMonth[mKey][typeKey] += gb;
-        }
-
-        const countDistinct = (arr: { userId: string | null }[]) => {
-            const set = new Set(arr.map((x) => x.userId).filter(Boolean));
-            return set.size;
+        const applyUsageRows = (rows: Array<{ b: string; t: string | null; used: number }>, target: Record<string, TrafficBucket>) => {
+            for (const r of rows) {
+                const gb = Number(r.used ?? 0) / GB;
+                if (!target[r.b]) target[r.b] = emptyTraffic();
+                target[r.b].totalGb += gb;
+                const typeKey = mapType(r.t);
+                if (typeKey) target[r.b][typeKey] += gb;
+            }
         };
-
-        const activeByHour: Record<string, Set<string>> = {};
-        for (const log of logs24h) {
-            const key = hourStart(new Date(log.createdAt));
-            if (!activeByHour[key]) activeByHour[key] = new Set();
-            if (log.userId) activeByHour[key].add(log.userId);
-        }
-        const activeByDay: Record<string, Set<string>> = {};
-        for (const log of logs24d) {
-            const key = dayStart(new Date(log.createdAt));
-            if (!activeByDay[key]) activeByDay[key] = new Set();
-            if (log.userId) activeByDay[key].add(log.userId);
-        }
-        const activeByWeek: Record<string, Set<string>> = {};
-        for (const log of logs12w) {
-            const key = weekStart(new Date(log.createdAt));
-            if (!activeByWeek[key]) activeByWeek[key] = new Set();
-            if (log.userId) activeByWeek[key].add(log.userId);
-        }
-        const activeByMonth: Record<string, Set<string>> = {};
-        for (const log of logs12m) {
-            const key = monthStart(new Date(log.createdAt));
-            if (!activeByMonth[key]) activeByMonth[key] = new Set();
-            if (log.userId) activeByMonth[key].add(log.userId);
-        }
+        applyUsageRows(usageDay, trafficByDay);
+        applyUsageRows(usageWeek, trafficByWeek);
+        applyUsageRows(usageMonth, trafficByMonth);
 
         const proxyTypeKey = (t: string) => {
             const s = String(t ?? "").toUpperCase();
@@ -637,10 +606,15 @@ export class AdminService {
             residentialLite: usageGb.residentialLite.month,
         };
 
-        const activeUsersByHour = sortKeys(activeByHour).map((date) => ({ date, count: activeByHour[date].size }));
-        const activeUsersByDay = sortKeys(activeByDay).map((date) => ({ date, count: activeByDay[date].size }));
-        const activeUsersByWeek = sortKeys(activeByWeek).slice(-12).map((date) => ({ date, count: activeByWeek[date].size }));
-        const activeUsersByMonth = sortKeys(activeByMonth).slice(-12).map((date) => ({ date, count: activeByMonth[date].size }));
+        const toActiveList = (rows: Array<{ b: string; count: number }>, limit?: number) => {
+            const sorted = [...rows].sort((a, b) => a.b.localeCompare(b.b));
+            const sliced = limit ? sorted.slice(-limit) : sorted;
+            return sliced.map((r) => ({ date: r.b, count: Number(r.count) }));
+        };
+        const activeUsersByHour = toActiveList(activeHourRows);
+        const activeUsersByDay = toActiveList(activeDayRows);
+        const activeUsersByWeek = toActiveList(activeWeekRows, 12);
+        const activeUsersByMonth = toActiveList(activeMonthRows, 12);
         const proxyByHourList = sortKeys(proxyByHour).map((date) => ({ date, ...proxyByHour[date] }));
         const proxyByDayList = sortKeys(proxyByDay).map((date) => ({ date, ...proxyByDay[date] }));
         const proxyByWeekList = sortKeys(proxyByWeek).slice(-12).map((date) => ({ date, ...proxyByWeek[date] }));
