@@ -99,6 +99,7 @@ function ResultIcon({ status }: { status: ProxyTestResult["status"] }) {
 
 const ProxyTests: FC = () => {
 	const [runId, setRunId] = useState<string | null>(null)
+	const [polling, setPolling] = useState(false)
 	const [form, setForm] = useState<CreateProxyTestDto>({
 		target: ALL_TARGET,
 		country: "",
@@ -117,7 +118,7 @@ const ProxyTests: FC = () => {
 		queryKey: ["admin-proxy-test-run", runId],
 		queryFn: () => adminService.getProxyTestRun(runId as string),
 		enabled: Boolean(runId),
-		refetchInterval: runId ? 1_500 : false
+		refetchInterval: polling ? 1_500 : false
 	})
 
 	const startMutation = useMutation({
@@ -125,20 +126,18 @@ const ProxyTests: FC = () => {
 			adminService.createProxyTest(dto),
 		onSuccess: run => {
 			setRunId(run.id)
+			setPolling(true)
 			toast.success("Проверка запущена через gateway")
 		},
 		onError: error => toast.error(error.message)
 	})
 
 	const run = runQuery.data
-	const isRunning =
-		run?.status === "queued" ||
-		run?.status === "running" ||
-		startMutation.isPending
+	const isRunning = polling || startMutation.isPending
 
 	useEffect(() => {
 		if (run && (run.status === "completed" || run.status === "failed")) {
-			setRunId(null)
+			setPolling(false)
 		}
 	}, [run])
 
