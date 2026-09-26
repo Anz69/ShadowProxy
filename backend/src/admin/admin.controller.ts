@@ -9,12 +9,15 @@ import { GetLogsDto } from "./dtos/get-logs.dto";
 import { MangoProxyProvider } from "../proxy/providers/services/mango-proxy.provider";
 import { CreateBroadcastDto } from "./dtos/create-broadcast.dto";
 import type { BroadcastSegment } from "./dtos/create-broadcast.dto";
+import { CreateProxyTestDto } from "./dtos/proxy-test.dto";
+import { ProxyTestService } from "./proxy-test.service";
 
 @Controller("admin")
 export class AdminController {
     constructor(
         private readonly adminService: AdminService,
         private readonly mangoProxyProvider: MangoProxyProvider,
+        private readonly proxyTestService: ProxyTestService,
     ) {}
 
     @Post("/setting")
@@ -87,5 +90,28 @@ export class AdminController {
     @HttpCode(HttpStatus.OK)
     async createBroadcast(@Body() dto: CreateBroadcastDto, @User("id") userId: string) {
         return this.adminService.createBroadcast(dto, userId);
+    }
+
+    // ──────────────── Безопасный QA-тестер прокси ────────────────
+
+    @Get("proxy-tests/catalog")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.OK)
+    async proxyTestCatalog() {
+        return this.proxyTestService.getCatalog();
+    }
+
+    @Post("proxy-tests/runs")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.ACCEPTED)
+    async createProxyTest(@Body() dto: CreateProxyTestDto) {
+        return this.proxyTestService.createRun(dto);
+    }
+
+    @Get("proxy-tests/runs/:id")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.OK)
+    async getProxyTest(@Param("id") id: string) {
+        return this.proxyTestService.getRun(id);
     }
 }

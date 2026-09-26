@@ -1,8 +1,8 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
 import type { FC } from "react"
 
 import { adminSupportService } from "@/features/support/services/admin-support.service"
@@ -14,6 +14,7 @@ const NAV = [
 	{ href: "/admin/settings", label: "Настройки" },
 	{ href: "/admin/keys", label: "Ключи" },
 	{ href: "/admin/servers", label: "Серверы" },
+	{ href: "/admin/proxy-tests", label: "Проверка прокси" },
 	{ href: "/admin/reviews", label: "Отзывы" },
 	{ href: "/admin/support", label: "Поддержка" },
 	{ href: "/admin/broadcasts", label: "Рассылки" },
@@ -41,13 +42,17 @@ const AdminNav: FC<{ active?: string }> = ({ active }) => {
 			{NAV.map(item => {
 				const isActive = active
 					? active === item.href
-					: pathname === item.href || pathname?.startsWith(item.href + "/")
-				const badge = item.href === "/admin/support" && supportUnread > 0 ? supportUnread : null
+					: pathname === item.href ||
+						pathname?.startsWith(item.href + "/")
+				const badge =
+					item.href === "/admin/support" && supportUnread > 0
+						? supportUnread
+						: null
 				return (
 					<Link
 						key={item.href}
 						href={item.href}
-						className={`flex w-auto cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] px-4 py-1.5 text-sm font-semibold transition-colors ${
+						className={`flex w-auto cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-4 py-1.5 text-sm font-semibold whitespace-nowrap transition-colors ${
 							isActive
 								? "bg-[#2f6bff]/15 text-white ring-1 ring-[#6aa5ff]/25"
 								: "text-white/55 hover:bg-white/[0.05] hover:text-white"

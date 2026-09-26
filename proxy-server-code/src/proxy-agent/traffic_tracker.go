@@ -84,6 +84,29 @@ func (t *TrafficTracker) AddBytes(login, direction string, n int64) {
 	}
 }
 
+// Stats returns live counters and the portion already acknowledged by CORE.
+// The boolean is false when the login has never carried traffic.
+func (t *TrafficTracker) Stats(login string) (inBytes, outBytes, reportedInBytes, reportedOutBytes int64, ok bool) {
+	t.statsMu.RLock()
+	entry := t.stats[login]
+	if entry != nil {
+		inBytes = atomic.LoadInt64(&entry.bytesIn)
+		outBytes = atomic.LoadInt64(&entry.bytesOut)
+		ok = true
+	}
+	t.statsMu.RUnlock()
+
+	t.lastReportedMu.RLock()
+	last := t.lastReported[login]
+	if last != nil {
+		reportedInBytes = last.bytesIn
+		reportedOutBytes = last.bytesOut
+	}
+	t.lastReportedMu.RUnlock()
+
+	return inBytes, outBytes, reportedInBytes, reportedOutBytes, ok
+}
+
 // getAndReset returns current stats and resets for next cycle (per-login delta)
 func (t *TrafficTracker) getSnapshot() map[string]*loginStats {
 	t.statsMu.Lock()

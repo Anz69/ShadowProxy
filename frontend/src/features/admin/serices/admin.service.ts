@@ -1,7 +1,18 @@
 import axios, { type AxiosInstance } from "axios"
-import type { ModifyPricesDto } from "@/features/admin/schemas/modify-prices.schema"
+
 import type { CreateBroadcastDto } from "@/features/admin/schemas/broadcast.schema"
-import type { Broadcast, BroadcastList, BroadcastSegment } from "@/features/admin/types/broadcast.types"
+import type { ModifyPricesDto } from "@/features/admin/schemas/modify-prices.schema"
+import type {
+	Broadcast,
+	BroadcastList,
+	BroadcastSegment
+} from "@/features/admin/types/broadcast.types"
+import type {
+	CreateProxyTestDto,
+	ProxyTestCatalog,
+	ProxyTestRun
+} from "@/features/admin/types/proxy-test.types"
+
 import { extractError } from "@/shared/utils/extract-error"
 
 class AdminService {
@@ -36,7 +47,9 @@ class AdminService {
 
 	async listBroadcasts(page = 1) {
 		try {
-			const res = await this.api.get<BroadcastList>("/broadcasts", { params: { page } })
+			const res = await this.api.get<BroadcastList>("/broadcasts", {
+				params: { page }
+			})
 			return res.data
 		} catch (e) {
 			throw new Error(extractError(e))
@@ -45,7 +58,44 @@ class AdminService {
 
 	async broadcastAudience(segment: BroadcastSegment) {
 		try {
-			const res = await this.api.get<{ count: number }>("/broadcasts/audience", { params: { segment } })
+			const res = await this.api.get<{ count: number }>(
+				"/broadcasts/audience",
+				{ params: { segment } }
+			)
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
+	}
+
+	async getProxyTestCatalog() {
+		try {
+			const res = await this.api.get<ProxyTestCatalog>(
+				"/proxy-tests/catalog"
+			)
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
+	}
+
+	async createProxyTest(dto: CreateProxyTestDto) {
+		try {
+			const res = await this.api.post<ProxyTestRun>(
+				"/proxy-tests/runs",
+				dto
+			)
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
+	}
+
+	async getProxyTestRun(id: string) {
+		try {
+			const res = await this.api.get<ProxyTestRun>(
+				`/proxy-tests/runs/${id}`
+			)
 			return res.data
 		} catch (e) {
 			throw new Error(extractError(e))

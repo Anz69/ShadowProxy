@@ -16,15 +16,17 @@ type APIServer struct {
 	config   *Config
 	auth     *AuthRegistry
 	connMgr  *ConnectionManager
+	tracker  *TrafficTracker
 	server   *http.Server
 }
 
 // NewAPIServer creates a new API server
-func NewAPIServer(config *Config, auth *AuthRegistry, connMgr *ConnectionManager) *APIServer {
+func NewAPIServer(config *Config, auth *AuthRegistry, connMgr *ConnectionManager, tracker *TrafficTracker) *APIServer {
 	return &APIServer{
 		config:  config,
 		auth:    auth,
 		connMgr: connMgr,
+		tracker: tracker,
 	}
 }
 
@@ -37,6 +39,7 @@ func (s *APIServer) Start() error {
 	mux.HandleFunc("/sync_active_ports", s.requireAuth(s.syncActivePortsHandler))
 	mux.HandleFunc("/stop", s.requireAuth(s.stopHandler))
 	mux.HandleFunc("/block-login", s.requireAuth(s.blockLoginHandler))
+	mux.HandleFunc("/traffic-stats", s.requireAuth(s.trafficStatsHandler))
 	mux.HandleFunc("/test-proxy", s.testProxyHandler)
 
 	addr := fmt.Sprintf("0.0.0.0:%d", s.config.APIPort)
@@ -284,6 +287,36 @@ func (s *APIServer) blockLoginHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Infof("Blocked login %s, closed %d connections", p.Login, closed)
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Login %s blocked, %d connections closed", p.Login, closed)
+}
+
+// trafficStatsHandler returns live and already reported byte counters for one login.
+// It is intentionally authenticated and exposes no credentials or upstream details.
+func (s *APIServer) trafficStatsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	login := strings.TrimSpace(r.URL.Query().Get("login"))
+	if login == "" {
+		http.Error(w, "login required", http.StatusBadRequest)
+		return
+	}
+	if s.tracker == nil {
+		http.Error(w, "traffic tracker unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	inBytes, outBytes, reportedInBytes, reportedOutBytes, ok := s.tracker.Stats(login)
+	if !ok {
+		inBytes, outBytes, reportedInBytes, reportedOutBytes = 0, 0, 0, 0
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"login":                login,
+		"in_bytes":             inBytes,
+		"out_bytes":            outBytes,
+		"reported_in_bytes":    reportedInBytes,
+		"reported_out_bytes":   reportedOutBytes,
+	})
 }
 
 // testProxyHandler checks if login:password works via HTTP CONNECT

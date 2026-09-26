@@ -84,7 +84,7 @@ func main() {
 	connMgr := NewConnectionManager()
 	tracker := NewTrafficTracker(config, auth)
 	proxyListener := NewProxyListener(config, auth, tracker, connMgr)
-	apiServer := NewAPIServer(config, auth, connMgr)
+	apiServer := NewAPIServer(config, auth, connMgr, tracker)
 
 	if err := proxyListener.Start(); err != nil {
 		logrus.Fatalf("Proxy listener failed: %v", err)
