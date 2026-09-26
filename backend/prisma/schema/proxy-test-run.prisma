@@ -1,0 +1,19 @@
+model ProxyTestRun {
+    id               String   @id
+    status           String   @default("queued")
+    createdAt        DateTime @default(now()) @map("created_at")
+    startedAt        DateTime? @map("started_at")
+    finishedAt       DateTime? @map("finished_at")
+    target           String
+    country          String?
+    sizeMb           Float    @map("size_mb")
+    samplesPerTariff Int      @map("samples_per_tariff")
+    concurrency      Int
+    gatewayHost      String   @map("gateway_host")
+    results          Json
+    error            String   @default("")
+    updatedAt        DateTime @updatedAt @map("updated_at")
+
+    @@index([status, createdAt])
+    @@map("proxy_test_runs")
+}

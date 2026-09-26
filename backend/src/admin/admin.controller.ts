@@ -108,6 +108,13 @@ export class AdminController {
         return this.proxyTestService.createRun(dto);
     }
 
+    @Get("proxy-tests/runs/current")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.OK)
+    async getCurrentProxyTest() {
+        return this.proxyTestService.getCurrentRun();
+    }
+
     @Get("proxy-tests/runs/:id")
     @Authorization(UserRole.ADMIN)
     @HttpCode(HttpStatus.OK)

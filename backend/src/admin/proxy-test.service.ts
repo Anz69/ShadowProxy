@@ -1,7 +1,7 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ProxyServerService } from "../proxy-server/proxy-server.service";
-import { ProxyType, ProxyStatus } from "@prisma/client";
+import { Prisma, ProxyType, ProxyStatus } from "@prisma/client";
 import axios, { AxiosError } from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -85,9 +85,10 @@ const DOWNLOAD_BASE_URL = "https://speed.cloudflare.com/__down?bytes=";
 const LATENCY_URL = "https://api.ipify.org";
 
 @Injectable()
-export class ProxyTestService {
+export class ProxyTestService implements OnModuleInit {
     private readonly jobs = new Map<string, ProxyTestJob>();
     private activeJobId: string | null = null;
+    private readonly logger = new Logger(ProxyTestService.name);
 
     constructor(
         private readonly prisma: PrismaService,
@@ -98,6 +99,21 @@ export class ProxyTestService {
         private readonly mobileGbProvider: MobileGbProvider,
         private readonly proxy922Provider: Proxy922Provider,
     ) {}
+
+    async onModuleInit() {
+        // A running job cannot be resumed safely after a backend restart because
+        // its temporary gateway logins are intentionally destroyed at the end
+        // of every sample. Mark it explicitly instead of leaving the UI stuck
+        // forever in a phantom "running" state.
+        await this.prisma.proxyTestRun.updateMany({
+            where: { status: { in: ["queued", "running"] } },
+            data: {
+                status: "failed",
+                finishedAt: new Date(),
+                error: "Backend был перезапущен до завершения проверки",
+            },
+        });
+    }
 
     async getCatalog() {
         const counts = await this.prisma.proxy.groupBy({
@@ -166,18 +182,42 @@ export class ProxyTestService {
         };
         this.jobs.set(id, job);
         this.activeJobId = id;
+        await this.persistJob(job);
         void this.execute(job, servers[0].host, servers[0].token, targets).catch((error: unknown) => {
             job.status = "failed";
             job.error = this.safeError(error);
             job.finishedAt = new Date().toISOString();
             this.activeJobId = null;
+            void this.persistJob(job).catch((persistError: unknown) => {
+                this.logger.error(`Не удалось сохранить результат проверки ${job.id}: ${this.safeError(persistError)}`);
+            });
         });
         return this.publicJob(job);
     }
 
-    getRun(id: string) {
+    async getCurrentRun() {
         this.cleanupJobs();
-        const job = this.jobs.get(id);
+
+        const activeJob = [...this.jobs.values()].find((job) => job.status === "queued" || job.status === "running");
+        if (activeJob) return this.publicJob(activeJob);
+
+        const record = await this.prisma.proxyTestRun.findFirst({
+            where: { createdAt: { gte: new Date(Date.now() - MAX_JOB_AGE_MS) } },
+            orderBy: { createdAt: "desc" },
+        });
+        return record ? this.publicJob(this.jobFromRecord(record)) : null;
+    }
+
+    async getRun(id: string) {
+        this.cleanupJobs();
+        let job = this.jobs.get(id);
+        if (!job) {
+            const record = await this.prisma.proxyTestRun.findUnique({ where: { id } });
+            if (record) {
+                job = this.jobFromRecord(record);
+                this.jobs.set(job.id, job);
+            }
+        }
         if (!job) throw new NotFoundException("Результат проверки не найден или уже истёк");
         return this.publicJob(job);
     }
@@ -288,6 +328,7 @@ export class ProxyTestService {
     private async execute(job: ProxyTestJob, gatewayHost: string, gatewayToken: string, targets: Target[]) {
         job.status = "running";
         job.startedAt = new Date().toISOString();
+        await this.persistJob(job);
         const queue = [...targets];
         const worker = async () => {
             while (queue.length) {
@@ -299,6 +340,7 @@ export class ProxyTestService {
                     result.status = "unavailable";
                     result.error = target.unavailableReason || "Тестовый upstream недоступен";
                     result.finishedAt = new Date().toISOString();
+                    await this.persistJob(job);
                     continue;
                 }
                 await this.testTarget(job, result, target, gatewayHost, gatewayToken);
@@ -308,6 +350,7 @@ export class ProxyTestService {
         job.status = job.results.some((item) => item.status === "ok") ? "completed" : "failed";
         job.finishedAt = new Date().toISOString();
         this.activeJobId = null;
+        await this.persistJob(job);
     }
 
     private async testTarget(job: ProxyTestJob, result: ProxyTestResult, target: Target, gatewayHost: string, gatewayToken: string) {
@@ -315,6 +358,7 @@ export class ProxyTestService {
         const password = randomBytes(18).toString("base64url");
         result.status = "running";
         result.startedAt = new Date().toISOString();
+        await this.persistJob(job);
         try {
             await axios.post(`http://${gatewayHost}:808/add-port`, {
                 port: 10000,
@@ -355,6 +399,9 @@ export class ProxyTestService {
                 timeout: 5000,
             }).catch(() => undefined);
             result.finishedAt = new Date().toISOString();
+            await this.persistJob(job).catch((error: unknown) => {
+                this.logger.error(`Не удалось сохранить результат образца ${result.id}: ${this.safeError(error)}`);
+            });
         }
     }
 
@@ -448,6 +495,62 @@ export class ProxyTestService {
         return {
             ...job,
             results: job.results.map((result) => ({ ...result })),
+        };
+    }
+
+    private async persistJob(job: ProxyTestJob) {
+        const data = {
+            status: job.status,
+            createdAt: new Date(job.createdAt),
+            startedAt: job.startedAt ? new Date(job.startedAt) : null,
+            finishedAt: job.finishedAt ? new Date(job.finishedAt) : null,
+            target: job.target,
+            country: job.country,
+            sizeMb: job.sizeMb,
+            samplesPerTariff: job.samplesPerTariff,
+            concurrency: job.concurrency,
+            gatewayHost: job.gatewayHost,
+            results: job.results as unknown as Prisma.InputJsonValue,
+            error: job.error,
+        };
+
+        await this.prisma.proxyTestRun.upsert({
+            where: { id: job.id },
+            create: { id: job.id, ...data },
+            update: data,
+        });
+    }
+
+    private jobFromRecord(record: {
+        id: string;
+        status: string;
+        createdAt: Date;
+        startedAt: Date | null;
+        finishedAt: Date | null;
+        target: string;
+        country: string | null;
+        sizeMb: number;
+        samplesPerTariff: number;
+        concurrency: number;
+        gatewayHost: string;
+        results: Prisma.JsonValue;
+        error: string;
+    }): ProxyTestJob {
+        const results = Array.isArray(record.results) ? (record.results as unknown as ProxyTestResult[]) : [];
+        return {
+            id: record.id,
+            status: record.status as ProxyTestJob["status"],
+            createdAt: record.createdAt.toISOString(),
+            startedAt: record.startedAt?.toISOString() ?? null,
+            finishedAt: record.finishedAt?.toISOString() ?? null,
+            target: record.target as AdminProxyTestTarget,
+            country: record.country,
+            sizeMb: record.sizeMb,
+            samplesPerTariff: record.samplesPerTariff,
+            concurrency: record.concurrency,
+            gatewayHost: record.gatewayHost,
+            results,
+            error: record.error,
         };
     }
 

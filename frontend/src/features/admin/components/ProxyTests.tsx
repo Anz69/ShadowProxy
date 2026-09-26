@@ -6,6 +6,7 @@ import {
 	AlertTriangle,
 	CheckCircle2,
 	CircleDot,
+	Clock3,
 	Database,
 	Gauge,
 	Globe2,
@@ -114,12 +115,29 @@ const ProxyTests: FC = () => {
 		staleTime: 30_000
 	})
 
+	const currentRunQuery = useQuery({
+		queryKey: ["admin-proxy-test-current"],
+		queryFn: () => adminService.getCurrentProxyTest(),
+		staleTime: 0,
+		refetchOnWindowFocus: true
+	})
+
 	const runQuery = useQuery({
 		queryKey: ["admin-proxy-test-run", runId],
 		queryFn: () => adminService.getProxyTestRun(runId as string),
 		enabled: Boolean(runId),
 		refetchInterval: polling ? 1_500 : false
 	})
+
+	useEffect(() => {
+		if (!runId && currentRunQuery.data?.id) {
+			setRunId(currentRunQuery.data.id)
+			setPolling(
+				currentRunQuery.data.status === "queued" ||
+					currentRunQuery.data.status === "running"
+			)
+		}
+	}, [currentRunQuery.data, runId])
 
 	const startMutation = useMutation({
 		mutationFn: (dto: CreateProxyTestDto) =>
@@ -129,16 +147,32 @@ const ProxyTests: FC = () => {
 			setPolling(true)
 			toast.success("Проверка запущена через gateway")
 		},
-		onError: error => toast.error(error.message)
+		onError: async error => {
+			if (error.message.includes("Проверка уже выполняется")) {
+				const current = await currentRunQuery.refetch()
+				if (current.data?.id) {
+					setRunId(current.data.id)
+					setPolling(
+						current.data.status === "queued" ||
+							current.data.status === "running"
+					)
+				}
+				return
+			}
+			toast.error(error.message)
+		}
 	})
 
-	const run = runQuery.data
-	const isRunning = polling || startMutation.isPending
+	const run = runQuery.data ?? currentRunQuery.data ?? undefined
+	const isRunning =
+		startMutation.isPending ||
+		polling ||
+		run?.status === "queued" ||
+		run?.status === "running"
 
 	useEffect(() => {
-		if (run && (run.status === "completed" || run.status === "failed")) {
-			setPolling(false)
-		}
+		if (!run) return
+		setPolling(run.status === "queued" || run.status === "running")
 	}, [run])
 
 	const results = run?.results ?? EMPTY_RESULTS
@@ -164,6 +198,20 @@ const ProxyTests: FC = () => {
 		)
 		return { passed, failed, latency, gatewayBytes, reportedBytes }
 	}, [results])
+	const finishedResults = results.filter(item =>
+		["ok", "failed", "unavailable"].includes(item.status)
+	).length
+	const progress = results.length
+		? Math.round((finishedResults / results.length) * 100)
+		: 0
+	const runStatusText =
+		run?.status === "completed"
+			? "Проверка завершена"
+			: run?.status === "failed"
+				? "Проверка завершилась с ошибкой"
+				: run?.status === "queued"
+					? "Проверка в очереди"
+					: "Проверка выполняется"
 
 	const catalog = catalogQuery.data?.types ?? []
 	const typeLabel = (type: ProxyTestType) =>
@@ -206,7 +254,70 @@ const ProxyTests: FC = () => {
 
 			<AdminNav active="/admin/proxy-tests" />
 
-			<div className="grid gap-5 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.55fr)]">
+			{run ? (
+				<div
+					className={`rounded-2xl border px-4 py-3.5 shadow-[0_18px_50px_rgba(0,0,0,0.14)] md:px-5 ${
+						isRunning
+							? "border-[#6aa5ff]/25 bg-[#102552]/70"
+							: run.status === "completed"
+								? "border-emerald-300/15 bg-emerald-300/[0.06]"
+								: "border-rose-300/15 bg-rose-300/[0.06]"
+					}`}
+					role="status"
+					aria-live="polite"
+				>
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<div className="flex min-w-0 items-center gap-3">
+							<div
+								className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+									isRunning
+										? "bg-[#6aa5ff]/15 text-[#9cc3ff]"
+										: run.status === "completed"
+											? "bg-emerald-300/10 text-emerald-300"
+											: "bg-rose-300/10 text-rose-300"
+									}`}
+							>
+								{isRunning ? (
+									<LoaderCircle className="h-4.5 w-4.5 animate-spin" />
+								) : run.status === "completed" ? (
+									<CheckCircle2 className="h-4.5 w-4.5" />
+								) : (
+									<XCircle className="h-4.5 w-4.5" />
+								)}
+							</div>
+							<div className="min-w-0">
+								<div className="flex flex-wrap items-center gap-2">
+									<p className="text-sm font-semibold text-white">
+										{runStatusText}
+									</p>
+									<span className="rounded-full bg-white/[0.07] px-2 py-1 text-[11px] text-white/55 ring-1 ring-white/[0.08]">
+										{finishedResults} из {results.length || "—"}
+									</span>
+								</div>
+								<p className="mt-0.5 text-xs text-white/45">
+									{isRunning
+										? "Состояние сохраняется автоматически — перезагрузка страницы не прервёт отображение прогона"
+										: run.error || "Результаты доступны в этом окне в течение часа"}
+								</p>
+							</div>
+						</div>
+						<div className="flex items-center gap-2 text-xs text-white/45">
+							<Clock3 className="h-3.5 w-3.5 text-white/35" />
+							{run.sizeMb} MB · {run.concurrency} потока
+						</div>
+					</div>
+					<div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+						<div
+							className={`h-full rounded-full transition-[width] duration-500 ${
+								isRunning ? "bg-[#6aa5ff]" : run.status === "completed" ? "bg-emerald-300" : "bg-rose-300"
+							}`}
+							style={{ width: `${Math.max(progress, isRunning && results.length ? 4 : 0)}%` }}
+						/>
+					</div>
+				</div>
+			) : null}
+
+			<div className="grid gap-5 xl:grid-cols-[minmax(360px,0.78fr)_minmax(0,1.55fr)] 2xl:grid-cols-[minmax(400px,0.85fr)_minmax(0,1.55fr)]">
 				<Card className="!items-stretch !gap-5 !border-[#6aa5ff]/20 !bg-[radial-gradient(circle_at_top_right,rgba(47,107,255,0.18),transparent_48%),linear-gradient(145deg,rgba(14,24,48,0.98),rgba(6,13,28,0.98))]">
 					<div className="flex items-start gap-3">
 						<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#2f6bff]/15 text-[#83b4ff] ring-1 ring-[#6aa5ff]/25">
@@ -223,7 +334,7 @@ const ProxyTests: FC = () => {
 						</div>
 					</div>
 
-					<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+					<div className="grid gap-3 sm:grid-cols-2">
 						<label className="flex flex-col gap-2 text-sm text-white/55">
 							<span>Что проверяем</span>
 							<Select
@@ -345,7 +456,7 @@ const ProxyTests: FC = () => {
 						</div>
 					</div>
 
-					<div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+					<div className="grid gap-3 sm:grid-cols-3">
 						<div className="rounded-2xl border border-white/[0.08] bg-black/15 p-3">
 							<div className="flex items-center gap-2 text-xs tracking-[0.12em] text-white/35 uppercase">
 								<ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />{" "}

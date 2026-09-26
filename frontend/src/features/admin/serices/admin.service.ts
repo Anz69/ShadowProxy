@@ -91,6 +91,17 @@ class AdminService {
 		}
 	}
 
+	async getCurrentProxyTest() {
+		try {
+			const res = await this.api.get<ProxyTestRun | null>(
+				"/proxy-tests/runs/current"
+			)
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
+	}
+
 	async getProxyTestRun(id: string) {
 		try {
 			const res = await this.api.get<ProxyTestRun>(
