@@ -7,6 +7,8 @@ describe("ProxyNodeController traffic accounting", () => {
     let tx: any;
     let prisma: any;
     let loggerService: any;
+    let proxyServerService: any;
+    let nodeService: any;
 
     beforeEach(() => {
         tx = {
@@ -39,7 +41,9 @@ describe("ProxyNodeController traffic accounting", () => {
             log: jest.fn().mockResolvedValue(undefined),
             logTraffic: jest.fn().mockResolvedValue(undefined),
         };
-        controller = new ProxyNodeController({} as any, prisma, loggerService, { syncActivePortsWithServers: jest.fn().mockResolvedValue(undefined) } as any);
+        proxyServerService = { blockLoginOnServer: jest.fn().mockResolvedValue(undefined) };
+        nodeService = { syncActivePortsWithServers: jest.fn().mockResolvedValue(undefined) };
+        controller = new ProxyNodeController(proxyServerService, prisma, loggerService, nodeService);
     });
 
     it.each([
@@ -91,6 +95,29 @@ describe("ProxyNodeController traffic accounting", () => {
         expect(result).toEqual({ success: true, duplicate: true, message: "Traffic batch already applied" });
         expect(tx.$queryRawUnsafe).not.toHaveBeenCalled();
         expect(loggerService.logTraffic).not.toHaveBeenCalled();
+    });
+
+    it("suspends active proxies and blocks the gateway login when traffic exhausts the balance", async () => {
+        tx.$queryRawUnsafe.mockResolvedValueOnce([{ balance: "0" }]);
+        tx.proxy.findMany.mockResolvedValueOnce([
+            { id: "proxy-1", serverHost: activeHost, userLogin: "qa-login", type: ProxyType.ISP_USA },
+        ]);
+
+        await controller.receiveTraffic(
+            {
+                server_id: activeHost,
+                batch_id: "c".repeat(32),
+                logs: [{ user: "qa-login", in_bytes: 100, out_bytes: 25 }],
+            },
+            { headers: { authorization: "Bearer server-token" }, ip: "127.0.0.1" },
+        );
+
+        expect(tx.proxy.updateMany).toHaveBeenCalledWith({
+            where: { id: { in: ["proxy-1"] } },
+            data: { status: ProxyStatus.SUSPENDED },
+        });
+        expect(proxyServerService.blockLoginOnServer).toHaveBeenCalledWith(activeHost, "qa-login", "server-token");
+        expect(nodeService.syncActivePortsWithServers).toHaveBeenCalledTimes(1);
     });
 
     it("rejects reports from an unknown gateway host", async () => {

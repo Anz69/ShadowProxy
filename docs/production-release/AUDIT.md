@@ -15,11 +15,13 @@
 ## Автоматическая проверка
 
 - Prisma schema validate/generate: проходит.
-- Backend production build: проходит; Jest — 23 suites / 50 tests.
+- Backend production build: проходит; Jest — 23 suites / 51 tests.
 - Release scripts: 4/4 теста проходят; Mango/gateway/smoke scripts также проходят `node --check`.
 - Frontend production build и type-check: проходят; lint — 0 ошибок, 71 существующее предупреждение.
 - Gateway-agent Go tests и `go test -race ./...`: проходят. Добавлен тест, который проверяет учёт реально прокинутых байтов в обе стороны туннеля.
 - Начисление трафика теперь выполняется атомарным SQL-инкрементом: параллельные пополнения не перезаписывают друг друга устаревшим снимком баланса.
+- На dev в rollback-only транзакции проверена реальная схема PostgreSQL: два начисления ISP USA сохранили сумму, списание уменьшило остаток, перерасход обнулил баланс; тестовая строка удалена откатом.
+- Gateway debit использует атомарное `GREATEST(balance - bytes, 0)`, а при нулевом остатке backend переводит активные прокси в `SUSPENDED` и блокирует логин на gateway. Rollback-only SQL-транзакция проверила числовое списание/нижнюю границу; unit-тесты покрывают выбор тарифной колонки, batch-idempotency, приостановку прокси и блокировку gateway-логина.
 - ISP Netherlands, ISP USA и Residential Lite покрыты unit-тестами формата upstream, гео и ограничения ротации.
 - На dev повторно выполнен живой gateway smoke через единственную ACTIVE-ноду: ISP NL, ISP USA и Residential Lite — 3/3 успешные загрузки по 100 KB. Последний одиночный замер дал 3.78, 0.70 и 0.36 Mbps соответственно; это smoke-снимок, не нагрузочный SLA-тест.
 - Mango в повторный smoke не включался, чтобы не использовать случайный пользовательский upstream. Включать `--include-mango` можно только с выделенным тестовым прокси; админский QA также показывает Mango недоступным без отдельных `MANGO_QA_UPSTREAM_*` credentials.
