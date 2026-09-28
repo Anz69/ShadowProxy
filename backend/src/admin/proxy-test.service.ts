@@ -1,15 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { Cron, CronExpression } from "@nestjs/schedule";
 import { ProxyServerService } from "../proxy-server/proxy-server.service";
 import { Prisma, ProxyType, ProxyStatus } from "@prisma/client";
 import axios, { AxiosError } from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { randomBytes, randomUUID } from "node:crypto";
-import {
-    ADMIN_PROXY_TEST_TYPES,
-    AdminProxyTestTarget,
-    CreateProxyTestDto,
-} from "./dtos/proxy-test.dto";
+import { hash } from "argon2";
+import { ADMIN_PROXY_TEST_TYPES, AdminProxyTestTarget, CreateProxyTestDto } from "./dtos/proxy-test.dto";
 import { IspEuProvider } from "../proxy/providers/services/isp-eu.provider";
 import { IspUsaProvider } from "../proxy/providers/services/isp-usa.provider";
 import { ResidentialLiteProvider } from "../proxy/providers/services/residential-lite.provider";
@@ -45,11 +43,28 @@ type ProxyTestResult = {
     gatewayInBytes: number;
     gatewayOutBytes: number;
     gatewayReportedBytes: number;
+    billedBytes: number | null;
+    billingVerified: boolean | null;
     mbps: number | null;
     exitIp: string;
     error: string;
     startedAt: string | null;
     finishedAt: string | null;
+};
+
+type BillingProbe = {
+    userId: string;
+    userPackageId: string;
+    proxyId: string;
+    trafficField: "premiumTrafficLeft" | "ispUsaTrafficLeft" | "ispEuTrafficLeft" | "residentialLiteTrafficLeft";
+    initialBytes: bigint;
+};
+
+const BILLING_FIELD_BY_TYPE: Partial<Record<ProxyType, BillingProbe["trafficField"]>> = {
+    RESIDENT_PREMIUM: "premiumTrafficLeft",
+    ISP_USA: "ispUsaTrafficLeft",
+    ISP_EU: "ispEuTrafficLeft",
+    RESIDENTIAL_LITE: "residentialLiteTrafficLeft",
 };
 
 type ProxyTestJob = {
@@ -87,13 +102,7 @@ const LATENCY_TIMEOUT_MS = 15_000;
 const DOWNLOAD_TIMEOUT_MS = 180_000;
 const GATEWAY_STATS_WAIT_MS = 15_000;
 const GATEWAY_STATS_POLL_MS = 500;
-const DIRECT_PROVIDER_TEST_TYPES = new Set<ProxyType>([
-    ProxyType.MOBILE,
-    ProxyType.PREMIUM_RESIDENTIAL,
-    ProxyType.ISP_USA,
-    ProxyType.ISP_EU,
-    ProxyType.RESIDENTIAL_LITE,
-]);
+const DIRECT_PROVIDER_TEST_TYPES = new Set<ProxyType>([ProxyType.MOBILE, ProxyType.PREMIUM_RESIDENTIAL, ProxyType.ISP_USA, ProxyType.ISP_EU, ProxyType.RESIDENTIAL_LITE]);
 
 @Injectable()
 export class ProxyTestService implements OnModuleInit {
@@ -122,6 +131,38 @@ export class ProxyTestService implements OnModuleInit {
                 finishedAt: new Date(),
                 error: "Backend был перезапущен до завершения проверки",
             },
+        });
+        await this.cleanupStaleBillingProbes();
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    async pruneTrafficBatchReceipts() {
+        await this.prisma.proxyTrafficBatchReceipt.deleteMany({
+            where: { createdAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+        });
+    }
+
+    private async cleanupStaleBillingProbes() {
+        const users = await this.prisma.user.findMany({
+            where: { email: { startsWith: "qa-", endsWith: "@proxy-test.invalid" } },
+            select: { id: true },
+        });
+        if (users.length === 0) return;
+        const userIds = users.map(({ id }) => id);
+        const proxies = await this.prisma.proxy.findMany({
+            where: { userId: { in: userIds } },
+            select: { id: true, serverHost: true, userLogin: true },
+        });
+        for (const proxy of proxies) {
+            if (!proxy.serverHost || !proxy.userLogin) continue;
+            const server = await this.prisma.proxyServer.findFirst({ where: { host: proxy.serverHost }, select: { token: true } });
+            if (server?.token) {
+                await this.proxyServerService.blockLoginOnServer(proxy.serverHost, proxy.userLogin, server.token).catch(() => undefined);
+            }
+        }
+        await this.prisma.$transaction(async (tx) => {
+            await tx.proxy.deleteMany({ where: { userId: { in: userIds } } });
+            await tx.user.deleteMany({ where: { id: { in: userIds } } });
         });
     }
 
@@ -352,7 +393,7 @@ export class ProxyTestService implements OnModuleInit {
             }
         };
         await Promise.all(Array.from({ length: Math.min(job.concurrency, targets.length || 1) }, () => worker()));
-        job.status = job.results.some((item) => item.status === "ok") ? "completed" : "failed";
+        job.status = job.results.length > 0 && job.results.every((item) => item.status === "ok") ? "completed" : "failed";
         job.finishedAt = new Date().toISOString();
         this.activeJobId = null;
         await this.persistJob(job);
@@ -364,6 +405,8 @@ export class ProxyTestService implements OnModuleInit {
         result.status = "running";
         result.startedAt = new Date().toISOString();
         await this.persistJob(job);
+        let billingProbe: BillingProbe | null = null;
+        let gatewayPortAdded = false;
         try {
             let upstream = target.upstream;
             if (target.proxyEmpireType) {
@@ -377,16 +420,23 @@ export class ProxyTestService implements OnModuleInit {
             }
             if (!upstream) throw new Error("Для тарифа не настроен тестовый upstream");
 
-            await axios.post(`http://${gatewayHost}:808/add-port`, {
-                port: 10000,
-                user_id: "admin-proxy-test",
-                login,
-                password,
-                proxy_host: upstream.host,
-                proxy_port: upstream.port,
-                proxy_username: upstream.username,
-                proxy_password: upstream.password,
-            }, { headers: { Authorization: `Bearer ${gatewayToken}` }, timeout: 5000 });
+            billingProbe = await this.createBillingProbe(target, login, password, gatewayHost, upstream, job.sizeMb);
+
+            await axios.post(
+                `http://${gatewayHost}:808/add-port`,
+                {
+                    port: 10000,
+                    user_id: "admin-proxy-test",
+                    login,
+                    password,
+                    proxy_host: upstream.host,
+                    proxy_port: upstream.port,
+                    proxy_username: upstream.username,
+                    proxy_password: upstream.password,
+                },
+                { headers: { Authorization: `Bearer ${gatewayToken}` }, timeout: 5000 },
+            );
+            gatewayPortAdded = true;
 
             const proxyUrl = `http://${encodeURIComponent(login)}:${encodeURIComponent(password)}@${gatewayHost}:10000`;
             const agent = new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
@@ -401,9 +451,29 @@ export class ProxyTestService implements OnModuleInit {
             result.gatewayInBytes = stats.inBytes;
             result.gatewayOutBytes = stats.outBytes;
             result.gatewayReportedBytes = stats.reportedInBytes + stats.reportedOutBytes;
-            if (stats.inBytes + stats.outBytes < Math.floor(downloaded.bytes * 0.7)) {
+            const minimumBytes = Math.floor(downloaded.bytes * 0.7);
+            if (stats.inBytes + stats.outBytes < minimumBytes) {
                 result.status = "failed";
-                result.error = "Gateway не подтвердил ожидаемый расход байтов";
+                result.error = "Gateway не учёл ожидаемый объём трафика";
+            } else if (result.gatewayReportedBytes < minimumBytes) {
+                result.status = "failed";
+                result.error = "Backend не подтвердил batch-отчёт gateway";
+            } else if (billingProbe) {
+                const account = await this.prisma.user.findUnique({
+                    where: { id: billingProbe.userId },
+                    select: { [billingProbe.trafficField]: true },
+                });
+                if (!account) throw new Error("QA-баланс не найден после трафик-отчёта");
+                const remaining = BigInt(String((account as Record<string, unknown>)[billingProbe.trafficField] ?? "0"));
+                const debited = billingProbe.initialBytes - remaining;
+                result.billedBytes = Number(debited);
+                result.billingVerified = debited === BigInt(result.gatewayReportedBytes) && debited > 0n;
+                if (!result.billingVerified) {
+                    result.status = "failed";
+                    result.error = `Списание не совпало с подтверждённым gateway-трафиком (${debited} / ${result.gatewayReportedBytes} байт)`;
+                } else {
+                    result.status = "ok";
+                }
             } else {
                 result.status = "ok";
             }
@@ -411,15 +481,86 @@ export class ProxyTestService implements OnModuleInit {
             result.status = "failed";
             result.error = this.safeError(error);
         } finally {
-            await axios.post(`http://${gatewayHost}:808/block-login`, { login }, {
-                headers: { Authorization: `Bearer ${gatewayToken}` },
-                timeout: 5000,
-            }).catch(() => undefined);
+            if (gatewayPortAdded) {
+                await axios
+                    .post(
+                        `http://${gatewayHost}:808/block-login`,
+                        { login },
+                        {
+                            headers: { Authorization: `Bearer ${gatewayToken}` },
+                            timeout: 5000,
+                        },
+                    )
+                    .catch(() => undefined);
+            }
+            if (billingProbe)
+                await this.deleteBillingProbe(billingProbe).catch((error: unknown) => {
+                    this.logger.error(`Не удалось удалить временную QA-запись: ${this.safeError(error)}`);
+                });
             result.finishedAt = new Date().toISOString();
             await this.persistJob(job).catch((error: unknown) => {
                 this.logger.error(`Не удалось сохранить результат образца ${result.id}: ${this.safeError(error)}`);
             });
         }
+    }
+
+    private async createBillingProbe(target: Target, login: string, password: string, serverHost: string, upstream: Upstream, sizeMb: number): Promise<BillingProbe | null> {
+        const trafficField = BILLING_FIELD_BY_TYPE[target.type];
+        if (!trafficField) return null;
+
+        const userId = randomUUID();
+        const userPackageId = randomUUID();
+        const proxyId = randomUUID();
+        const initialBytes = BigInt(Math.ceil(sizeMb * 1_000_000 + 2_000_000));
+        const userTrafficFieldByProxyField = {
+            premiumTrafficLeft: "premiumTrafficLeft",
+            ispUsaTrafficLeft: "ispUsaTrafficLeft",
+            ispEuTrafficLeft: "ispEuTrafficLeft",
+            residentialLiteTrafficLeft: "residentialLiteTrafficLeft",
+        } as const;
+        const region = target.country === "US" ? "USA" : ["NL", "GB", "DE", "FR", "ES", "IT"].includes(target.country) ? "EUROPE" : "CIS";
+
+        await this.prisma.$transaction(async (tx) => {
+            await tx.user.create({
+                data: {
+                    id: userId,
+                    email: `qa-${userId}@proxy-test.invalid`,
+                    password: await hash(randomBytes(24).toString("base64url")),
+                    authMethod: "CREDENTIALS",
+                    region,
+                    [userTrafficFieldByProxyField[trafficField]]: initialBytes.toString(),
+                },
+            });
+            await tx.userPackage.create({ data: { id: userPackageId, userId, type: target.type } });
+            await tx.proxy.create({
+                data: {
+                    id: proxyId,
+                    host: upstream.host,
+                    port: upstream.port,
+                    username: upstream.username,
+                    password: upstream.password,
+                    type: target.type,
+                    country: target.country,
+                    rotation: "BY_REQUEST",
+                    userId,
+                    userPackageId,
+                    serverHost,
+                    userPort: 10000,
+                    userLogin: login,
+                    userPassword: password,
+                    status: ProxyStatus.ACTIVE,
+                },
+            });
+        });
+        return { userId, userPackageId, proxyId, trafficField, initialBytes };
+    }
+
+    private async deleteBillingProbe(probe: BillingProbe) {
+        await this.prisma.$transaction(async (tx) => {
+            await tx.proxy.deleteMany({ where: { id: probe.proxyId } });
+            await tx.userPackage.deleteMany({ where: { id: probe.userPackageId } });
+            await tx.user.deleteMany({ where: { id: probe.userId } });
+        });
     }
 
     private async measureLatency(agent: HttpsProxyAgent<string>) {
@@ -495,7 +636,8 @@ export class ProxyTestService implements OnModuleInit {
                 reportedInBytes: Number(response.data.reported_in_bytes || 0),
                 reportedOutBytes: Number(response.data.reported_out_bytes || 0),
             };
-            if (latest.inBytes + latest.outBytes >= Math.floor(minimumBytes * 0.7)) return latest;
+            const threshold = Math.floor(minimumBytes * 0.7);
+            if (latest.inBytes + latest.outBytes >= threshold && latest.reportedInBytes + latest.reportedOutBytes >= threshold) return latest;
             await new Promise((resolve) => setTimeout(resolve, GATEWAY_STATS_POLL_MS));
         }
         return latest;
@@ -514,6 +656,8 @@ export class ProxyTestService implements OnModuleInit {
             gatewayInBytes: 0,
             gatewayOutBytes: 0,
             gatewayReportedBytes: 0,
+            billedBytes: null,
+            billingVerified: null,
             mbps: null,
             exitIp: "",
             error: target.unavailableReason || "",
@@ -525,7 +669,7 @@ export class ProxyTestService implements OnModuleInit {
     private publicJob(job: ProxyTestJob) {
         return {
             ...job,
-            results: job.results.map((result) => ({ ...result })),
+            results: job.results.map((result) => ({ ...result, billedBytes: result.billedBytes ?? null, billingVerified: result.billingVerified ?? null })),
         };
     }
 
@@ -567,7 +711,9 @@ export class ProxyTestService implements OnModuleInit {
         results: Prisma.JsonValue;
         error: string;
     }): ProxyTestJob {
-        const results = Array.isArray(record.results) ? (record.results as unknown as ProxyTestResult[]) : [];
+        const results = Array.isArray(record.results)
+            ? (record.results as unknown as ProxyTestResult[]).map((result) => ({ ...result, billedBytes: result.billedBytes ?? null, billingVerified: result.billingVerified ?? null }))
+            : [];
         return {
             id: record.id,
             status: record.status as ProxyTestJob["status"],

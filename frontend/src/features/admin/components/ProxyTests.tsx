@@ -287,7 +287,7 @@ const ProxyTests: FC = () => {
 										: run.status === "completed"
 											? "bg-emerald-300/10 text-emerald-300"
 											: "bg-rose-300/10 text-rose-300"
-									}`}
+								}`}
 							>
 								{isRunning ? (
 									<LoaderCircle className="h-4.5 w-4.5 animate-spin" />
@@ -303,13 +303,15 @@ const ProxyTests: FC = () => {
 										{runStatusText}
 									</p>
 									<span className="rounded-full bg-white/[0.07] px-2 py-1 text-[11px] text-white/55 ring-1 ring-white/[0.08]">
-										{finishedResults} из {results.length || "—"}
+										{finishedResults} из{" "}
+										{results.length || "—"}
 									</span>
 								</div>
 								<p className="mt-0.5 text-xs text-white/45">
 									{isRunning
 										? "Состояние сохраняется автоматически — перезагрузка страницы не прервёт отображение прогона"
-										: run.error || "Результаты доступны в этом окне в течение часа"}
+										: run.error ||
+											"Результаты доступны в этом окне в течение часа"}
 								</p>
 							</div>
 						</div>
@@ -321,9 +323,15 @@ const ProxyTests: FC = () => {
 					<div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
 						<div
 							className={`h-full rounded-full transition-[width] duration-500 ${
-								isRunning ? "bg-[#6aa5ff]" : run.status === "completed" ? "bg-emerald-300" : "bg-rose-300"
+								isRunning
+									? "bg-[#6aa5ff]"
+									: run.status === "completed"
+										? "bg-emerald-300"
+										: "bg-rose-300"
 							}`}
-							style={{ width: `${Math.max(progress, isRunning && results.length ? 4 : 0)}%` }}
+							style={{
+								width: `${Math.max(progress, isRunning && results.length ? 4 : 0)}%`
+							}}
 						/>
 					</div>
 				</div>
@@ -645,7 +653,7 @@ const ProxyTests: FC = () => {
 												</p>
 											</div>
 										</div>
-										<div className="grid grid-cols-3 gap-3 text-sm">
+										<div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 2xl:grid-cols-5">
 											<div>
 												<p className="text-xs text-white/35">
 													Статус
@@ -681,6 +689,30 @@ const ProxyTests: FC = () => {
 														result.gatewayInBytes +
 															result.gatewayOutBytes
 													)}
+												</p>
+											</div>
+											<div>
+												<p className="text-xs text-white/35">
+													Backend ACK
+												</p>
+												<p className="mt-1 font-medium text-white/80">
+													{formatBytes(
+														result.gatewayReportedBytes
+													)}
+												</p>
+											</div>
+											<div>
+												<p className="text-xs text-white/35">
+													Списание БД
+												</p>
+												<p
+													className={`mt-1 font-medium ${result.billingVerified === false ? "text-rose-200" : result.billingVerified ? "text-emerald-200" : "text-white/50"}`}
+												>
+													{result.billedBytes === null
+														? "не применимо"
+														: formatBytes(
+																result.billedBytes
+															)}
 												</p>
 											</div>
 										</div>

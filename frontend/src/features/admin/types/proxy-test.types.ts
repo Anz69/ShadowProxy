@@ -45,6 +45,8 @@ export type ProxyTestResult = {
 	gatewayInBytes: number
 	gatewayOutBytes: number
 	gatewayReportedBytes: number
+	billedBytes: number | null
+	billingVerified: boolean | null
 	mbps: number | null
 	exitIp: string
 	error: string

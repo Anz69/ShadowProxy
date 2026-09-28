@@ -114,7 +114,11 @@ export class MangoProxyProvider implements OnModuleInit {
 
                     const { account, password } = await this.createProxyAccount(username);
 
-                    if (userCreateRes.status === 201) {
+                    // Mango currently answers with HTTP 200 for successful
+                    // account creation (the migration path also accepts any
+                    // 2xx response). Requiring exactly 201 made provisioning
+                    // fail after the upstream had already created the user.
+                    if (userCreateRes.status >= 200 && userCreateRes.status < 300) {
                         await this.logger.log("SYSTEM", `✅ Успешно создан аккаунт Mango Proxy для пользователя ${userId}`, userId, {
                             username,
                             account,

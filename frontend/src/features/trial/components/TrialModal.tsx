@@ -1,22 +1,23 @@
 "use client"
 
-import { useState } from "react"
-import { usePathname } from "next/navigation"
 import Image from "next/image"
+import { usePathname } from "next/navigation"
+import { useState } from "react"
 import type { FC } from "react"
 
-import { getLocaleFromPath } from "@/shared/utils/getLocaleFromPath"
-import { t } from "@/shared/utils/i18n"
-import { useTrial } from "@/features/trial/hooks/useTrial"
 import { usePrices } from "@/features/proxy/hooks/usePrices"
 import type { Prices } from "@/features/proxy/types/proxy.types"
-import { accountLinkService } from "@/features/user/services/account-link.service"
+import { useTrial } from "@/features/trial/hooks/useTrial"
 import { useTelegramLink } from "@/features/user/hooks/useTelegramLink"
-import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
+import { accountLinkService } from "@/features/user/services/account-link.service"
 import type { User } from "@/features/user/types/user.types"
 
+import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
+import { getLocaleFromPath } from "@/shared/utils/getLocaleFromPath"
+import { t } from "@/shared/utils/i18n"
+
 type TariffMeta = {
-	type: "RESIDENT_PREMIUM" | "ISP_USA" | "ISP_EU" | "RESIDENTIAL_LITE" | "MOBILE" | "MOBILE_GB" | "IPV6_GB"
+	type: "RESIDENT_PREMIUM" | "ISP_USA" | "ISP_EU" | "RESIDENTIAL_LITE"
 	tKey: string
 	icon: string
 	tagline: string
@@ -25,13 +26,35 @@ type TariffMeta = {
 // Все тарифы по ГБ (трафик считается на нашей стороне через гейтвей) доступны для триала.
 // Скрываем только те, что отключены спринт-гейтингом.
 const TARIFFS: TariffMeta[] = [
-	{ type: "RESIDENT_PREMIUM", tKey: "resident", icon: "/tariff-resident.svg", tagline: "150M+ IPs · global pool" },
-	{ type: "ISP_USA", tKey: "ispUsa", icon: "/tariff-resident.svg", tagline: "US only · ISP" },
-	{ type: "ISP_EU", tKey: "ispEu", icon: "/tariff-resident.svg", tagline: "NL only · ISP" },
-	{ type: "RESIDENTIAL_LITE", tKey: "residentialLite", icon: "/tariff-resident.svg", tagline: "Any country · budget" }
+	{
+		type: "RESIDENT_PREMIUM",
+		tKey: "resident",
+		icon: "/tariff-resident.svg",
+		tagline: "150M+ IPs · global pool"
+	},
+	{
+		type: "ISP_USA",
+		tKey: "ispUsa",
+		icon: "/tariff-resident.svg",
+		tagline: "US only · ISP"
+	},
+	{
+		type: "ISP_EU",
+		tKey: "ispEu",
+		icon: "/tariff-resident.svg",
+		tagline: "NL only · ISP"
+	},
+	{
+		type: "RESIDENTIAL_LITE",
+		tKey: "residentialLite",
+		icon: "/tariff-resident.svg",
+		tagline: "Any country · budget"
+	}
 ]
 
-const TRIAL_PRICE_KEY: Partial<Record<TariffMeta["type"], keyof NonNullable<Prices["minimum_prices"]>>> = {
+const TRIAL_PRICE_KEY: Partial<
+	Record<TariffMeta["type"], keyof NonNullable<Prices["minimum_prices"]>>
+> = {
 	RESIDENT_PREMIUM: "resident_premium",
 	ISP_USA: "isp_usa",
 	ISP_EU: "isp_eu",
@@ -39,43 +62,101 @@ const TRIAL_PRICE_KEY: Partial<Record<TariffMeta["type"], keyof NonNullable<Pric
 }
 
 const SparkIcon = () => (
-	<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-		<path d="M7 0L8.6 4.4L13 5.5L8.6 6.6L7 11L5.4 6.6L1 5.5L5.4 4.4L7 0Z" fill="currentColor" />
+	<svg
+		width="14"
+		height="14"
+		viewBox="0 0 14 14"
+		fill="none"
+		aria-hidden="true"
+	>
+		<path
+			d="M7 0L8.6 4.4L13 5.5L8.6 6.6L7 11L5.4 6.6L1 5.5L5.4 4.4L7 0Z"
+			fill="currentColor"
+		/>
 	</svg>
 )
 
 const CheckIcon = () => (
-	<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-		<path d="M3 7L6 10L11 4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+	<svg
+		width="14"
+		height="14"
+		viewBox="0 0 14 14"
+		fill="none"
+		aria-hidden="true"
+	>
+		<path
+			d="M3 7L6 10L11 4"
+			stroke="currentColor"
+			strokeWidth="2.2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		/>
 	</svg>
 )
 
 const ArrowRightIcon = () => (
-	<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-		<path d="M3 8H13M13 8L8.5 3.5M13 8L8.5 12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+	<svg
+		width="16"
+		height="16"
+		viewBox="0 0 16 16"
+		fill="none"
+		aria-hidden="true"
+	>
+		<path
+			d="M3 8H13M13 8L8.5 3.5M13 8L8.5 12.5"
+			stroke="currentColor"
+			strokeWidth="1.8"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		/>
 	</svg>
 )
 
 const LinkIcon = () => (
-	<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-		<path d="M7 9C7.4 9.4 8 9.6 8.6 9.6C9.2 9.6 9.8 9.4 10.2 9L13 6.2C13.4 5.8 13.6 5.2 13.6 4.6C13.6 4 13.4 3.4 13 3C12.6 2.6 12 2.4 11.4 2.4C10.8 2.4 10.2 2.6 9.8 3L9.4 3.4M9 7C8.6 6.6 8 6.4 7.4 6.4C6.8 6.4 6.2 6.6 5.8 7L3 9.8C2.6 10.2 2.4 10.8 2.4 11.4C2.4 12 2.6 12.6 3 13C3.4 13.4 4 13.6 4.6 13.6C5.2 13.6 5.8 13.4 6.2 13L6.6 12.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+	<svg
+		width="16"
+		height="16"
+		viewBox="0 0 16 16"
+		fill="none"
+		aria-hidden="true"
+	>
+		<path
+			d="M7 9C7.4 9.4 8 9.6 8.6 9.6C9.2 9.6 9.8 9.4 10.2 9L13 6.2C13.4 5.8 13.6 5.2 13.6 4.6C13.6 4 13.4 3.4 13 3C12.6 2.6 12 2.4 11.4 2.4C10.8 2.4 10.2 2.6 9.8 3L9.4 3.4M9 7C8.6 6.6 8 6.4 7.4 6.4C6.8 6.4 6.2 6.6 5.8 7L3 9.8C2.6 10.2 2.4 10.8 2.4 11.4C2.4 12 2.6 12.6 3 13C3.4 13.4 4 13.6 4.6 13.6C5.2 13.6 5.8 13.4 6.2 13L6.6 12.6"
+			stroke="currentColor"
+			strokeWidth="1.4"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		/>
 	</svg>
 )
 
 const TelegramIcon = () => (
-	<svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-		<path d="M16.9095 7.42745L15.2702 16.1954C15.2702 16.1954 15.0408 16.8033 14.4108 16.5118L10.6284 13.435L10.6109 13.4259C11.1218 12.9392 15.0836 9.16005 15.2567 8.98874C15.5248 8.72344 15.3584 8.5655 15.0471 8.76591L9.19506 12.7087L6.93734 11.9028C6.93734 11.9028 6.58204 11.7687 6.54786 11.4772C6.51323 11.1852 6.94903 11.0272 6.94903 11.0272L16.1531 7.1965C16.1531 7.1965 16.9095 6.84387 16.9095 7.42745Z" fill="currentColor" />
+	<svg
+		width="32"
+		height="32"
+		viewBox="0 0 24 24"
+		fill="none"
+		aria-hidden="true"
+	>
+		<path
+			d="M16.9095 7.42745L15.2702 16.1954C15.2702 16.1954 15.0408 16.8033 14.4108 16.5118L10.6284 13.435L10.6109 13.4259C11.1218 12.9392 15.0836 9.16005 15.2567 8.98874C15.5248 8.72344 15.3584 8.5655 15.0471 8.76591L9.19506 12.7087L6.93734 11.9028C6.93734 11.9028 6.58204 11.7687 6.54786 11.4772C6.51323 11.1852 6.94903 11.0272 6.94903 11.0272L16.1531 7.1965C16.1531 7.1965 16.9095 6.84387 16.9095 7.42745Z"
+			fill="currentColor"
+		/>
 	</svg>
 )
 
-const Spinner = () => <span className="trial-modal__spinner" aria-hidden="true" />
+const Spinner = () => (
+	<span className="trial-modal__spinner" aria-hidden="true" />
+)
 
 const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 	const pathname = usePathname()
 	const locale = getLocaleFromPath(pathname)
 	const T = (key: string) => t(key, locale)
 
-	const [selectedType, setSelectedType] = useState<TariffMeta["type"]>(TARIFFS[0].type)
+	const [selectedType, setSelectedType] = useState<TariffMeta["type"]>(
+		TARIFFS[0].type
+	)
 	const { getTrial, isLoading } = useTrial()
 	const { prices } = usePrices()
 	const { startLink: startTelegramLink } = useTelegramLink()
@@ -83,17 +164,19 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 	// Показываем все тарифы, не отключённые спринт-гейтингом. Локации больше не фильтруем:
 	// они статичные/захардкожены, а трафик считается на нашей стороне — пустой ответ
 	// апстрима /locations раньше ошибочно прятал валидные тарифы (напр. Residential).
-	const tariffs = TARIFFS.filter((tf) => !isProxyTypeDisabled(tf.type))
-	const effectiveType = tariffs.some((tf) => tf.type === selectedType)
+	const tariffs = TARIFFS.filter(tf => !isProxyTypeDisabled(tf.type))
+	const effectiveType = tariffs.some(tf => tf.type === selectedType)
 		? selectedType
 		: tariffs[0].type
 
 	// Вход через Google/Telegram = уже верифицированная личность → не просим «привязать».
 	// Иначе проверяем реально привязанные аккаунты.
 	const accounts = user?.accounts ?? user?.account ?? []
-	const isOAuthUser = user?.authMethod === "GOOGLE" || user?.authMethod === "TELEGRAM"
+	const isOAuthUser =
+		user?.authMethod === "GOOGLE" || user?.authMethod === "TELEGRAM"
 	const hasVerifiedLink =
-		isOAuthUser || accounts.some((a) => a.provider === "GOOGLE" || a.provider === "TELEGRAM")
+		isOAuthUser ||
+		accounts.some(a => a.provider === "GOOGLE" || a.provider === "TELEGRAM")
 
 	const handleSubmit = () => {
 		getTrial(effectiveType)
@@ -107,21 +190,31 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 					<SparkIcon />
 					{T("trialModal.title")}
 				</span>
-				<h2 className="trial-modal__title">{T("trialModal.description")}</h2>
+				<h2 className="trial-modal__title">
+					{T("trialModal.description")}
+				</h2>
 			</header>
 
 			{/* HERO: huge gradient traffic value */}
 			<section className="trial-modal__hero">
-				<span className="trial-modal__hero-eyebrow">{T("trialModal.traffic")}</span>
-				<span className="trial-modal__hero-value">{T("trialModal.trafficValue")}</span>
-				<span className="trial-modal__hero-caption">Бесплатно · одноразово</span>
+				<span className="trial-modal__hero-eyebrow">
+					{T("trialModal.traffic")}
+				</span>
+				<span className="trial-modal__hero-value">
+					{T("trialModal.trafficValue")}
+				</span>
+				<span className="trial-modal__hero-caption">
+					Бесплатно · одноразово
+				</span>
 			</section>
 
 			{/* Tariff selector */}
 			<section className="trial-modal__section">
-				<span className="trial-modal__section-label">Выберите тариф</span>
+				<span className="trial-modal__section-label">
+					Выберите тариф
+				</span>
 				<div className="trial-modal__tariffs">
-					{tariffs.map((tariff) => {
+					{tariffs.map(tariff => {
 						const isActive = effectiveType === tariff.type
 						return (
 							<button
@@ -132,20 +225,37 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 								aria-pressed={isActive}
 							>
 								<span className="trial-tariff__icon">
-									<Image src={tariff.icon} alt="" width={20} height={20} />
+									<Image
+										src={tariff.icon}
+										alt=""
+										width={20}
+										height={20}
+									/>
 								</span>
 								<span className="trial-tariff__body">
-									<span className="trial-tariff__title">{T(`trialModal.tariffs.${tariff.tKey}`)}</span>
+									<span className="trial-tariff__title">
+										{T(`trialModal.tariffs.${tariff.tKey}`)}
+									</span>
 									{(() => {
 										const key = TRIAL_PRICE_KEY[tariff.type]
-										const minPrice = key ? prices?.minimum_prices?.[key] : undefined
+										const minPrice = key
+											? prices?.minimum_prices?.[key]
+											: undefined
 										return minPrice && minPrice > 0 ? (
-											<span className="trial-tariff__price">{T("package.from")} {minPrice}$ {T("package.perGb")}</span>
+											<span className="trial-tariff__price">
+												{T("package.from")} {minPrice}${" "}
+												{T("package.perGb")}
+											</span>
 										) : null
 									})()}
-									<span className="trial-tariff__tagline">{tariff.tagline}</span>
+									<span className="trial-tariff__tagline">
+										{tariff.tagline}
+									</span>
 								</span>
-								<span className={`trial-tariff__mark ${isActive ? "trial-tariff__mark--on" : ""}`} aria-hidden="true">
+								<span
+									className={`trial-tariff__mark ${isActive ? "trial-tariff__mark--on" : ""}`}
+									aria-hidden="true"
+								>
 									{isActive && <CheckIcon />}
 								</span>
 							</button>
@@ -158,10 +268,19 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 			{!hasVerifiedLink && (
 				<section className="trial-modal__link">
 					<div className="trial-modal__link-head">
-						<span className="trial-modal__link-icon" aria-hidden="true"><LinkIcon /></span>
+						<span
+							className="trial-modal__link-icon"
+							aria-hidden="true"
+						>
+							<LinkIcon />
+						</span>
 						<div className="trial-modal__link-text">
-							<p className="trial-modal__link-title">{T("trialModal.requireLinkTitle")}</p>
-							<p className="trial-modal__link-desc">{T("trialModal.requireLinkDescription")}</p>
+							<p className="trial-modal__link-title">
+								{T("trialModal.requireLinkTitle")}
+							</p>
+							<p className="trial-modal__link-desc">
+								{T("trialModal.requireLinkDescription")}
+							</p>
 						</div>
 					</div>
 					<div className="trial-modal__link-buttons">
@@ -170,7 +289,12 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 							onClick={() => accountLinkService.startGoogleLink()}
 							className="trial-modal__link-btn trial-modal__link-btn--google"
 						>
-							<Image src="/google-logo.svg" alt="" width={16} height={16} />
+							<Image
+								src="/google-logo.svg"
+								alt=""
+								width={16}
+								height={16}
+							/>
 							{T("trialModal.linkGoogle")}
 						</button>
 						<button
@@ -192,7 +316,11 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 				disabled={isLoading || !hasVerifiedLink}
 				className="trial-modal__cta"
 				aria-busy={isLoading}
-				title={!hasVerifiedLink ? T("trialModal.requireLinkTitle") : undefined}
+				title={
+					!hasVerifiedLink
+						? T("trialModal.requireLinkTitle")
+						: undefined
+				}
 			>
 				{isLoading ? (
 					<Spinner />

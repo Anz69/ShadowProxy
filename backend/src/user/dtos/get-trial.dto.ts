@@ -1,9 +1,7 @@
-import { IsEnum } from "class-validator";
-import { PackageType } from "@prisma/client";
+import { IsIn } from "class-validator";
+import { TRIAL_TARIFFS } from "../trial-tariffs";
 
 export class GetTrialDto {
-    @IsEnum(PackageType)
-    tariffType: PackageType;
+    @IsIn(TRIAL_TARIFFS)
+    tariffType: (typeof TRIAL_TARIFFS)[number];
 }
-
-

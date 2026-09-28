@@ -118,6 +118,7 @@ func main() {
 
 	logrus.Info("Shutting down...")
 	proxyListener.Stop()
+	tracker.sendBatch()
 	apiServer.Stop()
 	logrus.Info("Shutdown complete")
 }

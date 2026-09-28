@@ -13,6 +13,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { NotificationService } from "../notification/notification.service";
 import { ConfigService } from "@nestjs/config";
 import { ProvisioningQueueService } from "../provisioning/provisioning-queue.service";
+import { TRIAL_TARIFFS } from "./trial-tariffs";
 
 @Injectable()
 export class UserService {
@@ -142,11 +143,7 @@ export class UserService {
 
         const searchWhere: Prisma.UserWhereInput = search
             ? {
-                  OR: [
-                      { id: search },
-                      { email: { contains: search, mode: "insensitive" } },
-                      { tgLogin: { contains: search, mode: "insensitive" } },
-                  ],
+                  OR: [{ id: search }, { email: { contains: search, mode: "insensitive" } }, { tgLogin: { contains: search, mode: "insensitive" } }],
               }
             : {};
 
@@ -191,9 +188,7 @@ export class UserService {
             // затем findMany по id и восстанавливаем порядок.
             const dir = sortDir === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
             const term = search ? `%${search}%` : null;
-            const whereSql = term
-                ? Prisma.sql`WHERE (email ILIKE ${term} OR tg_login ILIKE ${term} OR id = ${search})`
-                : Prisma.empty;
+            const whereSql = term ? Prisma.sql`WHERE (email ILIKE ${term} OR tg_login ILIKE ${term} OR id = ${search})` : Prisma.empty;
             const rows = await this.prisma.$queryRaw<{ id: string }[]>(
                 Prisma.sql`SELECT id FROM users ${whereSql}
                     ORDER BY CAST(COALESCE(NULLIF(${Prisma.raw(`"${trafficColumn}"`)}, ''), '0') AS NUMERIC) ${dir}, created_at DESC
@@ -256,12 +251,12 @@ export class UserService {
     async generateApiKey(userId: string): Promise<string> {
         const timestamp = Date.now();
         const apiKey = this.generateApiKeyHash(userId, timestamp);
-        
+
         await this.prisma.user.update({
             where: { id: userId },
             data: { apiKey },
         });
-        
+
         return apiKey;
     }
 
@@ -392,7 +387,7 @@ export class UserService {
     async modifyUserTraffic(dto: ModifyUserTrafficDto, userId: string) {
         const oldUser = await this.findById(userId);
         const ONE_MB = 1024n * 1024n;
-        
+
         const premiumTraffic = String(BigInt(Math.round(dto.premiumTrafficLeft * 1024 ** 2)) * 1024n);
         const mobileGbTraffic = String(BigInt(Math.round(dto.mobileGbTrafficLeft * 1024 ** 2)) * 1024n);
         const ipv6GbTraffic = String(BigInt(Math.round(dto.ipv6GbTrafficLeft * 1024 ** 2)) * 1024n);
@@ -405,13 +400,8 @@ export class UserService {
         const oldPremResidential = BigInt((oldUser as any).premiumResidentialTrafficLeft || "0");
         const oldMobile = BigInt((oldUser as any).mobileTrafficLeft || "0");
         const premiumResidentialTraffic =
-            dto.premiumResidentialTrafficLeft !== undefined
-                ? String(BigInt(Math.round(dto.premiumResidentialTrafficLeft * 1024 ** 2)) * 1024n)
-                : String(oldPremResidential);
-        const mobileTraffic =
-            dto.mobileTrafficLeft !== undefined
-                ? String(BigInt(Math.round(dto.mobileTrafficLeft * 1024 ** 2)) * 1024n)
-                : String(oldMobile);
+            dto.premiumResidentialTrafficLeft !== undefined ? String(BigInt(Math.round(dto.premiumResidentialTrafficLeft * 1024 ** 2)) * 1024n) : String(oldPremResidential);
+        const mobileTraffic = dto.mobileTrafficLeft !== undefined ? String(BigInt(Math.round(dto.mobileTrafficLeft * 1024 ** 2)) * 1024n) : String(oldMobile);
         const premiumResidentialDifference = BigInt(premiumResidentialTraffic) - oldPremResidential;
         const mobileDifference = BigInt(mobileTraffic) - oldMobile;
 
@@ -419,22 +409,13 @@ export class UserService {
         const oldIspUsa = BigInt((oldUser as any).ispUsaTrafficLeft || "0");
         const oldIspEu = BigInt((oldUser as any).ispEuTrafficLeft || "0");
         const oldResidentialLite = BigInt((oldUser as any).residentialLiteTrafficLeft || "0");
-        const ispUsaTraffic =
-            dto.ispUsaTrafficLeft !== undefined
-                ? String(BigInt(Math.round(dto.ispUsaTrafficLeft * 1024 ** 2)) * 1024n)
-                : String(oldIspUsa);
-        const ispEuTraffic =
-            dto.ispEuTrafficLeft !== undefined
-                ? String(BigInt(Math.round(dto.ispEuTrafficLeft * 1024 ** 2)) * 1024n)
-                : String(oldIspEu);
-        const residentialLiteTraffic =
-            dto.residentialLiteTrafficLeft !== undefined
-                ? String(BigInt(Math.round(dto.residentialLiteTrafficLeft * 1024 ** 2)) * 1024n)
-                : String(oldResidentialLite);
+        const ispUsaTraffic = dto.ispUsaTrafficLeft !== undefined ? String(BigInt(Math.round(dto.ispUsaTrafficLeft * 1024 ** 2)) * 1024n) : String(oldIspUsa);
+        const ispEuTraffic = dto.ispEuTrafficLeft !== undefined ? String(BigInt(Math.round(dto.ispEuTrafficLeft * 1024 ** 2)) * 1024n) : String(oldIspEu);
+        const residentialLiteTraffic = dto.residentialLiteTrafficLeft !== undefined ? String(BigInt(Math.round(dto.residentialLiteTrafficLeft * 1024 ** 2)) * 1024n) : String(oldResidentialLite);
         const ispUsaDifference = BigInt(ispUsaTraffic) - oldIspUsa;
         const ispEuDifference = BigInt(ispEuTraffic) - oldIspEu;
         const residentialLiteDifference = BigInt(residentialLiteTraffic) - oldResidentialLite;
-        
+
         // Если устанавливаем трафик >= 1 МБ, создаем аккаунт и добавляем разницу
         if (premiumTrafficDifference > 1000n) {
             await this.eventEmitter.emitAsync("proxy.create_account", {
@@ -451,7 +432,7 @@ export class UserService {
             // Если трафик >= 1 МБ, но разница небольшая — убедимся что пакет есть
             await this.packageService.createPackageIfNotExists("RESIDENT_PREMIUM", premiumTraffic, userId);
         }
-        
+
         if (mobileGbTrafficDifference > 1000n) {
             await this.eventEmitter.emitAsync("proxy.create_account", {
                 type: "MOBILE_GB",
@@ -465,7 +446,7 @@ export class UserService {
         } else if (BigInt(mobileGbTraffic) >= ONE_MB) {
             await this.packageService.createPackageIfNotExists("MOBILE_GB", mobileGbTraffic, userId);
         }
-        
+
         if (ipv6GbTrafficDifference > 1000n) {
             await this.eventEmitter.emitAsync("proxy.create_account", {
                 type: "IPV6_GB",
@@ -479,7 +460,7 @@ export class UserService {
         } else if (BigInt(ipv6GbTraffic) >= ONE_MB) {
             await this.packageService.createPackageIfNotExists("IPV6_GB", ipv6GbTraffic, userId);
         }
-        
+
         // PREMIUM_RESIDENTIAL (ProxyEmpire) — без gateway, просто обновляем баланс.
         // Distribute event тоже шлём — на случай если где-то слушают (например для логов/пакета).
         if (premiumResidentialDifference > 1000n) {
@@ -534,12 +515,12 @@ export class UserService {
     async modifyUserBalance(dto: ModifyUserBalanceDto, userId: string) {
         const user = await this.findById(userId);
         const oldBalance = user.balance;
-        
+
         await this.logger.log("SYSTEM", `Админ изменил баланс пользователя ${userId}`, userId, {
             oldBalance: oldBalance.toString(),
             newBalance: dto.balance.toString(),
         });
-        
+
         return this.updateById(userId, {
             balance: new Decimal(dto.balance),
         });
@@ -547,22 +528,14 @@ export class UserService {
 
     async getTrial(userId: string, tariffType: PackageType) {
         const user = await this.findById(userId);
-        
+
         // Проверяем, что у пользователя еще нет триала
         if (user.trial !== null) {
             throw new BadRequestException("errors.trial_already_received");
         }
 
         // Проверяем валидность тарифа (тарифы по ГБ, включая новые типы через гейтвей)
-        const validTariffs: PackageType[] = [
-            "RESIDENT_PREMIUM",
-            "MOBILE_GB",
-            "IPV6_GB",
-            "ISP_USA",
-            "ISP_EU",
-            "RESIDENTIAL_LITE",
-        ];
-        if (!validTariffs.includes(tariffType)) {
+        if (!TRIAL_TARIFFS.includes(tariffType)) {
             throw new BadRequestException("errors.invalid_tariff_for_trial");
         }
 
@@ -616,7 +589,9 @@ export class UserService {
                 });
                 // Провижининг апстрим-аккаунта — в очередь с идемпотентными ретраями
                 // (не блокируем триал; при сбое повторит, иначе досоздастся лениво при генерации).
-                this.provisioningQueue.enqueue(userId, tariffType);
+                if (tariffType === "RESIDENT_PREMIUM") {
+                    this.provisioningQueue.enqueue(userId, tariffType);
+                }
             } else {
                 // api-режим: старое поведение — синхронно создаём аккаунт, затем трафик.
                 await this.eventEmitter.emitAsync("proxy.create_account", {
@@ -663,8 +638,8 @@ export class UserService {
 
         // Получаем созданный пакет
         const userPackage = await this.packageService.getUserPackages(userId);
-        const trialPackage = userPackage.find(pkg => pkg.type === tariffType);
-        
+        const trialPackage = userPackage.find((pkg) => pkg.type === tariffType);
+
         if (!trialPackage) {
             throw new NotFoundException("errors.package_not_created");
         }

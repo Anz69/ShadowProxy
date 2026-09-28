@@ -17,3 +17,14 @@ model ProxyTestRun {
     @@index([status, createdAt])
     @@map("proxy_test_runs")
 }
+
+// Deduplicates retrying traffic batches so an ACK lost in transit cannot
+// subtract the same usage from a customer's balance twice.
+model ProxyTrafficBatchReceipt {
+    id        String   @id
+    serverHost String? @map("server_host")
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@index([createdAt])
+    @@map("proxy_traffic_batch_receipts")
+}

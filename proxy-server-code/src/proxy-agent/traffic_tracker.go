@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"io"
 	"net"
 	"net/http"
@@ -23,11 +25,17 @@ type TrafficLog struct {
 
 // TrafficBatch payload for CORE API
 type TrafficBatch struct {
+	BatchID   string       `json:"batch_id"`
 	ServerID  string       `json:"server_id"`
 	Timestamp time.Time    `json:"timestamp"`
 	Logs      []TrafficLog `json:"logs"`
 	TotalIn   int64        `json:"total_in"`
 	TotalOut  int64        `json:"total_out"`
+}
+
+type pendingTrafficBatch struct {
+	batch    TrafficBatch
+	snapshot map[string]*loginStats
 }
 
 type loginStats struct {
@@ -37,14 +45,16 @@ type loginStats struct {
 
 // TrafficTracker counts bytes per login and sends to CORE
 type TrafficTracker struct {
-	config           *Config
-	client           *resty.Client
-	stats            map[string]*loginStats
-	statsMu          sync.RWMutex
-	lastReported     map[string]*loginStats
-	lastReportedMu   sync.RWMutex
-	auth             *AuthRegistry
-	shutdown         chan struct{}
+	config         *Config
+	client         *resty.Client
+	stats          map[string]*loginStats
+	statsMu        sync.RWMutex
+	lastReported   map[string]*loginStats
+	lastReportedMu sync.RWMutex
+	sendMu         sync.Mutex
+	pending        *pendingTrafficBatch
+	auth           *AuthRegistry
+	shutdown       chan struct{}
 }
 
 // NewTrafficTracker creates a new tracker
@@ -143,79 +153,97 @@ func (t *TrafficTracker) Shutdown() {
 }
 
 func (t *TrafficTracker) sendBatch() {
-	snap := t.getSnapshot()
-	if len(snap) == 0 {
-		return
-	}
+	// Keep the exact same batch until CORE acknowledges it. A transport timeout
+	// can happen after CORE committed the debit; retrying a new batch would then
+	// bill the same bytes twice.
+	t.sendMu.Lock()
+	defer t.sendMu.Unlock()
 
-	var logs []TrafficLog
-	var totalIn, totalOut int64
-
-	t.lastReportedMu.RLock()
-	for login, s := range snap {
-		last := t.lastReported[login]
-		var inDelta, outDelta int64
-		if last != nil {
-			inDelta = s.bytesIn - last.bytesIn
-			outDelta = s.bytesOut - last.bytesOut
-		} else {
-			inDelta = s.bytesIn
-			outDelta = s.bytesOut
+	if t.pending == nil {
+		snap := t.getSnapshot()
+		if len(snap) == 0 {
+			return
 		}
-		if inDelta > 0 || outDelta > 0 {
-			port := 0
-			if cfg := t.auth.Get(login); cfg != nil {
-				port = cfg.Port
+
+		var logs []TrafficLog
+		var totalIn, totalOut int64
+		t.lastReportedMu.RLock()
+		for login, s := range snap {
+			last := t.lastReported[login]
+			var inDelta, outDelta int64
+			if last != nil {
+				inDelta = s.bytesIn - last.bytesIn
+				outDelta = s.bytesOut - last.bytesOut
+			} else {
+				inDelta = s.bytesIn
+				outDelta = s.bytesOut
 			}
-			logs = append(logs, TrafficLog{
+			if inDelta > 0 || outDelta > 0 {
+				port := 0
+				if cfg := t.auth.Get(login); cfg != nil {
+					port = cfg.Port
+				}
+				logs = append(logs, TrafficLog{
+					Timestamp: time.Now(),
+					User:      login,
+					Port:      port,
+					InBytes:   inDelta,
+					OutBytes:  outDelta,
+				})
+				totalIn += inDelta
+				totalOut += outDelta
+			}
+		}
+		t.lastReportedMu.RUnlock()
+
+		if len(logs) == 0 {
+			return
+		}
+
+		batchIDBytes := make([]byte, 16)
+		if _, err := rand.Read(batchIDBytes); err != nil {
+			logrus.Errorf("TrafficTracker: cannot create batch id: %v", err)
+			return
+		}
+		batchID := hex.EncodeToString(batchIDBytes)
+		t.pending = &pendingTrafficBatch{
+			batch: TrafficBatch{
+				BatchID:   batchID,
+				ServerID:  t.config.ServerID,
 				Timestamp: time.Now(),
-				User:      login,
-				Port:      port,
-				InBytes:   inDelta,
-				OutBytes:  outDelta,
-			})
-			totalIn += inDelta
-			totalOut += outDelta
+				Logs:      logs,
+				TotalIn:   totalIn,
+				TotalOut:  totalOut,
+			},
+			snapshot: snap,
 		}
 	}
-	t.lastReportedMu.RUnlock()
 
-	if len(logs) == 0 {
-		return
-	}
-
-	batch := TrafficBatch{
-		ServerID:  t.config.ServerID,
-		Timestamp: time.Now(),
-		Logs:      logs,
-		TotalIn:   totalIn,
-		TotalOut:  totalOut,
-	}
-
-	resp, err := t.client.R().SetBody(batch).Post("/api/proxy-node/traffic")
+	pending := t.pending
+	resp, err := t.client.R().SetBody(pending.batch).Post("/api/proxy-node/traffic")
 	if err != nil {
-		logrus.Warnf("TrafficTracker: send failed: %v", err)
+		logrus.Warnf("TrafficTracker: send failed for batch %s: %v", pending.batch.BatchID, err)
 		return
 	}
 	if resp.StatusCode() != http.StatusOK {
-		logrus.Warnf("TrafficTracker: CORE returned %d: %s", resp.StatusCode(), resp.String())
+		logrus.Warnf("TrafficTracker: CORE returned %d for batch %s: %s", resp.StatusCode(), pending.batch.BatchID, resp.String())
 		return
 	}
 
 	t.lastReportedMu.Lock()
-	for login, s := range snap {
+	for login, s := range pending.snapshot {
 		t.lastReported[login] = &loginStats{bytesIn: s.bytesIn, bytesOut: s.bytesOut}
 	}
 	t.lastReportedMu.Unlock()
-
-	logrus.Infof("TrafficTracker: sent %d logs, in=%d out=%d", len(logs), totalIn, totalOut)
+	t.pending = nil
+	logrus.Infof("TrafficTracker: acknowledged batch %s (%d logs, in=%d out=%d)", pending.batch.BatchID, len(pending.batch.Logs), pending.batch.TotalIn, pending.batch.TotalOut)
 }
 
 // countingConn wraps net.Conn to count bytes on Read (for tunnel traffic accounting)
 type countingConn struct {
-	conn     net.Conn
-	login    string
-	tracker  *TrafficTracker
+	conn      net.Conn
+	login     string
+	tracker   *TrafficTracker
 	direction string
 }
 
