@@ -928,22 +928,21 @@ export class ProxyService implements OnModuleInit {
 
     @Cron(CronExpression.EVERY_30_MINUTES)
     async parseAvailableLocations() {
-        const premium = await this.mangoProxyProvider.getAvailableLocations();
-        const isp = await this.mangoProxyProvider.getAvailableLocations();
+        const mangoLocations = await this.mangoProxyProvider.getAvailableLocations();
         const proxyEmpireLocations = await this.proxyEmpireProvider.getAvailableLocations();
 
         this.availableLocations = {
-            premium: [...new Set(premium.filter((el) => el !== "rsa"))],
+            premium: [...new Set(mangoLocations.filter((el) => el !== "rsa"))],
             premiumResidential: [...new Set(proxyEmpireLocations)],
-            resident: [...new Set(premium.filter((el) => el.length === 2))],
+            resident: [...new Set(mangoLocations.filter((el) => el.length === 2))],
             mobile: this.availableLocations.mobile,
             mobileGb: [...MOBILE_GB_ALLOWED_ISO2_LOWER],
-            isp: [...new Set(isp.filter((el) => el.length === 2))],
+            isp: [...new Set(mangoLocations.filter((el) => el.length === 2))],
             ipv6: ["de", "nl"],
             ispUsa: ["us"],
             ispEu: this.ispEuProvider.getCountries().map((c) => c.toLowerCase()),
             // RESIDENTIAL_LITE — любая страна: берём широкий резидентский список.
-            residentialLite: [...new Set(premium.filter((el) => el.length === 2))],
+            residentialLite: [...new Set(mangoLocations.filter((el) => el.length === 2))],
         };
     }
 
