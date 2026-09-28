@@ -14,6 +14,16 @@ import { regionToServer } from "../../../shared/utils/region-to-server";
 import { ModifyProxiesDto } from "../../dtos/modify-proxies.dto";
 import { resolveHost } from "../../../shared/utils/resolve-host";
 
+type MangoApiResponse = {
+    status: number;
+    data?: { code?: string | number; msg?: string; ret_data?: any };
+};
+
+function isSuccessfulMangoResponse(response: MangoApiResponse): boolean {
+    const code = response.data?.code;
+    return response.status >= 200 && response.status < 300 && (code == null || String(code) === "1");
+}
+
 @Injectable()
 export class MangoProxyProvider implements OnModuleInit {
     private readonly mangoProxyApi: AxiosInstance;
@@ -100,7 +110,7 @@ export class MangoProxyProvider implements OnModuleInit {
             if (!user.premiumUsername.length) {
                 const username = generateRandomString();
                 try {
-                await this.logger.log("SYSTEM", `📤 Создание пользователя в Mango API: ${username}`, userId);
+                await this.logger.log("SYSTEM", `📤 Создание пользователя в Mango API`, userId);
 
                 const userCreateRes = await this.mangoProxyApi.post<{ code: string; msg: string; ret_data?: any }>("/create_user", {
                     username,
@@ -109,31 +119,21 @@ export class MangoProxyProvider implements OnModuleInit {
                 await this.logger.log("SYSTEM", `📥 Ответ от Mango API /create_user`, userId, {
                     statusCode: userCreateRes.status,
                     code: userCreateRes.data?.code,
-                    message: userCreateRes.data?.msg,
                 });
 
-                    const { account, password } = await this.createProxyAccount(username);
-
-                    // Mango currently answers with HTTP 200 for successful
-                    // account creation (the migration path also accepts any
-                    // 2xx response). Requiring exactly 201 made provisioning
-                    // fail after the upstream had already created the user.
-                    if (userCreateRes.status >= 200 && userCreateRes.status < 300) {
-                        await this.logger.log("SYSTEM", `✅ Успешно создан аккаунт Mango Proxy для пользователя ${userId}`, userId, {
-                            username,
-                            account,
-                        });
-                        await this.userService.updateById(userId, {
-                            premiumUsername: `${username}:${account}:${password}`,
-                        });
-                    } else {
-                        await this.logger.error(`⚠️ Неожиданный статус при создании пользователя: ${userCreateRes.status}`, userId, {
+                    if (!isSuccessfulMangoResponse(userCreateRes)) {
+                        await this.logger.error(`⚠️ Mango отклонил создание пользователя`, userId, {
                             status: userCreateRes.status,
                             code: userCreateRes.data?.code,
-                            message: userCreateRes.data?.msg,
                         });
-                        throw new Error(userCreateRes.data.msg);
+                        throw new Error(`Mango /create_user failed (HTTP ${userCreateRes.status}, code ${userCreateRes.data?.code ?? "missing"})`);
                     }
+
+                    const { account, password } = await this.createProxyAccount(username);
+                    await this.logger.log("SYSTEM", `✅ Успешно создан аккаунт Mango Proxy для пользователя ${userId}`, userId);
+                    await this.userService.updateById(userId, {
+                        premiumUsername: `${username}:${account}:${password}`,
+                    });
                     return true;
                 } catch (e: unknown) {
                     await this.logger.error(`❌ Ошибка при создании аккаунта Mango Proxy для юзера ${userId}`, userId, {
@@ -152,10 +152,7 @@ async createProxyAccount(username: string) {
     const account = generateRandomString(12);
     const password = generateRandomString(12);
     
-    await this.logger.log("SYSTEM", `📤 Создание прокси-аккаунта в Mango API`, undefined, {
-        username,
-        account,
-    });
+    await this.logger.log("SYSTEM", `📤 Создание прокси-аккаунта в Mango API`);
 
     const response = await this.mangoProxyApi.post<{
         code: string;
@@ -170,8 +167,11 @@ async createProxyAccount(username: string) {
     await this.logger.log("SYSTEM", `📥 Ответ от Mango API /add_proxy_account`, undefined, {
         statusCode: response.status,
         code: response.data?.code,
-        message: response.data?.msg,
     });
+
+    if (!isSuccessfulMangoResponse(response)) {
+        throw new Error(`Mango /add_proxy_account failed (HTTP ${response.status}, code ${response.data?.code ?? "missing"})`);
+    }
 
     return {
         account,
@@ -444,8 +444,7 @@ async createProxyAccount(username: string) {
                 message: recreateRes.data?.msg,
             });
 
-            const createOk = recreateRes.status === 201 || recreateRes.data?.code === "1";
-            if (!createOk) {
+            if (!isSuccessfulMangoResponse(recreateRes)) {
                 await this.logger.error(`⚠️ Mango recovery: create_user неуспешен`, userId, {
                     status: recreateRes.status,
                     code: recreateRes.data?.code,
@@ -455,11 +454,14 @@ async createProxyAccount(username: string) {
             }
 
             if (account && password) {
-                await this.mangoProxyApi.post<{ code: string; msg: string }>("/add_proxy_account", {
+                const addProxyAccountRes = await this.mangoProxyApi.post<{ code: string; msg: string }>("/add_proxy_account", {
                     account,
                     password,
                     username,
                 });
+                if (!isSuccessfulMangoResponse(addProxyAccountRes)) {
+                    throw new Error(`Mango recovery /add_proxy_account failed (HTTP ${addProxyAccountRes.status}, code ${addProxyAccountRes.data?.code ?? "missing"})`);
+                }
             } else {
                 const { account: newAcc, password: newPwd } = await this.createProxyAccount(username);
                 account = newAcc;

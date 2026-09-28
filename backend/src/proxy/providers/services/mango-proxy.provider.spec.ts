@@ -49,4 +49,24 @@ describe("MangoProxyProvider account provisioning", () => {
         expect(post).toHaveBeenCalledTimes(1);
         expect(userService.updateById).not.toHaveBeenCalled();
     });
+
+    it("does not treat an HTTP 200 application error as a successful Mango user creation", async () => {
+        post.mockResolvedValueOnce({ status: 200, data: { code: "0", msg: "rejected" } });
+
+        await expect(provider.createUser({ userId: "user-1", type: "RESIDENT_PREMIUM" as any })).resolves.toBe(false);
+
+        expect(post).toHaveBeenCalledTimes(1);
+        expect(userService.updateById).not.toHaveBeenCalled();
+    });
+
+    it("does not persist credentials when Mango rejects proxy-account creation", async () => {
+        post
+            .mockResolvedValueOnce({ status: 200, data: { code: "1", msg: "user created" } })
+            .mockResolvedValueOnce({ status: 200, data: { code: "0", msg: "account rejected" } });
+
+        await expect(provider.createUser({ userId: "user-1", type: "RESIDENT_PREMIUM" as any })).resolves.toBe(false);
+
+        expect(post).toHaveBeenCalledTimes(2);
+        expect(userService.updateById).not.toHaveBeenCalled();
+    });
 });
