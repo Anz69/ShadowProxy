@@ -109,6 +109,7 @@ const DIRECT_PROVIDER_TEST_TYPES = new Set<ProxyType>([ProxyType.MOBILE, ProxyTy
 export class ProxyTestService implements OnModuleInit {
     private readonly jobs = new Map<string, ProxyTestJob>();
     private activeJobId: string | null = null;
+    private creatingJob = false;
     private readonly logger = new Logger(ProxyTestService.name);
 
     constructor(
@@ -183,67 +184,84 @@ export class ProxyTestService implements OnModuleInit {
                 type,
                 label: LABELS[type],
                 activeProxyCount: countByType.get(type) ?? 0,
-                safeQaAvailable:
-                    DIRECT_PROVIDER_TEST_TYPES.has(type) ||
-                    (type === ProxyType.RESIDENT_PREMIUM
-                        ? this.getMangoQaUpstream() !== null
-                        : (countByType.get(type) ?? 0) > 0),
+                safeQaAvailable: DIRECT_PROVIDER_TEST_TYPES.has(type) || (type === ProxyType.RESIDENT_PREMIUM ? this.getMangoQaUpstream() !== null : (countByType.get(type) ?? 0) > 0),
             })),
         };
     }
 
     async createRun(dto: CreateProxyTestDto) {
         this.cleanupJobs();
-        if (this.activeJobId) {
+        if (this.activeJobId || this.creatingJob) {
             throw new ConflictException("Проверка уже выполняется. Дождитесь завершения текущего прогона.");
         }
 
-        const servers = await this.prisma.proxyServer.findMany({
-            where: { status: "ACTIVE", token: { not: null } },
-            select: { host: true, token: true },
-        });
-        if (servers.length !== 1 || !servers[0].token) {
-            throw new BadRequestException(`Для теста нужна ровно одна ACTIVE gateway-нода с токеном (сейчас ${servers.length})`);
-        }
-
-        const normalized = {
-            target: dto.target ?? "ALL",
-            country: dto.country?.trim().toUpperCase() || null,
-            samplesPerTariff: dto.samplesPerTariff ?? 1,
-            sizeMb: dto.sizeMb ?? 1,
-            concurrency: dto.concurrency ?? 2,
-        };
-        const targets = await this.buildTargets(normalized.target, normalized.country, normalized.samplesPerTariff);
-        const results = targets.map((target) => this.toInitialResult(target));
-        const id = randomUUID();
-        const job: ProxyTestJob = {
-            id,
-            status: "queued",
-            createdAt: new Date().toISOString(),
-            startedAt: null,
-            finishedAt: null,
-            target: normalized.target,
-            country: normalized.country,
-            sizeMb: normalized.sizeMb,
-            samplesPerTariff: normalized.samplesPerTariff,
-            concurrency: normalized.concurrency,
-            gatewayHost: this.proxyServerService.getPublicHost(servers[0].host),
-            results,
-            error: "",
-        };
-        this.jobs.set(id, job);
-        this.activeJobId = id;
-        await this.persistJob(job);
-        void this.execute(job, servers[0].host, servers[0].token, targets).catch((error: unknown) => {
-            job.status = "failed";
-            job.error = this.safeError(error);
-            job.finishedAt = new Date().toISOString();
-            this.activeJobId = null;
-            void this.persistJob(job).catch((persistError: unknown) => {
-                this.logger.error(`Не удалось сохранить результат проверки ${job.id}: ${this.safeError(persistError)}`);
+        // Reserve synchronously before the first database await. Otherwise two
+        // requests can both pass the active-job check and start duplicate runs.
+        this.creatingJob = true;
+        let reservedJob: ProxyTestJob | null = null;
+        try {
+            const servers = await this.prisma.proxyServer.findMany({
+                where: { status: "ACTIVE", token: { not: null } },
+                select: { host: true, token: true },
             });
-        });
-        return this.publicJob(job);
+            if (servers.length !== 1 || !servers[0].token) {
+                throw new BadRequestException(`Для теста нужна ровно одна ACTIVE gateway-нода с токеном (сейчас ${servers.length})`);
+            }
+
+            const normalized = {
+                target: dto.target ?? "ALL",
+                country: dto.country?.trim().toUpperCase() || null,
+                samplesPerTariff: dto.samplesPerTariff ?? 1,
+                sizeMb: dto.sizeMb ?? 1,
+                concurrency: dto.concurrency ?? 2,
+            };
+            const targets = await this.buildTargets(normalized.target, normalized.country, normalized.samplesPerTariff);
+            const results = targets.map((target) => this.toInitialResult(target));
+            const id = randomUUID();
+            const job: ProxyTestJob = {
+                id,
+                status: "queued",
+                createdAt: new Date().toISOString(),
+                startedAt: null,
+                finishedAt: null,
+                target: normalized.target,
+                country: normalized.country,
+                sizeMb: normalized.sizeMb,
+                samplesPerTariff: normalized.samplesPerTariff,
+                concurrency: normalized.concurrency,
+                gatewayHost: this.proxyServerService.getPublicHost(servers[0].host),
+                results,
+                error: "",
+            };
+            reservedJob = job;
+            this.jobs.set(id, job);
+            this.activeJobId = id;
+            await this.persistJob(job);
+            void this.execute(job, servers[0].host, servers[0].token, targets).catch((error: unknown) => {
+                job.status = "failed";
+                job.error = this.safeError(error);
+                job.finishedAt = new Date().toISOString();
+                this.activeJobId = null;
+                void this.persistJob(job).catch((persistError: unknown) => {
+                    this.logger.error(`Не удалось сохранить результат проверки ${job.id}: ${this.safeError(persistError)}`);
+                });
+            });
+            return this.publicJob(job);
+        } catch (error: unknown) {
+            if (reservedJob) {
+                const failedJob = reservedJob;
+                failedJob.status = "failed";
+                failedJob.error = this.safeError(error);
+                failedJob.finishedAt = new Date().toISOString();
+                if (this.activeJobId === failedJob.id) this.activeJobId = null;
+                await this.persistJob(failedJob).catch((persistError: unknown) => {
+                    this.logger.error(`Не удалось сохранить сбой запуска проверки ${failedJob.id}: ${this.safeError(persistError)}`);
+                });
+            }
+            throw error;
+        } finally {
+            this.creatingJob = false;
+        }
     }
 
     async getCurrentRun() {

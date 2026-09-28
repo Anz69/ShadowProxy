@@ -1,4 +1,5 @@
 import axios from "axios";
+import { ConflictException } from "@nestjs/common";
 import { ProxyType } from "@prisma/client";
 import { ProxyTestService } from "./proxy-test.service";
 
@@ -64,5 +65,45 @@ describe("ProxyTestService gateway accounting checks", () => {
                 password: "qa-password",
             },
         });
+    });
+
+    it("rejects a concurrent run while the first request is still loading gateway state", async () => {
+        let resolveGateways!: (value: Array<{ host: string; token: string }>) => void;
+        const gatewayLookup = new Promise<Array<{ host: string; token: string }>>((resolve) => {
+            resolveGateways = resolve;
+        });
+        const prisma = { proxyServer: { findMany: jest.fn(() => gatewayLookup) } };
+        const proxyServerService = { getPublicHost: jest.fn((host: string) => host) };
+        const service = new ProxyTestService(prisma as any, proxyServerService as any, {} as any, {} as any, {} as any, {} as any, {} as any);
+        jest.spyOn(service as any, "buildTargets").mockResolvedValue([]);
+        jest.spyOn(service as any, "persistJob").mockResolvedValue(undefined);
+        jest.spyOn(service as any, "execute").mockResolvedValue(undefined);
+
+        const firstRun = service.createRun({} as any);
+        await expect(service.createRun({} as any)).rejects.toBeInstanceOf(ConflictException);
+        expect(prisma.proxyServer.findMany).toHaveBeenCalledTimes(1);
+
+        resolveGateways([{ host: "gateway.example.test", token: "gateway-token" }]);
+        await expect(firstRun).resolves.toMatchObject({ status: "queued" });
+    });
+
+    it("releases the run reservation after its initial persistence fails", async () => {
+        const prisma = {
+            proxyServer: {
+                findMany: jest.fn().mockResolvedValue([{ host: "gateway.example.test", token: "gateway-token" }]),
+            },
+        };
+        const proxyServerService = { getPublicHost: jest.fn((host: string) => host) };
+        const service = new ProxyTestService(prisma as any, proxyServerService as any, {} as any, {} as any, {} as any, {} as any, {} as any);
+        jest.spyOn(service as any, "buildTargets").mockResolvedValue([]);
+        const persistJob = jest
+            .spyOn(service as any, "persistJob")
+            .mockRejectedValueOnce(new Error("database unavailable"))
+            .mockResolvedValue(undefined);
+        jest.spyOn(service as any, "execute").mockResolvedValue(undefined);
+
+        await expect(service.createRun({} as any)).rejects.toThrow("database unavailable");
+        await expect(service.createRun({} as any)).resolves.toMatchObject({ status: "queued" });
+        expect(persistJob).toHaveBeenCalledTimes(3);
     });
 });
