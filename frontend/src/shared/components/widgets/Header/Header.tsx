@@ -43,6 +43,7 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 	const pathname = usePathname()
 	const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const headerRef = useRef<HTMLElement>(null)
+	const catalogTriggerRef = useRef<HTMLButtonElement>(null)
 	// После выбора пункта каталога ненадолго подавляем hover-открытие: header
 	// персистентный (SPA-навигация без перезагрузки), указатель часто остаётся
 	// над каталогом — без этого дропдаун тут же открывался бы снова.
@@ -180,16 +181,41 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 				</Link>
 
 				{/* Навигация (десктоп) */}
-				<nav className="relative hidden flex-row items-center gap-1 lg:flex">
-					<span
+				<nav
+					className="relative hidden flex-row items-center gap-1 lg:flex"
+					onKeyDown={event => {
+						if (event.key !== "Escape" || !catalogActive) return
+						event.preventDefault()
+						setIsClicked(false)
+						setIsHover(false)
+						catalogTriggerRef.current?.focus()
+					}}
+				>
+					<button
+						type="button"
+						ref={catalogTriggerRef}
+						aria-expanded={catalogActive}
+						aria-controls="proxy-price-catalog"
 						onMouseEnter={openCatalogHover}
 						onMouseLeave={closeCatalogSoon}
-						onClick={() => setIsClicked(prev => !prev)}
-						className={`relative flex cursor-pointer flex-row items-center gap-2 rounded-xl px-5 py-2.5 text-[15px] font-medium transition-all duration-200 ${catalogActive ? "bg-white/[0.07] text-white" : "text-white/75 hover:bg-white/[0.07] hover:text-white"}`}
+						onClick={() => {
+							const wasOpen = catalogActive
+							setIsClicked(!wasOpen)
+							setIsHover(false)
+						}}
+						className={`relative flex cursor-pointer flex-row items-center gap-2 rounded-xl px-5 py-2.5 text-[15px] font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#79a8ff] ${catalogActive ? "bg-white/[0.07] text-white" : "text-white/75 hover:bg-white/[0.07] hover:text-white"}`}
 					>
 						{T("header.nav.catalog")}
 						<ChevronDown className={`h-4 w-4 transition-transform duration-200 ${catalogActive ? "rotate-180" : ""}`} />
-						{catalogActive && !isLoading && prices && (
+					</button>
+					{catalogActive && !isLoading && prices && (
+						<div
+							id="proxy-price-catalog"
+							className="absolute left-1/2 top-full z-50 -translate-x-1/2 pt-2"
+							style={{ width: "min(720px, calc(100vw - 24px))" }}
+							onMouseEnter={openCatalogHover}
+							onMouseLeave={closeCatalogSoon}
+						>
 							<PricesPopUp
 								prices={prices}
 								T={T}
@@ -198,8 +224,8 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 								onMouseEnter={openCatalogHover}
 								onMouseLeave={closeCatalogSoon}
 							/>
-						)}
-					</span>
+						</div>
+					)}
 					<Link href={getLocalizedLink("/referral")} className={navCls("/referral")}>
 						{T("header.nav.referral")}
 					</Link>
