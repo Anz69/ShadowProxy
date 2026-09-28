@@ -526,13 +526,7 @@ export class ProxyServerService {
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                this.logger.log(`[ProxyServerService] ADD-PORT ${serverHost}:${port} (попытка ${attempt}/${maxRetries})`, {
-                    port,
-                    login,
-                    proxyHost,
-                    proxyPort,
-                    proxyUsername,
-                });
+                this.logger.log(`[ProxyServerService] ADD-PORT ${serverHost}:${port} (попытка ${attempt}/${maxRetries})`);
 
                 const response = await axios.post(
                     `http://${serverHost}:808/add-port`,

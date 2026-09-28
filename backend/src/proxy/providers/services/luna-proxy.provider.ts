@@ -52,7 +52,7 @@ export class LunaProxyProvider {
 
         console.log(`[LUNA PROVIDER] createProxy called with:`);
         console.log(`[LUNA PROVIDER] country: "${country}"`);
-        console.log(`[LUNA PROVIDER] user.residentData: "${user.residentData}"`);
+        console.log(`[LUNA PROVIDER] resident credentials available: ${Boolean(user.residentData)}`);
         console.log(`[LUNA PROVIDER] region: "${region}"`);
         console.log(`[LUNA PROVIDER] regionToServer(country): "${regionToServer(country)}"`);
         console.log(`[LUNA PROVIDER] rotationTime: "${rotationTime}"`);
@@ -69,8 +69,7 @@ export class LunaProxyProvider {
             port: 12233,
         };
 
-        console.log(`[LUNA PROVIDER] Generated proxy:`, result);
-        console.log(`[LUNA PROVIDER] Generated username: "${result.username}"`);
+        console.log(`[LUNA PROVIDER] Generated proxy endpoint ${result.host}:${result.port}`);
 
         return result;
     }

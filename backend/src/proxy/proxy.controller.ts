@@ -261,7 +261,7 @@ export class ProxyController {
         });
 
         const ports = activePorts.map(proxy => {
-            console.log(`[SERVER PORTS API] Прокси ${proxy.userPort}: userId='${proxy.userId}', login='${proxy.userLogin}', proxy.host='${proxy.host}', proxy.username='${proxy.username}'`);
+            console.log(`[SERVER PORTS API] Прокси ${proxy.userPort}: proxyId='${proxy.id}', userId='${proxy.userId}', upstream=${proxy.host}:${proxy.port}`);
             return {
                 port: proxy.userPort,
                 user_id: proxy.userId,

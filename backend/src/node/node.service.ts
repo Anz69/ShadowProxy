@@ -396,8 +396,6 @@ export class NodeService implements OnModuleInit {
             if (!portsByServer[serverHost]) {
                 portsByServer[serverHost] = [];
             }
-            console.log(`[PORT SYNC DEBUG] Прокси ${proxy.id}: порт ${proxy.userPort}`);
-
             // Если прокси suspended - блокируем трафик (не добавляем в синхронизацию)
             if (proxy.status === 'SUSPENDED') {
                 console.log(`[PORT SYNC] Прокси ${proxy.id}: статус suspended, блокируем трафик`);
@@ -415,7 +413,6 @@ export class NodeService implements OnModuleInit {
                 proxy_password: proxy.password,
             });
 
-            console.log(`[PORT SYNC DEBUG] Отправляемые данные для порта ${proxy.port}:`, portsByServer[serverHost][portsByServer[serverHost].length - 1]);
         }
 
         // Отправляем синхронизацию на каждый сервер (без параллельных запросов)
