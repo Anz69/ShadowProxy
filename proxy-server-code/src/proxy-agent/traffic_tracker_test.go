@@ -11,6 +11,7 @@ import (
 func TestSendBatchRetriesSameIDAndKeepsNewBytesForNextBatch(t *testing.T) {
 	var mu sync.Mutex
 	var batchIDs []string
+	var receivedBatches []TrafficBatch
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -20,6 +21,7 @@ func TestSendBatchRetriesSameIDAndKeepsNewBytesForNextBatch(t *testing.T) {
 		}
 		mu.Lock()
 		batchIDs = append(batchIDs, batch.BatchID)
+		receivedBatches = append(receivedBatches, batch)
 		requests++
 		request := requests
 		mu.Unlock()
@@ -50,6 +52,16 @@ func TestSendBatchRetriesSameIDAndKeepsNewBytesForNextBatch(t *testing.T) {
 	}
 	if batchIDs[2] == batchIDs[1] {
 		t.Fatalf("new bytes reused acknowledged batch ID %q", batchIDs[2])
+	}
+
+	if len(receivedBatches[0].Logs) != 1 || len(receivedBatches[1].Logs) != 1 {
+		t.Fatalf("retry payloads should each contain one login record: first=%+v retry=%+v", receivedBatches[0].Logs, receivedBatches[1].Logs)
+	}
+	if receivedBatches[0].Logs[0].InBytes != 1000 || receivedBatches[1].Logs[0].InBytes != 1000 {
+		t.Fatalf("retry changed the original byte count: first=%d retry=%d", receivedBatches[0].Logs[0].InBytes, receivedBatches[1].Logs[0].InBytes)
+	}
+	if len(receivedBatches[2].Logs) != 1 || receivedBatches[2].Logs[0].InBytes != 500 {
+		t.Fatalf("bytes observed during retry were not isolated in the next batch: %+v", receivedBatches[2].Logs)
 	}
 
 	inBytes, _, reportedIn, _, ok := tracker.Stats("qa-login")
