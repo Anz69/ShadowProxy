@@ -65,6 +65,17 @@ FLASH_RESIDENTIAL_LITE_USERNAME=<secret>
 FLASH_RESIDENTIAL_LITE_PASSWORD=<secret>
 ```
 
+Для Mango QA-прогона задаются отдельные тестовые upstream-креды (не пользовательские):
+
+```dotenv
+MANGO_QA_UPSTREAM_HOST=<qa-upstream-host>
+MANGO_QA_UPSTREAM_PORT=<qa-upstream-port>
+MANGO_QA_UPSTREAM_USERNAME=<qa-upstream-username>
+MANGO_QA_UPSTREAM_PASSWORD=<qa-upstream-password>
+```
+
+Если они не настроены, Mango отображается в тестере как недоступный для безопасной проверки; действующий пользовательский прокси не подставляется.
+
 После привязки DNS добавить без протокола и порта:
 
 ```dotenv

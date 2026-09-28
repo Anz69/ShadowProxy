@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ProxyServerService } from "../proxy-server/proxy-server.service";
@@ -117,6 +118,7 @@ export class ProxyTestService implements OnModuleInit {
         private readonly ispUsaProvider: IspUsaProvider,
         private readonly residentialLiteProvider: ResidentialLiteProvider,
         private readonly proxyEmpireProvider: ProxyEmpireProvider,
+        private readonly configService: ConfigService,
     ) {}
 
     async onModuleInit() {
@@ -181,7 +183,11 @@ export class ProxyTestService implements OnModuleInit {
                 type,
                 label: LABELS[type],
                 activeProxyCount: countByType.get(type) ?? 0,
-                safeQaAvailable: DIRECT_PROVIDER_TEST_TYPES.has(type) || (countByType.get(type) ?? 0) > 0,
+                safeQaAvailable:
+                    DIRECT_PROVIDER_TEST_TYPES.has(type) ||
+                    (type === ProxyType.RESIDENT_PREMIUM
+                        ? this.getMangoQaUpstream() !== null
+                        : (countByType.get(type) ?? 0) > 0),
             })),
         };
     }
@@ -323,6 +329,18 @@ export class ProxyTestService implements OnModuleInit {
 
     private buildProviderTarget(type: ProxyType, requestedCountry: string | null): Target | null {
         try {
+            if (type === ProxyType.RESIDENT_PREMIUM) {
+                const upstream = this.getMangoQaUpstream();
+                if (upstream) return this.providerTarget(type, requestedCountry || "US", upstream);
+                return {
+                    id: `${type}-qa-unavailable`,
+                    type,
+                    label: LABELS[type],
+                    country: requestedCountry || "—",
+                    source: "provider",
+                    unavailableReason: "Для безопасного QA задайте отдельные MANGO_QA_UPSTREAM_* креды; пользовательские Mango-прокси не используются.",
+                };
+            }
             if (type === ProxyType.MOBILE || type === ProxyType.PREMIUM_RESIDENTIAL) {
                 const country = requestedCountry || "US";
                 return {
@@ -358,6 +376,15 @@ export class ProxyTestService implements OnModuleInit {
             };
         }
         return null;
+    }
+
+    private getMangoQaUpstream(): Upstream | null {
+        const host = this.configService.get<string>("MANGO_QA_UPSTREAM_HOST")?.trim();
+        const port = Number(this.configService.get<string>("MANGO_QA_UPSTREAM_PORT"));
+        const username = this.configService.get<string>("MANGO_QA_UPSTREAM_USERNAME")?.trim();
+        const password = this.configService.get<string>("MANGO_QA_UPSTREAM_PASSWORD");
+        if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !username || !password) return null;
+        return { host, port, username, password };
     }
 
     private providerTarget(type: ProxyType, country: string, proxy: Upstream): Target {
