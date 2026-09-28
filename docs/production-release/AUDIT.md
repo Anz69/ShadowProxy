@@ -15,17 +15,20 @@
 ## Автоматическая проверка
 
 - Prisma schema validate/generate: проходит.
-- Backend production build: проходит; Jest — 17 suites / 23 tests.
+- Backend production build: проходит; Jest — 23 suites / 50 tests.
 - Release scripts: 4/4 теста проходят; Mango/gateway/smoke scripts также проходят `node --check`.
 - Frontend production build и type-check: проходят; lint — 0 ошибок, 71 существующее предупреждение.
+- Gateway-agent Go tests и `go test -race ./...`: проходят. Добавлен тест, который проверяет учёт реально прокинутых байтов в обе стороны туннеля.
+- Начисление трафика теперь выполняется атомарным SQL-инкрементом: параллельные пополнения не перезаписывают друг друга устаревшим снимком баланса.
 - ISP Netherlands, ISP USA и Residential Lite покрыты unit-тестами формата upstream, гео и ограничения ротации.
-- Ранее на dev выполнен живой gateway smoke через единственную ACTIVE-ноду: ISP NL, ISP USA, Residential Lite и Mango — 4/4 успешных загрузки по 100 KB. Чтобы повторный тест не затрагивал случайный пользовательский Mango upstream, текущий smoke по умолчанию проверяет только три новых тарифа; Mango теперь включается отдельным `--include-mango` и требует выделенного тестового прокси.
-- Go-тесты агента локально не запускались: Go runtime не установлен. Работоспособность развёрнутого агента подтверждена systemd health, авторизованным control-plane health и живым трафиком четырёх провайдеров.
+- На dev повторно выполнен живой gateway smoke через единственную ACTIVE-ноду: ISP NL, ISP USA и Residential Lite — 3/3 успешные загрузки по 100 KB. Последний одиночный замер дал 3.78, 0.70 и 0.36 Mbps соответственно; это smoke-снимок, не нагрузочный SLA-тест.
+- Mango в повторный smoke не включался, чтобы не использовать случайный пользовательский upstream. Включать `--include-mango` можно только с выделенным тестовым прокси; админский QA также показывает Mango недоступным без отдельных `MANGO_QA_UPSTREAM_*` credentials.
 
 ## Состояние dev после Sprint 3
 
 - Перед изменениями создан приватный PostgreSQL dump с правами `0600`.
-- Backend, PostgreSQL и Redis healthy; frontend запущен; публичный сайт и `/api/health/check` отвечают HTTP 200.
+- На последней проверке dev backend, PostgreSQL и Redis healthy; frontend запущен; публичный сайт и `/api/health/check` отвечают HTTP 200. QA-пользователей после smoke не осталось.
+- Версия dev на момент проверки: `40a6e7c`.
 - Prisma: 80 миграций, схема актуальна.
 - В БД оставлена одна ACTIVE gateway-нода `94.156.112.52`; остальные переведены в `OFFLINE` без удаления записей.
 - Временные QA-логины после smoke удалены; критических ошибок в свежих backend-логах нет.
