@@ -6,15 +6,14 @@ import { LoggerService } from "../../../logger/logger.service";
 import { resolveHost } from "../../../shared/utils/resolve-host";
 
 interface ProxyEmpireProxyListResponse {
-    data: {
-        proxy_type: string;
-        host: string;
-        port: number;
-        length: number;
-        format: number;
-        filters: Record<string, unknown>;
-        proxies: string[];
-        proxy_list: string;
+    message?: string;
+    count?: number;
+    proxies?: string[];
+    // Older API responses nested the list in `data`; the current v2 endpoint
+    // returns `proxies` at the top level.
+    data?: {
+        proxies?: string[];
+        proxy_list?: string;
     };
 }
 
@@ -116,23 +115,27 @@ export class ProxyEmpireProvider implements OnModuleInit {
             ...(ipRotationType && proxyType !== "datacenter" ? { ip_rotation_type: ipRotationType } : {}),
             ...(ipRotationType === "custom" && sessionLifetime ? { session_lifetime: sessionLifetime } : {}),
             length: safeLength,
-            format: 2, // username:password:host:port
+            format: 2, // host:port:username:password
         }, apiTokenOverride ? { headers: { Authorization: `Bearer ${apiTokenOverride}` } } : undefined);
 
-        const proxies = res.data?.data?.proxies ?? [];
+        const proxies = res.data?.proxies ?? res.data?.data?.proxies ?? [];
         const result: ProxyEmpireCredentials[] = [];
 
         for (const raw of proxies) {
-            // format 2: username:password:host:port. Парсим с конца, чтобы корректно
-            // обрабатывать пароли, содержащие двоеточие.
+            // ProxyEmpire format=2 currently returns host:port:username:password.
+            // Keep compatibility with older username:password:host:port responses.
             const parts = raw.split(":");
             if (parts.length < 4) continue;
-            const portStr = parts[parts.length - 1];
-            // const apiHost = parts[parts.length - 2]; // отбрасываем — используем resolvedHost
-            const username = parts[0];
-            const password = parts.slice(1, parts.length - 2).join(":");
-            const port = parseInt(portStr, 10);
-            if (!username || !password || !port) continue;
+
+            const currentFormatPort = Number(parts[1]);
+            const legacyFormatPort = Number(parts[parts.length - 1]);
+            const currentFormat = Number.isInteger(currentFormatPort) && currentFormatPort > 0 && currentFormatPort <= 65535;
+            const legacyFormat = Number.isInteger(legacyFormatPort) && legacyFormatPort > 0 && legacyFormatPort <= 65535;
+            const port = currentFormat ? currentFormatPort : legacyFormatPort;
+            const username = currentFormat ? parts[2] : parts[0];
+            const password = currentFormat ? parts.slice(3).join(":") : parts.slice(1, parts.length - 2).join(":");
+            if ((!currentFormat && !legacyFormat) || !username || !password) continue;
+
             result.push({
                 host: this.resolvedHost,
                 port,
