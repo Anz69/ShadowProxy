@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -67,5 +71,37 @@ func TestSendBatchRetriesSameIDAndKeepsNewBytesForNextBatch(t *testing.T) {
 	inBytes, _, reportedIn, _, ok := tracker.Stats("qa-login")
 	if !ok || inBytes != 1500 || reportedIn != 1500 {
 		t.Fatalf("unexpected counters: live=%d reported=%d exists=%t", inBytes, reportedIn, ok)
+	}
+}
+
+func TestCountingWrappersAccountBytesForwardedInBothDirections(t *testing.T) {
+	tracker := NewTrafficTracker(&Config{CoreURL: "http://127.0.0.1"}, NewAuthRegistry())
+	payload := "payload forwarded through the tunnel"
+	clientSide, upstreamSide := net.Pipe()
+	defer clientSide.Close()
+	defer upstreamSide.Close()
+
+	go func() {
+		_, _ = upstreamSide.Write([]byte(payload))
+		_ = upstreamSide.Close()
+	}()
+
+	var received bytes.Buffer
+	outbound := &countingConn{conn: clientSide, login: "qa-login", tracker: tracker, direction: "out"}
+	if _, err := io.Copy(&received, outbound); err != nil {
+		t.Fatalf("copy outbound tunnel bytes: %v", err)
+	}
+	if received.String() != payload {
+		t.Fatalf("received %q, want %q", received.String(), payload)
+	}
+
+	inbound := &countingReader{r: strings.NewReader(payload), login: "qa-login", tracker: tracker, direction: "in"}
+	if _, err := io.Copy(io.Discard, inbound); err != nil {
+		t.Fatalf("copy inbound tunnel bytes: %v", err)
+	}
+
+	inBytes, outBytes, _, _, ok := tracker.Stats("qa-login")
+	if !ok || inBytes != int64(len(payload)) || outBytes != int64(len(payload)) {
+		t.Fatalf("unexpected live counters: in=%d out=%d exists=%t", inBytes, outBytes, ok)
 	}
 }

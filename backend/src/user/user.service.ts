@@ -357,29 +357,31 @@ export class UserService {
     async distributeTraffic({ tariff, traffic, userId }: { tariff: PackageType; traffic: string; userId: string }) {
         const user = await this.findById(userId);
         if (user) {
-            // Создаем пакет, если у пользователя еще нет пакетов этого типа
+            // Создаем пакет, если у пользователя еще нет пакетов этого типа.
             await this.packageService.createPackageIfNotExists(tariff, traffic, userId);
 
-            // Начисляем ТОЛЬКО поле начисляемого тарифа — не переписываем остальные балансы
-            // снапшотом (иначе параллельное списание трафика по другому типу через гейтвей
-            // могло быть затёрто устаревшим значением).
-            const fieldByTariff: Record<string, string> = {
-                RESIDENT_PREMIUM: "premiumTrafficLeft",
-                IPV6_GB: "ipv6GbTrafficLeft",
-                MOBILE_GB: "mobileGbTrafficLeft",
-                PREMIUM_RESIDENTIAL: "premiumResidentialTrafficLeft",
-                MOBILE: "mobileTrafficLeft",
-                ISP_USA: "ispUsaTrafficLeft",
-                ISP_EU: "ispEuTrafficLeft",
-                RESIDENTIAL_LITE: "residentialLiteTrafficLeft",
+            // Начисление должно быть атомарным: read-modify-write через ранее
+            // загруженный объект user мог затереть параллельное списание gateway
+            // или второе пополнение того же тарифа.
+            const columnByTariff: Record<string, string> = {
+                RESIDENT_PREMIUM: "premium_trafic_left",
+                IPV6_GB: "ipv6_gb_traffic_left",
+                MOBILE_GB: "mobile_gb_traffic_left",
+                PREMIUM_RESIDENTIAL: "premium_residential_traffic_left",
+                MOBILE: "mobile_traffic_left",
+                ISP_USA: "isp_usa_traffic_left",
+                ISP_EU: "isp_eu_traffic_left",
+                RESIDENTIAL_LITE: "residential_lite_traffic_left",
             };
-            const field = fieldByTariff[tariff as string];
-            if (field) {
-                const current = BigInt((user as any)[field] || "0");
-                await this.prisma.user.update({
-                    where: { id: userId },
-                    data: { [field]: String(current + BigInt(traffic)) } as any,
-                });
+            const column = columnByTariff[tariff];
+            if (column) {
+                await this.prisma.$executeRawUnsafe(
+                    `UPDATE "users"
+                     SET "${column}" = (CAST("${column}" AS NUMERIC) + $1::numeric)::text
+                     WHERE "id" = $2`,
+                    traffic,
+                    userId,
+                );
             }
         }
     }
