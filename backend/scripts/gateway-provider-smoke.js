@@ -13,6 +13,8 @@ const axios = require("axios");
 const { PrismaClient } = require("@prisma/client");
 require("dotenv").config({ path: path.resolve(__dirname, "..", ".env"), override: false });
 
+const includeMango = process.argv.includes("--include-mango");
+
 function databaseUrl() {
   const explicit = process.env.DATABASE_URL || process.env.POSTGRES_URI;
   if (explicit && !explicit.includes("${")) return explicit.trim();
@@ -83,24 +85,29 @@ async function main() {
   const active = await prisma.proxyServer.findMany({ where: { status: "ACTIVE", token: { not: null } } });
   if (active.length !== 1) throw new Error(`Ожидался ровно один ACTIVE gateway, найдено: ${active.length}`);
   const server = active[0];
-  const mangoSample = await prisma.proxy.findFirst({
-    where: { type: "RESIDENT_PREMIUM", status: "ACTIVE" },
-    orderBy: { updatedAt: "desc" },
-    select: { host: true, port: true, username: true, password: true },
-  });
-  if (!mangoSample?.host || !mangoSample.port || !mangoSample.username || !mangoSample.password) {
-    throw new Error("Не найден ACTIVE Mango-прокси для gateway smoke");
-  }
   const smokeTargets = [
     ...targets,
-    {
+  ];
+  if (includeMango) {
+    const mangoSample = await prisma.proxy.findFirst({
+      where: { type: "RESIDENT_PREMIUM", status: "ACTIVE" },
+      orderBy: { updatedAt: "desc" },
+      select: { host: true, port: true, username: true, password: true },
+    });
+    if (!mangoSample?.host || !mangoSample.port || !mangoSample.username || !mangoSample.password) {
+      throw new Error("Не найден ACTIVE Mango-прокси для gateway smoke");
+    }
+    smokeTargets.push({
       type: "MANGO",
       host: mangoSample.host,
       port: mangoSample.port,
       username: mangoSample.username,
       password: mangoSample.password,
-    },
-  ];
+    });
+    console.warn("[gateway-smoke] Mango включён: будет использован ACTIVE Mango-прокси из пользовательской БД и потрачено около 100 KB upstream-трафика.");
+  } else {
+    console.log("[gateway-smoke] Mango пропущен; для отдельной проверки добавьте --include-mango (использует существующий ACTIVE Mango-прокси).");
+  }
   const results = [];
 
   for (const target of smokeTargets) {

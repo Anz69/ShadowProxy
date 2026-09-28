@@ -19,7 +19,7 @@
 - Release scripts: 4/4 теста проходят; Mango/gateway/smoke scripts также проходят `node --check`.
 - Frontend production build и type-check: проходят; lint — 0 ошибок, 71 существующее предупреждение.
 - ISP Netherlands, ISP USA и Residential Lite покрыты unit-тестами формата upstream, гео и ограничения ротации.
-- На dev выполнен живой gateway smoke через единственную ACTIVE-ноду: ISP NL, ISP USA, Residential Lite и Mango — 4/4 успешных загрузки по 100 KB.
+- Ранее на dev выполнен живой gateway smoke через единственную ACTIVE-ноду: ISP NL, ISP USA, Residential Lite и Mango — 4/4 успешных загрузки по 100 KB. Чтобы повторный тест не затрагивал случайный пользовательский Mango upstream, текущий smoke по умолчанию проверяет только три новых тарифа; Mango теперь включается отдельным `--include-mango` и требует выделенного тестового прокси.
 - Go-тесты агента локально не запускались: Go runtime не установлен. Работоспособность развёрнутого агента подтверждена systemd health, авторизованным control-plane health и живым трафиком четырёх провайдеров.
 
 ## Состояние dev после Sprint 3
