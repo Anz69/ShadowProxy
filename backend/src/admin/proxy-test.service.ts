@@ -108,6 +108,7 @@ const DIRECT_PROVIDER_TEST_TYPES = new Set<ProxyType>([ProxyType.MOBILE, ProxyTy
 @Injectable()
 export class ProxyTestService implements OnModuleInit {
     private readonly jobs = new Map<string, ProxyTestJob>();
+    private readonly persistenceQueues = new Map<string, Promise<void>>();
     private activeJobId: string | null = null;
     private creatingJob = false;
     private readonly logger = new Logger(ProxyTestService.name);
@@ -719,6 +720,20 @@ export class ProxyTestService implements OnModuleInit {
     }
 
     private async persistJob(job: ProxyTestJob) {
+        const previous = this.persistenceQueues.get(job.id) ?? Promise.resolve();
+        const pending = previous.catch(() => undefined).then(() => this.writeJobSnapshot(job));
+        this.persistenceQueues.set(job.id, pending);
+
+        try {
+            await pending;
+        } finally {
+            if (this.persistenceQueues.get(job.id) === pending) {
+                this.persistenceQueues.delete(job.id);
+            }
+        }
+    }
+
+    private async writeJobSnapshot(job: ProxyTestJob) {
         const data = {
             status: job.status,
             createdAt: new Date(job.createdAt),

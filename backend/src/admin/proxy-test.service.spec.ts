@@ -106,4 +106,43 @@ describe("ProxyTestService gateway accounting checks", () => {
         await expect(service.createRun({} as any)).resolves.toMatchObject({ status: "queued" });
         expect(persistJob).toHaveBeenCalledTimes(3);
     });
+
+    it("serializes progress snapshots so a stale write cannot overwrite newer run state", async () => {
+        let finishFirstWrite!: () => void;
+        const firstWrite = new Promise<void>((resolve) => {
+            finishFirstWrite = resolve;
+        });
+        const upsert = jest.fn().mockReturnValueOnce(firstWrite).mockResolvedValue(undefined);
+        const service = new ProxyTestService({ proxyTestRun: { upsert } } as any, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any);
+        const job = {
+            id: "test-run",
+            status: "queued",
+            createdAt: new Date().toISOString(),
+            startedAt: null,
+            finishedAt: null,
+            target: "ALL",
+            country: null,
+            sizeMb: 1,
+            samplesPerTariff: 1,
+            concurrency: 2,
+            gatewayHost: "gateway.example.test",
+            results: [],
+            error: "",
+        };
+
+        const queuedWrite = (service as any).persistJob(job);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(upsert).toHaveBeenCalledTimes(1);
+        job.status = "running";
+        const runningWrite = (service as any).persistJob(job);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(upsert).toHaveBeenCalledTimes(1);
+
+        finishFirstWrite();
+        await Promise.all([queuedWrite, runningWrite]);
+        expect(upsert).toHaveBeenCalledTimes(2);
+        expect(upsert.mock.calls.map(([call]) => call.update.status)).toEqual(["queued", "running"]);
+    });
 });
