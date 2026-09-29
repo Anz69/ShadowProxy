@@ -14,6 +14,7 @@ import type { User } from "@/features/user/types/user.types"
 
 import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
 import { getLocaleFromPath } from "@/shared/utils/getLocaleFromPath"
+import { formatPrice } from "@/shared/utils/format-price"
 import { t } from "@/shared/utils/i18n"
 
 type TariffMeta = {
@@ -242,9 +243,9 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 											? prices?.minimum_prices?.[key]
 											: undefined
 										return minPrice && minPrice > 0 ? (
-											<span className="trial-tariff__price">
-												{T("package.from")} {minPrice}${" "}
-												{T("package.perGb")}
+												<span className="trial-tariff__price">
+													{T("package.from")} {formatPrice(minPrice)}${" "}
+													{T("package.perGb")}
 											</span>
 										) : null
 									})()}

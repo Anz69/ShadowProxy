@@ -96,6 +96,14 @@ const Replenish: FC<ReplenishProps> = ({
 	const discountPct = activeDiscount?.pct ?? 0
 	const discountedPrice =
 		discountPct > 0 ? (price || 0) * (1 - discountPct / 100) : price || 0
+	const startingPrice = (
+		key: keyof NonNullable<Prices["minimum_prices"]>,
+		fallback: number
+	) => {
+		const minimum = prices.minimum_prices?.[key]
+		const amount = typeof minimum === "number" && minimum > 0 ? minimum : fallback
+		return `${T("package.from")} ${formatPrice(amount)}$ / ${T("payment.units.gb")}`
+	}
 
 	// Устанавливаем тариф из URL параметра при загрузке страницы
 	useEffect(() => {
@@ -187,7 +195,7 @@ const Replenish: FC<ReplenishProps> = ({
 										isActive={tariff === "RESIDENT_PREMIUM"}
 										onSelect={() => setTariff("RESIDENT_PREMIUM")}
 										label={T("payment.tariffTypes.resident")}
-										price={`${formatPrice(prices.resident_premium)}$ / ${T("payment.units.gb")}`}
+										price={startingPrice("resident_premium", prices.resident_premium)}
 										description={T("payment.descriptions.resident")}
 										icon="/tariff-resident.svg"
 										tier="standard"
@@ -198,7 +206,7 @@ const Replenish: FC<ReplenishProps> = ({
 										isActive={tariff === "RESIDENTIAL_LITE"}
 										onSelect={() => setTariff("RESIDENTIAL_LITE")}
 										label={T("payment.tariffTypes.residentialLite")}
-										price={`${formatPrice(prices.residential_lite || 0)}$ / ${T("payment.units.gb")}`}
+										price={startingPrice("residential_lite", prices.residential_lite || 0)}
 										description={T("payment.descriptions.residentialLite")}
 										icon="/tariff-resident.svg"
 										tier="standard"
@@ -209,7 +217,7 @@ const Replenish: FC<ReplenishProps> = ({
 										isActive={tariff === "ISP_USA"}
 										onSelect={() => setTariff("ISP_USA")}
 										label={T("payment.tariffTypes.ispUsa")}
-										price={`${formatPrice(prices.isp_usa || 0)}$ / ${T("payment.units.gb")}`}
+										price={startingPrice("isp_usa", prices.isp_usa || 0)}
 										description={T("payment.descriptions.ispUsa")}
 										icon="/tariff-resident.svg"
 										tier="standard"
@@ -220,7 +228,7 @@ const Replenish: FC<ReplenishProps> = ({
 										isActive={tariff === "ISP_EU"}
 										onSelect={() => setTariff("ISP_EU")}
 										label={T("payment.tariffTypes.ispEu")}
-										price={`${formatPrice(prices.isp_eu || 0)}$ / ${T("payment.units.gb")}`}
+										price={startingPrice("isp_eu", prices.isp_eu || 0)}
 										description={T("payment.descriptions.ispEu")}
 										icon="/tariff-resident.svg"
 										tier="standard"
@@ -242,7 +250,7 @@ const Replenish: FC<ReplenishProps> = ({
 										isActive={tariff === "PREMIUM_RESIDENTIAL"}
 										onSelect={() => setTariff("PREMIUM_RESIDENTIAL")}
 										label={T("payment.tariffTypes.premiumResidential")}
-										price={`${formatPrice(prices.premium_residential || 0)}$ / ${T("payment.units.gb")}`}
+										price={startingPrice("premium_residential", prices.premium_residential || 0)}
 										description={T("payment.descriptions.premiumResidential")}
 										icon="/tariff-premium.svg"
 										tier="premium"
@@ -252,7 +260,7 @@ const Replenish: FC<ReplenishProps> = ({
 										isActive={tariff === "MOBILE"}
 										onSelect={() => setTariff("MOBILE")}
 										label={T("main.proxyTypes.premiumMobile.title")}
-										price={`${formatPrice(typeof prices.mobile === "number" ? prices.mobile : 0)}$ / ${T("payment.units.gb")}`}
+										price={startingPrice("mobile", typeof prices.mobile === "number" ? prices.mobile : 0)}
 										description={T("main.proxyTypes.premiumMobile.description").replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "")}
 										icon="/tariff-mobile-gb.svg"
 										tier="premium"
