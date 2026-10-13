@@ -1,6 +1,7 @@
 import { IsNumber, IsOptional, Min } from "class-validator";
 
 export class ModifyUserTrafficDto {
+    @IsOptional()
     @IsNumber(
         {},
         {
@@ -10,8 +11,9 @@ export class ModifyUserTrafficDto {
     @Min(0, {
         message: "validation.MIN".internationalize(),
     })
-    premiumTrafficLeft: number;
+    premiumTrafficLeft?: number;
 
+    @IsOptional()
     @IsNumber(
         {},
         {
@@ -21,8 +23,9 @@ export class ModifyUserTrafficDto {
     @Min(0, {
         message: "validation.MIN".internationalize(),
     })
-    mobileGbTrafficLeft: number;
+    mobileGbTrafficLeft?: number;
 
+    @IsOptional()
     @IsNumber(
         {},
         {
@@ -32,7 +35,7 @@ export class ModifyUserTrafficDto {
     @Min(0, {
         message: "validation.MIN".internationalize(),
     })
-    ipv6GbTrafficLeft: number;
+    ipv6GbTrafficLeft?: number;
 
     @IsOptional()
     @IsNumber(

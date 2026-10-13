@@ -11,6 +11,7 @@ import Card from "@/shared/components/ui/Card"
 import Loader from "@/shared/components/ui/Loader/Loader"
 import { useModalStore } from "@/shared/components/ui/Modal/store/modal.store"
 import { sortByCreatedAtDesc } from "@/shared/utils/sort-by-created-at-desc"
+import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
 
 // Группы пакетов = актуальные публичные тарифы. Пакет — это быстрый объём
 // (пресет) на странице оплаты; цена берётся из тарификации.
@@ -48,19 +49,19 @@ const Packages: FC = () => {
 					<span className="text-body/50 text-lg font-medium">
 						{group.label}
 					</span>
-					<div className="grid grid-cols-3 gap-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						{packages
 							.filter(el => el.type === group.type)
 							.sort(sortByCreatedAtDesc)
 							.map(el => (
 								<AdminPackage _package={el} key={el.id} />
 							))}
-						<div
+						{!isProxyTypeDisabled(group.type) && <div
 							className="glass-tile flex w-full flex-col items-center justify-center gap-2 rounded-xl p-4"
 							onClick={() => open(<AddPackage initialType={group.type} />)}
 						>
 							<Plus className="text-body h-10 w-10" />
-						</div>
+						</div>}
 					</div>
 				</div>
 			))}

@@ -382,7 +382,7 @@ export class AuthService {
                     reject(new InternalServerErrorException("errors.authorization_unexpected_error"));
                 }
 
-                const { premiumUsername, residentData, residentTotalUsed, ...safeUser } = user;
+                const { password, premiumUsername, residentData, residentTotalUsed, proxyEmpireSubUserToken, ...safeUser } = user as User;
                 resolve({
                     user: safeUser,
                 });

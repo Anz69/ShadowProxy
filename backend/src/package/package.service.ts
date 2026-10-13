@@ -1,4 +1,4 @@
-import { BadRequestException, forwardRef, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, forwardRef, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma, PackageType, ProxyStatus } from "@prisma/client";
 import { CreatePackageDto } from "./dto/create-package.dto";
@@ -523,8 +523,8 @@ export class PackageService {
         if (!["RESIDENT_PREMIUM", "IPV6_GB", "MOBILE_GB", "MOBILE", "PREMIUM_RESIDENTIAL", "ISP_USA", "ISP_EU", "RESIDENTIAL_LITE"].includes(packageType)) {
             throw new BadRequestException(`Генерация прокси не поддерживается для типа ${packageType}`);
         }
-        // Спринт-гейтинг: отключённые типы (напр. ISP_EU/Lite в Sprint 2) блокируем.
-        if (isProxyTypeDisabled(packageType)) {
+        // Временное скрытие тарифа относится к новым продажам, а не к уже купленным пакетам.
+        if (isProxyTypeDisabled(packageType) && !["ISP_EU", "RESIDENT_PREMIUM"].includes(packageType)) {
             throw new BadRequestException("errors.proxy_type_unavailable");
         }
 
@@ -761,7 +761,7 @@ export class PackageService {
                     await this.eventEmitter.emitAsync("proxy.create_account", { userId, type: "RESIDENT_PREMIUM" });
                     const refreshed = await this.userService.findById(userId, true, false);
                     if (!refreshed.premiumUsername?.length) {
-                        throw new BadRequestException("Не удалось создать аккаунт Mango Proxy. Обратитесь в поддержку.");
+                        throw new ServiceUnavailableException("Провайдер Residential Proxy временно недоступен. Трафик сохранён; повторите генерацию позже.");
                     }
                     user = refreshed;
                 }
@@ -863,7 +863,7 @@ export class PackageService {
                 await this.eventEmitter.emitAsync("proxy.create_account", { userId, type: "RESIDENT_PREMIUM" });
                 const refreshed = await this.userService.findById(userId, true, false);
                 if (!refreshed.premiumUsername?.length) {
-                    throw new BadRequestException("Не удалось создать аккаунт Mango Proxy. Обратитесь в поддержку.");
+                    throw new ServiceUnavailableException("Провайдер Residential Proxy временно недоступен. Трафик сохранён; повторите генерацию позже.");
                 }
                 user = refreshed;
             }

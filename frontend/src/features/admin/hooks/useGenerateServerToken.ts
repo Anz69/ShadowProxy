@@ -6,11 +6,9 @@ export function useGenerateServerToken() {
 
 	const { mutate: generateToken, isPending } = useMutation({
 		mutationFn: (serverId: string) => {
-			console.log('Calling proxyServerService.generateServerToken with:', serverId)
 			return proxyServerService.generateServerToken(serverId)
 		},
-		onSuccess: (data) => {
-			console.log('Token generation successful:', data)
+		onSuccess: () => {
 			queryClient.invalidateQueries({
 				queryKey: ["proxy-servers"]
 			})

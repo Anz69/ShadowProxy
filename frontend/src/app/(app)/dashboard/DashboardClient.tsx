@@ -21,8 +21,11 @@ import { useActiveDiscount } from "@/features/payments/hooks/useActiveDiscount"
 import Reveals from "@/shared/anim/Reveals"
 import CountUp from "@/shared/anim/CountUp"
 import PromoActivationModal from "@/features/promos/components/PromoActivationModal"
+import { useCurrentSessionUser } from "@/features/user/hooks/useCurrentSessionUser"
 
 export default function DashboardClient({ user, prices, plans }: { user: User | null; prices: Prices | null; plans: Plan[] }) {
+	const { data: refreshedUser } = useCurrentSessionUser(user, 30_000)
+	const currentUser = refreshedUser && refreshedUser.id === user?.id ? refreshedUser : user
 	const { logout, isLoading: isLoggingOut } = useLogout()
 	const router = useRouter()
 	const pathname = usePathname()
@@ -143,7 +146,7 @@ export default function DashboardClient({ user, prices, plans }: { user: User | 
 		return (
 			<div className="dashboard-pkg-grid grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 				{sortedPackages.map(userPackage => (
-					<UserPackageCard key={userPackage.id} userPackage={userPackage} user={user} prices={prices} plans={plans} />
+					<UserPackageCard key={userPackage.id} userPackage={userPackage} user={currentUser} prices={prices} plans={plans} />
 				))}
 			</div>
 		)
@@ -214,13 +217,13 @@ export default function DashboardClient({ user, prices, plans }: { user: User | 
 						<div className={`left__row ${CARD} flex flex-col gap-4 p-5`} role="region" aria-label="balance">
 							<div className="flex flex-col gap-1">
 								<div className="flex items-baseline gap-2 font-[TalosDisplay] text-[clamp(28px,4vw,40px)] font-bold leading-none text-white light:text-[#0e1019]">
-									<CountUp value={user ? Number(user.balance || 0) : 0} decimals={2} />
+									<CountUp value={currentUser ? Number(currentUser.balance || 0) : 0} decimals={2} />
 									<span className="text-[16px] font-semibold text-white/45 light:text-[#8a93a3]">USD</span>
 								</div>
 								<div className="text-[13px] text-white/45 light:text-[#8a93a3]">{T("dashboard.balance.label")}</div>
 							</div>
 							<div className="flex flex-col gap-3.5">
-								<TrafficStats user={user} packages={sortedPackages} />
+								<TrafficStats user={currentUser} packages={sortedPackages} />
 								{!hasTrial && (
 									<button
 										className={`${BTN_GHOST} hidden w-full sm:inline-flex`}

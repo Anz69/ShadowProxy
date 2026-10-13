@@ -1,4 +1,4 @@
-import { BadRequestException, forwardRef, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException, OnModuleInit } from "@nestjs/common";
+import { BadRequestException, forwardRef, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException, OnModuleInit, ServiceUnavailableException } from "@nestjs/common";
 import { MangoProxyProvider } from "./providers/services/mango-proxy.provider";
 import { UserService } from "../user/user.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -30,9 +30,13 @@ import * as net from "net";
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { MOBILE_GB_ALLOWED_ISO2_LOWER, isMobileGbCountryAllowed } from "../shared/constants/mobile-gb-allowed-countries";
+import { reconcileProxyEmpireUsage } from "./utils/proxy-empire-usage";
 
 @Injectable()
 export class ProxyService implements OnModuleInit {
+    private proxyEmpireSyncRunning = false;
+    private readonly quotaWarnings = new Map<string, number>();
+    private readonly usageSyncFailures = new Map<string, { reason: string; loggedAt: number }>();
     availableLocations: {
         resident: string[];
         premium: string[];
@@ -437,8 +441,18 @@ export class ProxyService implements OnModuleInit {
     @Cron(CronExpression.EVERY_MINUTE)
     async syncProxyEmpireUsage() {
         if (this.configService.get<string>("ENABLE_PROXYEMPIRE_USAGE_SYNC") === "false") return;
+        if (this.proxyEmpireSyncRunning) return;
+        this.proxyEmpireSyncRunning = true;
+        try {
+            await this.syncProxyEmpireUsageOnce();
+        } finally {
+            this.proxyEmpireSyncRunning = false;
+        }
+    }
 
-        const stragglers = await this.prisma.user.findMany({
+    private async syncProxyEmpireUsageOnce() {
+        if (this.configService.get<string>("ENABLE_PROXYEMPIRE_BACKFILL") === "true") {
+            const stragglers = await this.prisma.user.findMany({
             where: {
                 proxyEmpireSubUserEmail: null,
                 OR: [
@@ -447,8 +461,8 @@ export class ProxyService implements OnModuleInit {
                 ],
             } as any,
             select: { id: true, email: true, premiumResidentialTrafficLeft: true, mobileTrafficLeft: true } as any,
-        });
-        for (const s of stragglers as unknown as Array<{ id: string; email: string; premiumResidentialTrafficLeft: string; mobileTrafficLeft: string }>) {
+            });
+            for (const s of stragglers as unknown as Array<{ id: string; email: string; premiumResidentialTrafficLeft: string; mobileTrafficLeft: string }>) {
             try {
                 const apiToken = await this.ensureProxyEmpireSubUser(s.id);
                 if (!apiToken) {
@@ -463,6 +477,7 @@ export class ProxyService implements OnModuleInit {
             } catch (e: any) {
                 await this.logger.error(`PE backfill ${s.email} failed: ${e?.message || String(e)}`, s.id);
             }
+            }
         }
 
         const users = await this.prisma.user.findMany({
@@ -470,111 +485,147 @@ export class ProxyService implements OnModuleInit {
             select: {
                 id: true,
                 email: true,
+                proxyEmpireSubUserEmail: true,
                 premiumResidentialTrafficLeft: true,
                 mobileTrafficLeft: true,
                 proxyEmpireResiUsedSnapshot: true,
                 proxyEmpireMobileUsedSnapshot: true,
             } as any,
         });
-        const TOLERANCE = 1024n * 1024n;
         for (const u of users as unknown as Array<{
             id: string;
             email: string;
+            proxyEmpireSubUserEmail: string;
             premiumResidentialTrafficLeft: string;
             mobileTrafficLeft: string;
             proxyEmpireResiUsedSnapshot: string;
             proxyEmpireMobileUsedSnapshot: string;
         }>) {
             try {
-                const info = await this.proxyEmpireProvider.getSubUserInfo(u.email);
+                const pendingPayment = await this.prisma.payment.findFirst({
+                    where: { userId: u.id, status: "PAID", metadata: { path: ["provisioningPending"], not: Prisma.AnyNull } },
+                    select: { id: true },
+                });
+                // A purchased local credit must not be mistaken for consumed
+                // traffic while provider provisioning is still pending.
+                if (pendingPayment) continue;
+                const info = await this.proxyEmpireProvider.getSubUserInfo(u.proxyEmpireSubUserEmail);
                 if (!info) continue;
-                const peResiUsed = BigInt(info.residential?.used ?? 0);
-                const peMobileUsed = BigInt(info.mobile?.used ?? 0);
-                const peResiTotal = BigInt(info.residential?.total ?? 0);
-                const peMobileTotal = BigInt(info.mobile?.total ?? 0);
-                const snapResi = BigInt(u.proxyEmpireResiUsedSnapshot || "0");
-                const snapMobile = BigInt(u.proxyEmpireMobileUsedSnapshot || "0");
+                const resi = reconcileProxyEmpireUsage(u.premiumResidentialTrafficLeft, u.proxyEmpireResiUsedSnapshot, info.residential);
+                const mobile = reconcileProxyEmpireUsage(u.mobileTrafficLeft, u.proxyEmpireMobileUsedSnapshot, info.mobile);
+                if (resi.mismatch || mobile.mismatch) {
+                    const lastWarning = this.quotaWarnings.get(u.id) ?? 0;
+                    if (Date.now() - lastWarning >= 3600000) {
+                        this.quotaWarnings.set(u.id, Date.now());
+                        await this.logger.log("SYSTEM", `PE quota mismatch: resi=${resi.mismatch} mobile=${mobile.mismatch}; balances preserved, provider quota needs review`, u.id);
+                    }
+                } else {
+                    this.quotaWarnings.delete(u.id);
+                }
 
-                const needsInit = snapResi === 0n && snapMobile === 0n && (peResiUsed > 0n || peMobileUsed > 0n);
-                if (needsInit) {
-                    await this.prisma.user.update({
-                        where: { id: u.id },
+                if (resi.left !== u.premiumResidentialTrafficLeft || mobile.left !== u.mobileTrafficLeft ||
+                    resi.snapshot !== u.proxyEmpireResiUsedSnapshot || mobile.snapshot !== u.proxyEmpireMobileUsedSnapshot) {
+                    const result = await this.prisma.user.updateMany({
+                        where: {
+                            id: u.id,
+                            premiumResidentialTrafficLeft: u.premiumResidentialTrafficLeft,
+                            mobileTrafficLeft: u.mobileTrafficLeft,
+                            proxyEmpireResiUsedSnapshot: u.proxyEmpireResiUsedSnapshot,
+                            proxyEmpireMobileUsedSnapshot: u.proxyEmpireMobileUsedSnapshot,
+                        },
                         data: {
-                            proxyEmpireResiUsedSnapshot: String(peResiUsed),
-                            proxyEmpireMobileUsedSnapshot: String(peMobileUsed),
-                        } as any,
+                            premiumResidentialTrafficLeft: resi.left,
+                            mobileTrafficLeft: mobile.left,
+                            proxyEmpireResiUsedSnapshot: resi.snapshot,
+                            proxyEmpireMobileUsedSnapshot: mobile.snapshot,
+                        },
                     });
+                    if (result.count === 0) continue; // a purchase or another sync changed this row
                     await this.logger.log(
                         "SYSTEM",
-                        `PE usage sync ${u.email}: initial snapshot resi=${peResiUsed} mobile=${peMobileUsed} (no charge, no drift correction)`,
+                        `PE usage sync ${u.email}: -resi=${resi.charged} -mobile=${mobile.charged} | left resi=${resi.left} mobile=${mobile.left}`,
                         u.id,
                     );
-                    continue;
-                }
-
-                const deltaResi = peResiUsed > snapResi ? peResiUsed - snapResi : 0n;
-                const deltaMobile = peMobileUsed > snapMobile ? peMobileUsed - snapMobile : 0n;
-
-                const leftResi = BigInt(u.premiumResidentialTrafficLeft || "0");
-                const leftMobile = BigInt(u.mobileTrafficLeft || "0");
-                const newLeftResi = leftResi > deltaResi ? leftResi - deltaResi : 0n;
-                const newLeftMobile = leftMobile > deltaMobile ? leftMobile - deltaMobile : 0n;
-
-                if (deltaResi > 0n || deltaMobile > 0n) {
-                    await this.prisma.user.update({
-                        where: { id: u.id },
-                        data: {
-                            premiumResidentialTrafficLeft: String(newLeftResi),
-                            mobileTrafficLeft: String(newLeftMobile),
-                            proxyEmpireResiUsedSnapshot: String(peResiUsed),
-                            proxyEmpireMobileUsedSnapshot: String(peMobileUsed),
-                        } as any,
-                    });
-                    await this.logger.log(
-                        "SYSTEM",
-                        `PE usage sync ${u.email}: -resi=${deltaResi} -mobile=${deltaMobile} | left resi=${newLeftResi} mobile=${newLeftMobile}`,
-                        u.id,
-                    );
-                    if (deltaResi > 0n) {
+                    if (resi.charged > 0n) {
                         await this.logger.log(
                             "USAGE",
-                            `Пользователь ${u.id} потратил ${deltaResi} байт трафика (Premium Residential).`,
+                            `Пользователь ${u.id} потратил ${resi.charged} байт трафика (Premium Residential).`,
                             u.id,
-                            { used: String(deltaResi), type: "PREMIUM_RESIDENTIAL" },
+                            { used: String(resi.charged), type: "PREMIUM_RESIDENTIAL" },
                             true,
                         );
-                        await this.logger.recordTrafficLogForUserTariff(u.id, "PREMIUM_RESIDENTIAL", deltaResi);
+                        await this.logger.recordTrafficLogForUserTariff(u.id, "PREMIUM_RESIDENTIAL", resi.charged);
                     }
-                    if (deltaMobile > 0n) {
+                    if (mobile.charged > 0n) {
                         await this.logger.log(
                             "USAGE",
-                            `Пользователь ${u.id} потратил ${deltaMobile} байт трафика (Mobile).`,
+                            `Пользователь ${u.id} потратил ${mobile.charged} байт трафика (Mobile).`,
                             u.id,
-                            { used: String(deltaMobile), type: "MOBILE" },
+                            { used: String(mobile.charged), type: "MOBILE" },
                             true,
                         );
-                        await this.logger.recordTrafficLogForUserTariff(u.id, "MOBILE", deltaMobile);
+                        await this.logger.recordTrafficLogForUserTariff(u.id, "MOBILE", mobile.charged);
                     }
                 }
-
-                if (info.residential) {
-                    const targetTotalResi = newLeftResi + peResiUsed;
-                    const driftResi = targetTotalResi > peResiTotal ? targetTotalResi - peResiTotal : peResiTotal - targetTotalResi;
-                    if (driftResi > TOLERANCE) {
-                        await this.proxyEmpireProvider.setSubUserBandwidth(u.email, "residential", Number(targetTotalResi));
+                // A successful reconciliation resets suppression so a later
+                // recurrence is visible immediately, even within the same hour.
+                this.usageSyncFailures.delete(u.id);
+            } catch (error: unknown) {
+                const reason = error instanceof Error ? error.message : String(error);
+                const previous = this.usageSyncFailures.get(u.id);
+                const now = Date.now();
+                if (!previous || previous.reason !== reason || now - previous.loggedAt >= 3600000) {
+                    if (this.usageSyncFailures.size >= 10000) {
+                        const oldest = this.usageSyncFailures.keys().next().value;
+                        if (oldest !== undefined) this.usageSyncFailures.delete(oldest);
                     }
+                    this.usageSyncFailures.set(u.id, { reason, loggedAt: now });
+                    await this.logger.error(`PE usage sync failed for ${u.email}: ${reason}; одинаковые ошибки ограничены одной записью в час`, u.id);
                 }
-                if (info.mobile) {
-                    const targetTotalMobile = newLeftMobile + peMobileUsed;
-                    const driftMobile = targetTotalMobile > peMobileTotal ? targetTotalMobile - peMobileTotal : peMobileTotal - targetTotalMobile;
-                    if (driftMobile > TOLERANCE) {
-                        await this.proxyEmpireProvider.setSubUserBandwidth(u.email, "mobile", Number(targetTotalMobile));
-                    }
-                }
-            } catch (e: any) {
-                await this.logger.error(`PE usage sync failed for ${u.email}: ${e?.message || String(e)}`);
             }
         }
+    }
+
+    @OnEvent("payment.provision", { suppressErrors: false })
+    async provisionPaidTraffic(payload: { tariff: string; userId: string; paymentId: string }) {
+        const { tariff, userId, paymentId } = payload;
+        if (tariff !== "PREMIUM_RESIDENTIAL" && tariff !== "MOBILE") return;
+        if (!await this.ensureProxyEmpireSubUser(userId)) {
+            throw new ServiceUnavailableException("Не удалось подготовить клиентский аккаунт ProxyEmpire");
+        }
+        const peType = tariff === "MOBILE" ? "mobile" : "residential";
+        const prepared = await this.prisma.$transaction(async tx => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+            const first = await tx.payment.findFirst({
+                where: { userId, status: "PAID", metadata: { path: ["provisioningPending"], not: Prisma.AnyNull } },
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            });
+            if (first?.id !== paymentId) throw new Error("Earlier provisioning job is pending");
+            const metadata = first.metadata as any;
+            const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+            const email = user.proxyEmpireSubUserEmail || user.email;
+            if (metadata.providerTargetTotal != null) return { email, target: Number(metadata.providerTargetTotal) };
+            const info = await this.proxyEmpireProvider.getSubUserInfo(email);
+            if (!info) throw new Error("Provider counters unavailable");
+            // ProxyEmpire omits a tariff that has never been funded. A
+            // successfully retrieved sub-user with no category starts at zero.
+            const counters = info[peType] ?? { total: 0, used: 0, remaining: 0 };
+            // Persist an absolute cumulative quota before calling the provider.
+            // A lost acknowledgement must not grant paid traffic twice.
+            const target = counters.total + Number(metadata.creditedTraffic);
+            if (!Number.isSafeInteger(target)) throw new Error("Invalid provider target");
+            await tx.payment.update({
+                where: { id: paymentId },
+                data: { metadata: { ...metadata, providerTargetTotal: String(target) } },
+            });
+            return { email, target };
+        }, { timeout: 30000 });
+        await this.prisma.$transaction(async tx => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+            if (!await this.proxyEmpireProvider.setSubUserBandwidth(prepared.email, peType, prepared.target)) {
+                throw new Error("Provider bandwidth synchronization failed");
+            }
+        }, { timeout: 30000 });
     }
 
     @OnEvent("user.distribute_traffic")
@@ -609,6 +660,9 @@ export class ProxyService implements OnModuleInit {
         }
 
         const apiTokenOverride = await this.ensureProxyEmpireSubUser(userId);
+        if (!apiTokenOverride) {
+            throw new ServiceUnavailableException("Не удалось подготовить аккаунт Premium Residential. Трафик сохранён; повторите генерацию позже.");
+        }
 
         const providerProxies = await this.proxyEmpireProvider.generateProxyList({
             proxyType: "residential",
@@ -670,6 +724,9 @@ export class ProxyService implements OnModuleInit {
         }
 
         const apiTokenOverride = await this.ensureProxyEmpireSubUser(userId);
+        if (!apiTokenOverride) {
+            throw new ServiceUnavailableException("Не удалось подготовить аккаунт Premium Mobile. Трафик сохранён; повторите генерацию позже.");
+        }
 
         const providerProxies = await this.proxyEmpireProvider.generateProxyList({
             proxyType: "mobile",

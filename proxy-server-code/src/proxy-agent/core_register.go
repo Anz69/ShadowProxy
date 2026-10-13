@@ -36,6 +36,7 @@ func notifyCoreAfterStart(cfg *Config) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

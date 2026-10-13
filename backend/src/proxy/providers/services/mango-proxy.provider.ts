@@ -41,8 +41,13 @@ export class MangoProxyProvider implements OnModuleInit {
         private readonly logger: LoggerService,
         private readonly prisma: PrismaService,
     ) {
+        const configuredTimeout = Number(configService.get<string>("MANGO_API_TIMEOUT_MS", "8000"));
+        const timeout = Number.isInteger(configuredTimeout) && configuredTimeout >= 1000 && configuredTimeout <= 30000
+            ? configuredTimeout
+            : 8000;
         this.mangoProxyApi = axios.create({
             baseURL: configService.getOrThrow<string>("MANGO_PROXY_BASE_URL"),
+            timeout,
         });
         this.mangoProxyApi.interceptors.request.use((config) => {
             config.data = {
@@ -516,10 +521,17 @@ async createProxyAccount(username: string) {
         const thresholdMb = Number(this.configService.get<string>("MANGO_UNLOCK_THRESHOLD_MB", "1000"));
         const topUpMb = Number(this.configService.get<string>("MANGO_UNLOCK_TOPUP_MB", "100000"));
         try {
-            const info = await this.mangoProxyApi.post<{ ret_data?: { last_flow?: number } }>("/user_info", { username });
-            const remaining = Number(info?.data?.ret_data?.last_flow ?? 0);
-            if (Number.isFinite(remaining) && remaining >= thresholdMb) return; // уже разблокирован
-            await this.mangoProxyApi.post("/add_user_flow", { username, flow: topUpMb });
+            const info = await this.mangoProxyApi.post<{ code?: string | number; ret_data?: { last_flow?: number } }>("/user_info", { username });
+            const rawRemaining = info.data?.ret_data?.last_flow;
+            const remaining = Number(rawRemaining);
+            if (!isSuccessfulMangoResponse(info) || String(info.data?.code) !== "1" || rawRemaining == null || !Number.isFinite(remaining) || remaining < 0) {
+                throw new Error(`Mango /user_info returned invalid flow (HTTP ${info.status}, code ${info.data?.code ?? "missing"})`);
+            }
+            if (remaining >= thresholdMb) return; // уже разблокирован
+            const topUp = await this.mangoProxyApi.post("/add_user_flow", { username, flow: topUpMb });
+            if (!isSuccessfulMangoResponse(topUp) || String(topUp.data?.code) !== "1") {
+                throw new Error(`Mango /add_user_flow failed (HTTP ${topUp.status}, code ${topUp.data?.code ?? "missing"})`);
+            }
             await this.logger.log(
                 "SYSTEM",
                 `Mango unlock: +${topUpMb}МБ flow для ${username} (остаток был ${Number.isFinite(remaining) ? remaining : "?"}МБ)`,

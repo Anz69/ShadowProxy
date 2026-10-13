@@ -7,8 +7,8 @@ import { generateRandomString } from "../../../shared/utils/generate-random-stri
  * (без ограничения по списку). Порты апстрима нестандартные (6969/9696).
  *
  * Формат upstream-строки (в proxy_username на гейтвей):
- *   BY_REQUEST: iqtzetcozu-country-{ГЕО}
- *   BY_TIME:    iqtzetcozu-country-{ГЕО}-time-{МИН}-session-{SESSION_ID}
+ *   BY_REQUEST: {FLASH_RESIDENTIAL_LITE_USERNAME}-country-{ГЕО}
+ *   BY_TIME:    {FLASH_RESIDENTIAL_LITE_USERNAME}-country-{ГЕО}-time-{МИН}-session-{SESSION_ID}
  */
 @Injectable()
 export class ResidentialLiteProvider {

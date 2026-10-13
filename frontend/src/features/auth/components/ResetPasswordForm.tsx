@@ -70,7 +70,6 @@ const ResetPasswordForm: FC = () => {
 	const { resetPassword, isLoading: isResetLoading } = useResetPassword()
 
 	const onRequestSubmit = (dto: RequestPasswordResetDto) => {
-		console.log("ResetPasswordForm onRequestSubmit:", dto)
 		const needsCaptcha = Boolean(siteKey.trim())
 		if (needsCaptcha && !recaptchaValue) {
 			setRequestError("root", {
@@ -84,12 +83,10 @@ const ResetPasswordForm: FC = () => {
 				recaptcha: recaptchaValue ?? undefined
 			},
 			{
-				onSuccess: async (data) => {
-					console.log("ResetPasswordForm onSuccess:", data)
+				onSuccess: async () => {
 					setIsEmailSent(true)
 				},
 				onError: e => {
-					console.log("ResetPasswordForm onError:", e)
 					setRequestError("root", {
 						message: e.message
 					})
@@ -99,7 +96,6 @@ const ResetPasswordForm: FC = () => {
 	}
 
 	const onResetSubmit = (dto: ResetPasswordDto) => {
-		console.log("ResetPasswordForm onResetSubmit:", dto)
 		if (token) {
 			resetPassword(
 				{
@@ -107,13 +103,11 @@ const ResetPasswordForm: FC = () => {
 					token
 				},
 				{
-					onSuccess: async (data) => {
-						console.log("ResetPasswordForm onResetSuccess:", data)
+					onSuccess: async () => {
 						const localizedPath = getLocalizedPath(pathname, "/auth/login")
 						await router.push(localizedPath)
 					},
 					onError: e => {
-						console.log("ResetPasswordForm onResetError:", e)
 						setResetError("root", {
 							message: e.message
 						})

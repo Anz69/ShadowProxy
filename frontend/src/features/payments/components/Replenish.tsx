@@ -108,7 +108,7 @@ const Replenish: FC<ReplenishProps> = ({
 	// Устанавливаем тариф из URL параметра при загрузке страницы
 	useEffect(() => {
 		const tariffParam = searchParams.get("tariff")
-		if (tariffParam && ["RESIDENT_PREMIUM", "PREMIUM_RESIDENTIAL", "MOBILE", "MOBILE_GB", "IPV6", "ISP_USA", "ISP_EU", "RESIDENTIAL_LITE"].includes(tariffParam)) {
+		if (tariffParam && !isProxyTypeDisabled(tariffParam) && ["RESIDENT_PREMIUM", "PREMIUM_RESIDENTIAL", "MOBILE", "MOBILE_GB", "IPV6", "ISP_USA", "ISP_EU", "RESIDENTIAL_LITE"].includes(tariffParam)) {
 			setTariff(tariffParam as "RESIDENT_PREMIUM" | "PREMIUM_RESIDENTIAL" | "MOBILE" | "MOBILE_GB" | "IPV6" | "ISP_USA" | "ISP_EU" | "RESIDENTIAL_LITE")
 		}
 	}, [searchParams, setTariff])
@@ -191,7 +191,7 @@ const Replenish: FC<ReplenishProps> = ({
 									<h3 className="font-[TalosDisplay] text-white light:text-[#0e1019] text-lg font-semibold">{T("main.proxyTypes.standardTitle")}</h3>
 								</div>
 								<div className="proxy-tier-group__grid grid grid-cols-1 gap-3 sm:grid-cols-2">
-									<ProxyTypeCard
+									{!isProxyTypeDisabled("RESIDENT_PREMIUM") && <ProxyTypeCard
 										isActive={tariff === "RESIDENT_PREMIUM"}
 										onSelect={() => setTariff("RESIDENT_PREMIUM")}
 										label={T("payment.tariffTypes.resident")}
@@ -200,7 +200,7 @@ const Replenish: FC<ReplenishProps> = ({
 										icon="/tariff-resident.svg"
 										tier="standard"
 										locale={locale}
-									/>
+									/>}
 									{!isProxyTypeDisabled("RESIDENTIAL_LITE") && (
 									<ProxyTypeCard
 										isActive={tariff === "RESIDENTIAL_LITE"}

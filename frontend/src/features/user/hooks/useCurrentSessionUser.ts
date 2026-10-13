@@ -8,7 +8,7 @@ import type { User } from "@/features/user/types/user.types"
  * Server Component даёт мгновенное initialUser, а браузер перепроверяет роль:
  * это защищает Header от временной ошибки SSR и устаревшего layout при перелогине.
  */
-export function useCurrentSessionUser(initialUser?: User | null) {
+export function useCurrentSessionUser(initialUser?: User | null, refetchInterval?: number) {
 	return useQuery({
 		queryKey: ["current-session-user"],
 		queryFn: () => userService.getCurrentSessionUser(),
@@ -17,6 +17,7 @@ export function useCurrentSessionUser(initialUser?: User | null) {
 		refetchOnMount: "always",
 		refetchOnWindowFocus: "always",
 		refetchOnReconnect: "always",
+		refetchInterval,
 		retry: 3,
 		retryDelay: attempt => Math.min(500 * 2 ** attempt, 4000)
 	})

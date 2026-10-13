@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, InternalServerErro
 import { CryptoBotProvider } from "./providers/services/crypto-bot.provider";
 import { Request } from "express";
 import { CryptoBotWebhookDataType } from "./providers/types/crypto-bot/crypto-bot-webhook-data.type";
+import { isProxyTypeDisabled } from "../shared/constants/sprint-gating";
 import { PrismaService } from "../prisma/prisma.service";
 import { Package, PackageType, PaymentProvider, PaymentStatus, Prisma, ProxyStatus, ProxyType, User } from "@prisma/client";
 import axios from "axios";
@@ -31,6 +32,7 @@ import { NotificationService } from "../notification/notification.service";
 
 @Injectable()
 export class PaymentsService implements OnModuleInit {
+    private provisioningPaidInvoices = false;
     public exchangeCache = new Map<string, { value: number; timestamp: number }>();
 
     private readonly cacheTtlMs = 300_000;
@@ -71,7 +73,7 @@ export class PaymentsService implements OnModuleInit {
         }
 
         if (data.update_type === "invoice_paid" && data.payload.status === "paid") {
-            await this.prisma.$transaction(async (tx) => await this.processPaidOrder(tx, data), { timeout: 120000 });
+            await this.prisma.$transaction(async (tx) => await this.processPaidOrder(tx, data, PaymentProvider.CRYPTO_BOT), { timeout: 30000 });
         }
     }
 
@@ -83,18 +85,23 @@ export class PaymentsService implements OnModuleInit {
         }
 
         if (data.status === "paid" || data.status === "paid_over") {
-            await this.prisma.$transaction(async (tx) => await this.processPaidOrder(tx, data), { timeout: 120000 });
+            await this.prisma.$transaction(async (tx) => await this.processPaidOrder(tx, data, PaymentProvider.HELEKET), { timeout: 30000 });
         }
     }
 
-    async processPaidOrder(tx: Prisma.TransactionClient, data: CryptoBotWebhookDataType | HeleketWebhookData) {
+    async processPaidOrder(tx: Prisma.TransactionClient, data: CryptoBotWebhookDataType | HeleketWebhookData, expectedProvider?: PaymentProvider) {
         let paymentId: string;
 
         if ("update_id" in data) {
-            paymentId = JSON.parse(data.payload.payload || "")?.paymentId;
+            try {
+                paymentId = JSON.parse(data.payload.payload || "")?.paymentId;
+            } catch {
+                throw new BadRequestException("errors.payment_not_found");
+            }
         } else {
             paymentId = data.order_id;
         }
+        if (typeof paymentId !== "string" || !paymentId) throw new BadRequestException("errors.payment_not_found");
 
         const payment = await tx.payment.findUnique({
             where: {
@@ -108,36 +115,21 @@ export class PaymentsService implements OnModuleInit {
         if (!payment) {
             return;
         }
+        if (expectedProvider && payment.provider !== expectedProvider) throw new ForbiddenException("errors.wrong_signature");
 
-        // Если платеж уже оплачен, проверяем, не обработан ли он уже
-        // (для оплаты с баланса платеж создается сразу со статусом PAID)
-        const isAlreadyPaid = payment.status === PaymentStatus.PAID;
-        
-        // Проверяем, не был ли платеж уже обработан (есть ли запись в referral_rewards)
-        const existingReward = await tx.referralReward.findUnique({
-            where: { paymentId },
+        // The conditional transition serializes concurrent callbacks. All money
+        // and traffic credits below belong to this same transaction.
+        const claimed = await tx.payment.updateMany({
+            where: { id: paymentId, status: PaymentStatus.WAITING },
+            data: { status: PaymentStatus.PAID },
         });
-        
-        // Если платеж уже обработан, выходим
-        if (isAlreadyPaid && existingReward) {
-            return;
-        }
+        if (claimed.count !== 1) return;
         
         const { metadata, user } = payment;
         const { contents } = metadata as unknown as PaymentMetadata;
         const [firstContent] = contents;
 
-        // Обновляем статус только если он еще не PAID
-        if (!isAlreadyPaid) {
-            await tx.payment.update({
-                where: {
-                    id: paymentId,
-                },
-                data: {
-                    status: PaymentStatus.PAID,
-                },
-            });
-        }
+        if (!user || !firstContent) throw new BadRequestException("errors.user_not_found");
 
         // Скидка (триал/отзыв) «сгорает» при реальной оплате (Часть 1.3/2.3 ТЗ).
         // Вне гейта !isAlreadyPaid — иначе при оплате с баланса (платёж сразу PAID)
@@ -159,15 +151,7 @@ export class PaymentsService implements OnModuleInit {
 
         // Начисляем реферальные средства (только для тарифов по ГБ, не для баланса)
         if (firstContent.type !== "balance") {
-            // Проверяем, не начислялись ли уже реферальные для этого платежа
-            if (!existingReward) {
-                await this.referralService.awardReferralReward(
-                    payment.userId!,
-                    paymentId,
-                    Number(payment.amountUsd),
-                    tx,
-                );
-            }
+            await this.referralService.awardReferralReward(payment.userId!, paymentId, Number(payment.amountUsd), tx);
 
             // Просьба оставить отзыв — один раз после первой успешной покупки (Часть 1.1 ТЗ).
             // Работает и для крипто-оплаты, и для оплаты с баланса (там платёж сразу PAID,
@@ -179,13 +163,14 @@ export class PaymentsService implements OnModuleInit {
                 });
                 const hasReview = await tx.review.findUnique({ where: { userId: payment.userId } });
                 if (paidCount >= 1 && !hasReview) {
-                    await this.notificationService.createOnce({
+                    const existingNotice = await tx.notification.findFirst({ where: { userId: payment.userId, type: "review_request" } });
+                    if (!existingNotice) await tx.notification.create({ data: {
                         userId: payment.userId,
                         type: "review_request",
                         title: "Оставьте отзыв и получите скидку 30%",
                         body: "Спасибо за покупку! Поделитесь впечатлением — за отзыв дарим скидку 30% на следующую покупку любого пакета.",
                         link: "/reviews",
-                    });
+                    } });
                 }
             }
         }
@@ -210,34 +195,9 @@ export class PaymentsService implements OnModuleInit {
                     );
                     // Провижининг прокси — ВНЕ платёжной транзакции и неблокирующе:
                     // сбой/задержка Mango/ProxyEmpire не должны валить оплату или вешать запрос.
-                    {
-                        const pType = paidPackage.type;
-                        const pTraffic = paidPackage.traffic;
-                        const pUserId = payment.userId;
-                        const pAccJustCreated = pType === "RESIDENT_PREMIUM" ? !user?.premiumUsername?.length : undefined;
-                        const pAccId = user!.id;
-                        void (async () => {
-                            try {
-                                this.provisioningQueue.enqueue(pAccId, pType);
-                                await this.eventEmitter.emitAsync("user.distribute_traffic", {
-                                    tariff: pType,
-                                    traffic: pTraffic,
-                                    userId: pUserId,
-                                    accountJustCreated: pAccJustCreated,
-                                });
-                            } catch (e: any) {
-                                await this.logger.error(
-                                    `Провижининг после оплаты (package ${pType}) сбой: ${e?.message || String(e)}`,
-                                    pUserId || undefined,
-                                );
-                            }
-                        })();
-                    }
-                    // Запускаем реактивацию прокси асинхронно (вне транзакции)
-                    this.eventEmitter.emit("proxy.reactivate", {
-                        userId: user!.id,
-                        proxyType: paidPackage.type,
-                    });
+                    await this.creditTraffic(tx, paymentId, user.id, paidPackage.type, paidPackage.traffic);
+                } else {
+                    throw new NotFoundException("errors.package_not_found");
                 }
                 break;
             case "resident":
@@ -267,34 +227,8 @@ export class PaymentsService implements OnModuleInit {
                 );
                 // Провижининг прокси — ВНЕ платёжной транзакции и неблокирующе
                 // (сбой/задержка Mango/ProxyEmpire не валит оплату и не вешает запрос).
-                {
-                    const rTariff = effectiveTariff;
-                    const rTraffic = String(BigInt(Math.round(Number(firstContent.traffic) * 1024 ** 3)));
-                    const rUserId = payment.userId;
-                    const rAccId = user!.id;
-                    const rAccJustCreated = effectiveTariff === "RESIDENT_PREMIUM" ? !user?.premiumUsername?.length : undefined;
-                    void (async () => {
-                        try {
-                            this.provisioningQueue.enqueue(rAccId, rTariff);
-                            await this.eventEmitter.emitAsync("user.distribute_traffic", {
-                                tariff: rTariff,
-                                traffic: rTraffic,
-                                userId: rUserId,
-                                accountJustCreated: rAccJustCreated,
-                            });
-                        } catch (e: any) {
-                            await this.logger.error(
-                                `Провижининг после оплаты (resident ${rTariff}) сбой: ${e?.message || String(e)}`,
-                                rUserId || undefined,
-                            );
-                        }
-                    })();
-                }
-                // Запускаем реактивацию прокси асинхронно (вне транзакции)
-                this.eventEmitter.emit("proxy.reactivate", {
-                    userId: user!.id,
-                    proxyType: effectiveTariff,
-                });
+                await this.creditTraffic(tx, paymentId, user.id, effectiveTariff,
+                    String(BigInt(Math.round(Number(firstContent.traffic) * 1024 ** 3))));
                 break;
             case "isp":
                 await this.logger.log(
@@ -487,6 +421,65 @@ export class PaymentsService implements OnModuleInit {
         }
     }
 
+    private async creditTraffic(tx: Prisma.TransactionClient, paymentId: string, userId: string, tariff: PackageType, traffic: string) {
+        const columns: Partial<Record<PackageType, string>> = {
+            RESIDENT: "resident_traffic_left", RESIDENT_PREMIUM: "premium_trafic_left",
+            PREMIUM_RESIDENTIAL: "premium_residential_traffic_left", MOBILE: "mobile_traffic_left",
+            MOBILE_GB: "mobile_gb_traffic_left", IPV6_GB: "ipv6_gb_traffic_left",
+            ISP_USA: "isp_usa_traffic_left", ISP_EU: "isp_eu_traffic_left",
+            RESIDENTIAL_LITE: "residential_lite_traffic_left",
+        };
+        const column = columns[tariff];
+        if (!column || BigInt(traffic) <= 0n) throw new BadRequestException("errors.proxy_unknown_type");
+        await tx.userPackage.upsert({
+            where: { userId_type: { userId, type: tariff } },
+            create: { userId, type: tariff }, update: {},
+        });
+        await tx.$executeRawUnsafe(
+            `UPDATE "users" SET "${column}" = (CAST("${column}" AS NUMERIC) + $1::numeric)::text WHERE id = $2`,
+            traffic, userId,
+        );
+        // Durable outbox: a crash after commit cannot lose provider activation.
+        const payment = await tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
+        await tx.payment.update({
+            where: { id: paymentId },
+            data: { metadata: { ...(payment.metadata as any), provisioningPending: tariff, creditedTraffic: traffic } },
+        });
+    }
+
+    @Cron(CronExpression.EVERY_10_SECONDS)
+    async provisionPaidInvoices() {
+        if (this.provisioningPaidInvoices) return;
+        this.provisioningPaidInvoices = true;
+        try {
+        const jobs = await this.prisma.payment.findMany({
+            where: { status: PaymentStatus.PAID, metadata: { path: ["provisioningPending"], not: Prisma.AnyNull } },
+            take: 100, orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        });
+        const seenUsers = new Set<string>();
+        for (const job of jobs) {
+            const tariff = (job.metadata as any)?.provisioningPending as PackageType | undefined;
+            if (!tariff || !job.userId) continue;
+            if (seenUsers.has(job.userId)) continue;
+            seenUsers.add(job.userId);
+            try {
+                // The provider handler synchronizes an absolute target; retries
+                // must never add the same provider bandwidth twice.
+                await this.eventEmitter.emitAsync("payment.provision", { userId: job.userId, tariff, paymentId: job.id });
+                this.provisioningQueue.enqueue(job.userId, tariff);
+                await this.eventEmitter.emitAsync("proxy.reactivate", { userId: job.userId, proxyType: tariff });
+                const latest = await this.prisma.payment.findUniqueOrThrow({ where: { id: job.id } });
+                const { provisioningPending, ...metadata } = latest.metadata as any;
+                await this.prisma.payment.update({ where: { id: job.id }, data: { metadata } });
+            } catch {
+                await this.logger.error(`Провижининг платежа ${job.id} отложен для повторной попытки`, job.userId);
+            }
+        }
+        } finally {
+            this.provisioningPaidInvoices = false;
+        }
+    }
+
     /**
      * Цены за ГБ из `proxy_tariffications` — те же ключи, что пишет админка `modifyPrices`
      * (`resident_premium`, `mobile_gb`, `ipv6_gb`). Для старых БД без `resident_premium` допускается fallback на `resident`.
@@ -555,6 +548,9 @@ export class PaymentsService implements OnModuleInit {
     }
 
     async createResidentInvoice(dto: CreateResidentInvoiceDto, userId: string) {
+        if (isProxyTypeDisabled(dto.tariff)) {
+            throw new BadRequestException("errors.proxy_type_unavailable");
+        }
         const tariffications = await this.settingService.getValue<Record<string, unknown>>("proxy_tariffications");
         const { priceUsdPerGb } = this.readGbPriceUsdFromAdminTariffications(dto.tariff, tariffications);
         const trafficFiatPrice = dto.traffic * priceUsdPerGb;
@@ -616,6 +612,9 @@ export class PaymentsService implements OnModuleInit {
 
         if (!requestedPackage) {
             throw new NotFoundException("errors.package_not_found");
+        }
+        if (isProxyTypeDisabled(requestedPackage.type)) {
+            throw new BadRequestException("errors.proxy_type_unavailable");
         }
 
         if (Number(requestedPackage.price) < 0.5 && dto.merchant === "HELEKET") {
@@ -709,11 +708,12 @@ export class PaymentsService implements OnModuleInit {
     private async computeDiscount(
         userId: string,
         contents: PaymentMetadata["contents"],
+        db: Prisma.TransactionClient = this.prisma,
     ): Promise<{ kind: "trial" | "review"; pct: number } | null> {
         const [firstContent] = contents;
         if (!firstContent || firstContent.type === "balance") return null;
 
-        const user = await this.prisma.user.findUnique({
+        const user = await db.user.findUnique({
             where: { id: userId },
             select: { trialDiscountAvailable: true, reviewDiscountAvailable: true } as any,
         });
@@ -721,8 +721,8 @@ export class PaymentsService implements OnModuleInit {
         const u = user as any;
         if (!u.trialDiscountAvailable && !u.reviewDiscountAvailable) return null;
 
-        const paidCount = await this.prisma.payment.count({
-            where: { userId, status: PaymentStatus.PAID },
+        const paidCount = await db.payment.count({
+            where: { userId, status: PaymentStatus.PAID, NOT: { metadata: { path: ["contents", "0", "type"], equals: "balance" } } },
         });
         const hasPaid = paidCount > 0;
 
@@ -747,13 +747,37 @@ export class PaymentsService implements OnModuleInit {
         },
         userId: string,
     ) {
+        const result = await this.prisma.$transaction(async tx => {
+            // One invoice may reserve a one-time discount at a time, including
+            // concurrent invoices handled by different backend processes.
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+            return this.buildInvoiceInTransaction({ ...dto }, userId, tx);
+        }, { timeout: 30000 });
+        if (dto.merchant === PaymentProvider.BALANCE || dto.merchant === PaymentProvider.REFERRAL_BALANCE) return result;
+        try {
+            return await this.finalInvoice({ ...result, user: { connect: { id: userId } } } as any);
+        } catch (error) {
+            await this.cancelPendingInvoice(result.id);
+            throw error;
+        }
+    }
+
+    private async buildInvoiceInTransaction(
+        dto: { asset: AvailableAssets; merchant: PaymentProvider; amountUsd: number; contents: PaymentMetadata["contents"] },
+        userId: string,
+        tx: Prisma.TransactionClient,
+    ) {
+        if (!Number.isFinite(dto.amountUsd) || dto.amountUsd <= 0) throw new BadRequestException("errors.too_small_amount");
         // Применяем скидку (если есть) к финальной сумме инвойса.
-        const picked = await this.computeDiscount(userId, dto.contents);
+        const picked = await this.computeDiscount(userId, dto.contents, tx);
         let discountMeta: { kind: "trial" | "review"; pct: number; originalUsd: number } | undefined;
         if (picked && picked.pct > 0) {
             const originalUsd = dto.amountUsd;
             dto.amountUsd = Math.round(originalUsd * (1 - picked.pct / 100) * 100) / 100;
             discountMeta = { kind: picked.kind, pct: picked.pct, originalUsd };
+            if (dto.amountUsd <= 0) throw new BadRequestException("errors.too_small_amount");
+            await tx.user.update({ where: { id: userId }, data: picked.kind === "trial"
+                ? { trialDiscountAvailable: false } : { reviewDiscountAvailable: false } });
         }
 
         // Если оплата с баланса или реферального баланса - обрабатываем сразу
@@ -783,25 +807,20 @@ export class PaymentsService implements OnModuleInit {
                 .build();
 
             // Сохраняем платеж
-            const savedPayment = await this.create({
-                ...payment,
-                status: PaymentStatus.PAID,
-                paymentUrl: null,
-            });
-
-            // Списываем средства
-            await this.prisma.user.update({
-                where: { id: userId },
+            const balanceField = dto.merchant === PaymentProvider.BALANCE ? "balance" : "referralBalance";
+            const debit = await tx.user.updateMany({
+                where: { id: userId, [balanceField]: { gte: new Prisma.Decimal(dto.amountUsd) } },
                 data: {
                     [dto.merchant === PaymentProvider.BALANCE ? "balance" : "referralBalance"]: {
                         decrement: new Prisma.Decimal(dto.amountUsd),
                     },
                 },
             });
+            if (debit.count !== 1) throw new BadRequestException("errors.insufficient_balance");
+            const savedPayment = await tx.payment.create({ data: { ...payment, status: PaymentStatus.WAITING, paymentUrl: null } });
 
             // Обрабатываем оплаченный платеж в транзакции (timeout 30s — emitAsync вызывает Luna/Mango API)
-            await this.prisma.$transaction(
-                async (tx) => {
+            {
                     const fakeWebhookData: HeleketWebhookData = {
                         type: "payment",
                         uuid: "",
@@ -823,9 +842,7 @@ export class PaymentsService implements OnModuleInit {
                         sign: "balance-payment",
                     };
                     await this.processPaidOrder(tx, fakeWebhookData);
-                },
-                { timeout: 120000 }
-            );
+            }
 
             // Находим UserPackage для редиректа (если это resident, isp, mobile_gb или mobile)
             const [firstContent] = dto.contents;
@@ -834,7 +851,7 @@ export class PaymentsService implements OnModuleInit {
             if (firstContent.type === "resident" || firstContent.type === "isp") {
                 const tariff = firstContent.type === "isp" ? "IPV6_GB" : (firstContent as any).tariff;
                 if (tariff && ["RESIDENT_PREMIUM", "MOBILE_GB", "IPV6_GB", "PREMIUM_RESIDENTIAL", "MOBILE", "ISP_USA", "ISP_EU", "RESIDENTIAL_LITE"].includes(tariff)) {
-                    const userPackage = await this.prisma.userPackage.findUnique({
+                    const userPackage = await tx.userPackage.findUnique({
                         where: {
                             userId_type: {
                                 userId,
@@ -852,7 +869,7 @@ export class PaymentsService implements OnModuleInit {
                     userPackageId = firstContent.userPackageId;
                 } else {
                     // Ищем UserPackage для mobile
-                    const userPackage = await this.prisma.userPackage.findUnique({
+                    const userPackage = await tx.userPackage.findUnique({
                         where: {
                             userId_type: {
                                 userId,
@@ -865,11 +882,11 @@ export class PaymentsService implements OnModuleInit {
                     }
                 }
             } else if (firstContent.type === "package") {
-                const packageData = await this.prisma.package.findUnique({
+                const packageData = await tx.package.findUnique({
                     where: { id: (firstContent as any).packageId },
                 });
                 if (packageData) {
-                    const userPackage = await this.prisma.userPackage.findUnique({
+                    const userPackage = await tx.userPackage.findUnique({
                         where: {
                             userId_type: {
                                 userId,
@@ -885,7 +902,7 @@ export class PaymentsService implements OnModuleInit {
 
             // Возвращаем payment с userPackageId
             return {
-                ...savedPayment,
+                ...(await tx.payment.findUniqueOrThrow({ where: { id: savedPayment.id } })),
                 userPackageId,
             } as any;
         }
@@ -904,7 +921,7 @@ export class PaymentsService implements OnModuleInit {
             .withDiscount(discountMeta)
             .build();
 
-        return this.finalInvoice(payment);
+        return tx.payment.create({ data: payment });
     }
 
     async finalInvoice(payment: Prisma.PaymentCreateInput) {
@@ -933,10 +950,9 @@ export class PaymentsService implements OnModuleInit {
             payment.user?.connect?.id,
             invoiceDto,
         );
-        return this.create({
-            ...payment,
+        return this.prisma.payment.update({ where: { id: String(payment.id) }, data: {
             paymentUrl: "pay_url" in providerInvoice ? providerInvoice.pay_url : providerInvoice.url,
-        });
+        } });
     }
 
     async create(data: Prisma.PaymentCreateInput) {
@@ -986,6 +1002,7 @@ export class PaymentsService implements OnModuleInit {
     }
 
     async testCompletePayment(paymentId: string) {
+        if (!isDev(this.configService)) throw new ForbiddenException("Test payment completion is disabled outside development");
         const payment = await this.prisma.payment.findUnique({
             where: { id: paymentId },
             include: { user: true },
@@ -1066,10 +1083,28 @@ export class PaymentsService implements OnModuleInit {
         const ageSec = Number(this.configService.getOrThrow<number>("PAYMENT_LIFETIME") ?? 3600);
         if (!Number.isFinite(ageSec) || ageSec <= 0) return 0;
         const cutoff = new Date(Date.now() - ageSec * 1000);
-        const { count } = await this.prisma.payment.updateMany({
+        const payments = await this.prisma.payment.findMany({
             where: { status: PaymentStatus.WAITING, createdAt: { lt: cutoff } },
-            data: { status: PaymentStatus.CANCELLED },
+            select: { id: true },
         });
-        return count;
+        for (const payment of payments) await this.cancelPendingInvoice(payment.id);
+        return payments.length;
+    }
+
+    private async cancelPendingInvoice(id: string) {
+        await this.prisma.$transaction(async tx => {
+            const payment = await tx.payment.findUnique({ where: { id } });
+            if (!payment?.userId) return;
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${payment.userId}, 0))`;
+            const cancelled = await tx.payment.updateMany({
+                where: { id, status: PaymentStatus.WAITING }, data: { status: PaymentStatus.CANCELLED },
+            });
+            if (cancelled.count !== 1) return;
+            const discount = (payment.metadata as any)?.discount;
+            if (discount) {
+                await tx.user.update({ where: { id: payment.userId }, data: discount.kind === "trial"
+                    ? { trialDiscountAvailable: true } : { reviewDiscountAvailable: true } });
+            }
+        });
     }
 }

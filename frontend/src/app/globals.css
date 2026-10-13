@@ -11079,3 +11079,48 @@ html.light .sp-toast--loading { border-left: 3px solid #2f6bff !important; }
 @media (prefers-reduced-motion: reduce) {
 	.sp-toast { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+
+/* Admin surfaces share a light-theme contract; dark-only utility classes
+   must not leave white headings on the light application background. */
+html.light .sp-admin {
+	color: #0f172a;
+}
+html.light .sp-admin [class~="text-white"] {
+	color: #0f172a;
+}
+html.light .sp-admin [class*="text-white/"] {
+	color: #475569;
+}
+html.light .sp-admin [class*="placeholder:text-white"]::placeholder {
+	color: #64748b;
+}
+html.light .sp-admin :is(.glass-card, nav, [class*="bg-[linear-gradient"], [class*="!bg-[radial-gradient"]) {
+	background: #ffffff !important;
+	border-color: #dce3ed !important;
+	box-shadow: 0 18px 42px -32px rgba(15, 23, 42, .22);
+}
+html.light .sp-admin :is(input, textarea, select) {
+	background: #f8fafc !important;
+	border-color: #cbd5e1 !important;
+	color: #0f172a !important;
+}
+html.light .sp-admin :is(button, a)[class*="text-white"] {
+	color: #334155;
+}
+html.light .sp-admin :is(button, a)[class*="bg-gradient"],
+html.light .sp-admin :is(button, a)[class*="bg-[#0067FF]"],
+html.light .sp-admin :is(button, a)[class*="bg-primary"] {
+	color: #ffffff;
+}
+html.light .sp-admin [class*="border-white"] {
+	border-color: #dce3ed;
+}
+html.light .sp-admin :is([class*="text-emerald"], [class*="text-[#4ade80]"]) {
+	color: #047857;
+}
+html.light .sp-admin :is([class*="text-rose"], [class*="text-amber"]) {
+	color: #9f1239;
+}
+html.light .sp-admin :is([class*="text-[#6aa5ff]"], [class*="text-[#9cc3ff]"]) {
+	color: #2455bf;
+}

@@ -53,6 +53,8 @@ docker compose exec -T backend node scripts/gateway-audit.js --execute --confirm
 
 ## 6. Режим релиза
 
+После ретеста 9 октября Residential (Mango) временно выключен для новых покупок в `backend/src/shared/constants/sprint-gating.ts` и зеркале frontend. Возвращать его в продажи только после успешного `/user_info`, создания выделенного тестового субаккаунта, генерации и живой проверки списания. Затем убрать `RESIDENT_PREMIUM` из обоих gating-массивов, вернуть его в `ACTIVE_KEY_TARIFFS` frontend и обновить тест допустимых триалов; пересобрать backend/frontend. Старые пакеты и остатки при переключении не удалять.
+
 ```dotenv
 USE_NODE_GATEWAY=true
 MANGO_MODE=gateway

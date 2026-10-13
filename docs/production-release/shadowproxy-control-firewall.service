@@ -1,0 +1,13 @@
+[Unit]
+Description=Restrict ShadowProxy gateway management listener
+Before=proxy-agent-v2.service
+After=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/shadowproxy-control-firewall
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

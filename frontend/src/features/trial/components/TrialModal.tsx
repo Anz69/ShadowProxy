@@ -156,7 +156,7 @@ const TrialModal: FC<{ user?: User | null }> = ({ user }) => {
 	const T = (key: string) => t(key, locale)
 
 	const [selectedType, setSelectedType] = useState<TariffMeta["type"]>(
-		TARIFFS[0].type
+		TARIFFS.find(tf => !isProxyTypeDisabled(tf.type))!.type
 	)
 	const { getTrial, isLoading } = useTrial()
 	const { prices } = usePrices()

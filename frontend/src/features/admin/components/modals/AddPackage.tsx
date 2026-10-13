@@ -16,6 +16,7 @@ import Input from "@/shared/components/ui/Input"
 import Loader from "@/shared/components/ui/Loader/Loader"
 import { useModalStore } from "@/shared/components/ui/Modal/store/modal.store"
 import SegmentedControl from "@/shared/components/ui/SegmentedControl"
+import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
 
 const typeLabels: Record<RechargeableProxyType, string> = {
 	RESIDENT_PREMIUM: "Residential",
@@ -36,7 +37,6 @@ const reverseTypeLabels = new Map<string, RechargeableProxyType>()
 	.set("Mobile ГБ", "MOBILE_GB")
 	.set("IPv6 ГБ", "IPV6_GB")
 	.set("ISP USA", "ISP_USA")
-	.set("ISP Netherlands", "ISP_EU")
 	.set("Residential Lite", "RESIDENTIAL_LITE")
 
 type AddPackageProps = {
@@ -55,7 +55,9 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 	} = useForm<PackageDto>({
 		resolver: zodResolver(packageSchema),
 		defaultValues: {
-			type: (initialType as RechargeableProxyType) ?? "RESIDENT_PREMIUM",
+			type: initialType && !isProxyTypeDisabled(initialType)
+				? initialType as RechargeableProxyType
+				: "ISP_USA",
 			traffic: 1,
 			price: 0
 		}
@@ -93,9 +95,9 @@ const AddPackage: FC<AddPackageProps> = ({ initialType }) => {
 				Пакет — это быстрый объём (пресет) на странице оплаты с заданной ценой.
 			</p>
 			<SegmentedControl
-				options={["Residential", "Premium Residential", "Premium Mobile", "Mobile ГБ", "IPv6 ГБ", "ISP USA", "ISP Netherlands", "Residential Lite"]}
+			options={["Residential", "Premium Residential", "Premium Mobile", "Mobile ГБ", "IPv6 ГБ", "ISP USA", "Residential Lite"].filter(label => !isProxyTypeDisabled(reverseTypeLabels.get(label)))}
 				value={typeLabels[watch("type") as RechargeableProxyType]}
-				onChange={val => setValue("type", reverseTypeLabels.get(val) ?? "RESIDENT_PREMIUM")}
+				onChange={val => setValue("type", reverseTypeLabels.get(val) ?? "ISP_USA")}
 			/>
 			<div className="flex w-full flex-col gap-1">
 				<div className="flex w-full items-center justify-between">

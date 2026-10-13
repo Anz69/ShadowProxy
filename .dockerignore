@@ -1,0 +1,3 @@
+# AppleDouble sidecars are metadata, not TypeScript/JavaScript source.
+**/._*
+**/.DS_Store

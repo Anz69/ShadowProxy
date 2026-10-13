@@ -33,7 +33,7 @@ const CreateKey: FC = () => {
 	} = useForm<CreateKeyDto>({
 		resolver: zodResolver(createKeySchema),
 		defaultValues: {
-			tariff: "RESIDENT_PREMIUM",
+			tariff: ACTIVE_KEY_TARIFFS[0],
 			contents: 1,
 			quantity: 1
 		}

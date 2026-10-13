@@ -497,6 +497,7 @@
 		"referralBalance": "Referral Balance",
 		"total": "Total",
 		"buy": "Buy",
+		"pay": "Pay",
 		"loading": "Loading...",
 		"successMessage": "Payment successfully created. You will be redirected to the payment page",
 		"statuses": {
@@ -549,6 +550,7 @@
 		"active": "Active",
 		"finished": "Package finished",
 		"replenishGb": "Replenish GB",
+		"temporarilyUnavailable": "New purchases are temporarily unavailable. Your package and remaining traffic are preserved.",
 		"replenishTime": "Replenish Time",
 		"activateKey": "Activate Key",
 		"timeExpired": "Time expired",

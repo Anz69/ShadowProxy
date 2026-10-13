@@ -54,9 +54,10 @@ export class CryptoBotProvider {
     }
 
     verifyWebhookSignature(body: CryptoBotWebhookDataType, signature: string) {
+        if (typeof signature !== "string" || !/^[a-f0-9]{64}$/i.test(signature)) return false;
         const secret = createHash("sha256").update(this.configService.getOrThrow<string>("CRYPTO_BOT_API_KEY")).digest();
         const checkString = JSON.stringify(body);
         const hmac = createHmac("sha256", secret).update(checkString).digest("hex");
-        return timingSafeEqual(Buffer.from(hmac), Buffer.from(signature));
+        return timingSafeEqual(Buffer.from(hmac, "hex"), Buffer.from(signature, "hex"));
     }
 }

@@ -68,7 +68,7 @@ export function useReplenishLogic({
 	const pathname = usePathname()
 	const queryClient = useQueryClient()
 	const currentLocale = getLocaleFromPath(pathname)
-	const [tariff, setTariffState] = useState<ReplenishTariff>("RESIDENT_PREMIUM")
+	const [tariff, setTariffState] = useState<ReplenishTariff>("ISP_USA")
 	const [merchant, setMerchant] = useState<Merchant>("CRYPTO_BOT")
 	const [asset, setAsset] = useState<AvailableAssets>("USDT")
 	const [isSuccess, setIsSuccess] = useState(false)

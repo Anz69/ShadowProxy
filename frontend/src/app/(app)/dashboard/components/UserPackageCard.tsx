@@ -249,6 +249,7 @@ export default function UserPackageCard({ userPackage, user, prices, plans = [] 
 	const showStars = stars > 0
 
 	const trafficInfo = getTrafficByPackageType(packageType, user, prices, T, userPackage, currentTime)
+	const packageHasTraffic = hasTraffic(packageType, user, userPackage, currentTime)
 
 	// Вычисляем оставшееся время аренды для MOBILE пакетов
 	const remainingTime = useMemo(() => {
@@ -329,10 +330,15 @@ export default function UserPackageCard({ userPackage, user, prices, plans = [] 
 								{T("package.active")}
 							</span>
 						)
-					) : (
+					) : packageHasTraffic ? (
 						<span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6aa5ff]">
 							<span className="h-1.5 w-1.5 rounded-full bg-[#6aa5ff] shadow-[0_0_8px_rgba(106,165,255,0.9)]" />
 							{T("package.active")}
+						</span>
+					) : (
+						<span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#FFD964] light:text-[#d97706]">
+							<AlertCircle size={16} />
+							{T("package.finished")}
 						</span>
 					)}
 				</div>
@@ -341,12 +347,6 @@ export default function UserPackageCard({ userPackage, user, prices, plans = [] 
 					<div className="flex flex-wrap items-center justify-between gap-2">
 						<span className="text-[13px] text-white/45">{trafficInfo.label}</span>
 						<span className="text-[14px] font-medium text-white/80 light:text-[#475467]">{trafficInfo.value}</span>
-						{!hasTraffic(packageType, user, userPackage, currentTime) && packageType !== "MOBILE" && (
-							<span className="inline-flex w-full items-center gap-1.5 rounded-lg bg-[#FFD964]/15 px-2.5 py-1 text-[12px] font-medium text-[#FFD964] light:bg-[#f59e0b]/[0.14] light:text-[#d97706]">
-								<AlertCircle size={16} style={{ opacity: 0.6 }} />
-								{T("package.finished")}
-							</span>
-						)}
 					</div>
 				)}
 			</div>

@@ -256,7 +256,6 @@ export class ProxyServerService {
 
         return {
             success: true,
-            token: server.token,
             server_id: server.host,
             message: 'Сервер успешно зарегистрирован'
         };

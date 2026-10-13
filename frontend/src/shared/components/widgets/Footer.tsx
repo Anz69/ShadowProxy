@@ -10,6 +10,7 @@ import { getLocaleFromPath, addLocaleToPath } from "@/shared/utils/getLocaleFrom
 import { t } from "@/shared/utils/i18n"
 import type { SupportedLocale } from "@/shared/utils/i18n"
 import ThemeToggle from "@/app/(app)/components/ThemeToggle"
+import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
 
 type FooterProps = {
 	locale?: SupportedLocale
@@ -88,9 +89,9 @@ const Footer: FC<FooterProps> = ({ locale: localeProp }) => {
 
 					<div className="ft__col">
 						<h4>{T("footer.columns.product")}</h4>
-						<Link href={link("/")}>{T("footer.product.residential")}</Link>
+						{!isProxyTypeDisabled("RESIDENT_PREMIUM") && <Link href={link("/")}>{T("footer.product.residential")}</Link>}
 						<Link href={link("/")}>{T("footer.product.ispUsa")}</Link>
-						<Link href={link("/")}>{T("footer.product.ispEu")}</Link>
+						{!isProxyTypeDisabled("ISP_EU") && <Link href={link("/")}>{T("footer.product.ispEu")}</Link>}
 						<Link href={link("/")}>{T("footer.product.residentialLite")}</Link>
 						<Link href={link("/")}>{T("footer.product.mobile")}</Link>
 						<Link href={link("/")}>{T("footer.product.premiumResidential")}</Link>

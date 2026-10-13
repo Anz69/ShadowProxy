@@ -35,7 +35,7 @@ const usernamesFile = args.find((arg) => arg.startsWith("--usernames-file="))?.s
 const scopeConfirmation = args.find((arg) => arg.startsWith("--confirm-scope="))?.split("=").slice(1).join("=");
 const reportFile = args.find((arg) => arg.startsWith("--report-file="))?.split("=").slice(1).join("=");
 const timeoutArg = args.find((arg) => arg.startsWith("--timeout-ms="))?.split("=").slice(1).join("=");
-const timeoutMs = timeoutArg ? Number(timeoutArg) : 30_000;
+const timeoutMs = timeoutArg ? Number(timeoutArg) : 8_000;
 
 if (!["audit", "zero", "restore"].includes(mode)) {
   throw new Error("Режим: audit | zero | restore");
@@ -140,6 +140,7 @@ async function main() {
   // Fail-closed preflight: до первого изменения должны читаться абсолютно все цели.
   const currentByUsername = new Map();
   const preflightFailures = [];
+  let abortedOnUpstreamFailure = false;
   for (const [username, item] of targets) {
     try {
       const currentMb = await getFlow(username);
@@ -149,13 +150,26 @@ async function main() {
       preflightFailures.push({ username, error: error.message });
       report.entries.push({ username, userId: item.userId, source: item.source, status: "preflight-failed", error: error.message });
       console.error(`[PREFLIGHT FAIL] ${username}: ${error.message}`);
+      // Один timeout/HTTP-сбой означает недоступность API. Дальнейшие запросы
+      // лишь задерживают безопасную остановку и не могут разрешить мутацию.
+      if (!error.response || error.response.status >= 500) {
+        abortedOnUpstreamFailure = true;
+        break;
+      }
     }
   }
   if (preflightFailures.length) {
     report.finishedAt = new Date().toISOString();
-    report.summary = { changed: 0, unchanged: 0, failed: preflightFailures.length, abortedBeforeMutation: true };
+    report.summary = {
+      changed: 0,
+      unchanged: 0,
+      failed: preflightFailures.length,
+      unattempted: targets.size - report.entries.length,
+      abortedBeforeMutation: true,
+      abortedOnUpstreamFailure,
+    };
     persistReport();
-    throw new Error(`Preflight не пройден для ${preflightFailures.length} аккаунтов; изменения не выполнялись`);
+    throw new Error(`Preflight: ошибок ${preflightFailures.length}, не проверено ${report.summary.unattempted} из ${targets.size}; изменения не выполнялись`);
   }
   report.preflightPassed = true;
   persistReport();

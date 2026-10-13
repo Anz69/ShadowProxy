@@ -19,7 +19,7 @@ describe("MangoProxyProvider account provisioning", () => {
         };
         logger = { log: jest.fn().mockResolvedValue(undefined), error: jest.fn().mockResolvedValue(undefined) };
         provider = new MangoProxyProvider(
-            { getOrThrow: (key: string) => key } as any,
+            { getOrThrow: (key: string) => key, get: (key: string, fallback: string) => key === "MANGO_MODE" ? "gateway" : fallback } as any,
             userService as any,
             logger as any,
             {} as any,
@@ -68,5 +68,30 @@ describe("MangoProxyProvider account provisioning", () => {
 
         expect(post).toHaveBeenCalledTimes(2);
         expect(userService.updateById).not.toHaveBeenCalled();
+    });
+
+    it("bounds Mango API requests when the upstream stops responding", () => {
+        expect(axios.create).toHaveBeenCalledWith(expect.objectContaining({ timeout: 8000 }));
+    });
+
+    it("does not top up when Mango user_info has no verified remaining flow", async () => {
+        post.mockResolvedValueOnce({ status: 200, data: { code: "0" } });
+
+        await provider.ensureMangoFlow("mango-user:account:password");
+
+        expect(post).toHaveBeenCalledTimes(1);
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("/user_info returned invalid flow"));
+    });
+
+    it("does not report an unsuccessful Mango top-up as completed", async () => {
+        post
+            .mockResolvedValueOnce({ status: 200, data: { code: "1", ret_data: { last_flow: 0 } } })
+            .mockResolvedValueOnce({ status: 200, data: { code: "0", msg: "rejected" } });
+
+        await provider.ensureMangoFlow("mango-user:account:password");
+
+        expect(post).toHaveBeenCalledTimes(2);
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("/add_user_flow failed"));
+        expect(logger.log).not.toHaveBeenCalledWith("SYSTEM", expect.stringContaining("Mango unlock:"));
     });
 });

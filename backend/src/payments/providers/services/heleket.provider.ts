@@ -72,7 +72,8 @@ export class HeleketProvider {
 
     verifyWebhookSignature(data: HeleketWebhookData) {
         const { sign, ...body } = data;
+        if (typeof sign !== "string" || !/^[a-f0-9]{32}$/i.test(sign)) return false;
         const signedData = this.signBody(body);
-        return timingSafeEqual(Buffer.from(signedData), Buffer.from(sign));
+        return timingSafeEqual(Buffer.from(signedData, "hex"), Buffer.from(sign, "hex"));
     }
 }

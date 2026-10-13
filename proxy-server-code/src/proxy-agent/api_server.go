@@ -13,11 +13,11 @@ import (
 
 // APIServer serves HTTP API for backend commands
 type APIServer struct {
-	config   *Config
-	auth     *AuthRegistry
-	connMgr  *ConnectionManager
-	tracker  *TrafficTracker
-	server   *http.Server
+	config  *Config
+	auth    *AuthRegistry
+	connMgr *ConnectionManager
+	tracker *TrafficTracker
+	server  *http.Server
 }
 
 // NewAPIServer creates a new API server
@@ -40,7 +40,7 @@ func (s *APIServer) Start() error {
 	mux.HandleFunc("/stop", s.requireAuth(s.stopHandler))
 	mux.HandleFunc("/block-login", s.requireAuth(s.blockLoginHandler))
 	mux.HandleFunc("/traffic-stats", s.requireAuth(s.trafficStatsHandler))
-	mux.HandleFunc("/test-proxy", s.testProxyHandler)
+	mux.HandleFunc("/test-proxy", s.requireAuth(s.testProxyHandler))
 
 	addr := fmt.Sprintf("0.0.0.0:%d", s.config.APIPort)
 	s.server = &http.Server{
@@ -95,10 +95,10 @@ func (s *APIServer) healthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":       "ok",
-		"message":      "Agent is healthy",
+		"status":        "ok",
+		"message":       "Agent is healthy",
 		"active_logins": activeLogins,
-		"count":        len(activeLogins),
+		"count":         len(activeLogins),
 	})
 }
 
@@ -311,11 +311,11 @@ func (s *APIServer) trafficStatsHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"login":                login,
-		"in_bytes":             inBytes,
-		"out_bytes":            outBytes,
-		"reported_in_bytes":    reportedInBytes,
-		"reported_out_bytes":   reportedOutBytes,
+		"login":              login,
+		"in_bytes":           inBytes,
+		"out_bytes":          outBytes,
+		"reported_in_bytes":  reportedInBytes,
+		"reported_out_bytes": reportedOutBytes,
 	})
 }
 

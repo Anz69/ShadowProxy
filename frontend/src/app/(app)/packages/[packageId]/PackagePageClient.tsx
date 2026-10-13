@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { AlertCircle, Plus, KeyRound, LifeBuoy } from "lucide-react"
@@ -18,8 +17,9 @@ import type { Package } from "@/features/packages/types/packages.types"
 import type { User } from "@/features/user/types/user.types"
 import { formatTraffic } from "@/shared/utils/format-traffic"
 import { formatSeconds } from "@/shared/utils/format-seconds"
-import { userService } from "@/features/user/services/user.service"
+import { useCurrentSessionUser } from "@/features/user/hooks/useCurrentSessionUser"
 import type { Prices } from "@/features/proxy/types/proxy.types"
+import { isProxyTypeDisabled } from "@/shared/constants/sprint-gating"
 
 type PackagePageClientProps = {
 	packageData: Package
@@ -130,24 +130,8 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 		!!myReview?.eligible &&
 		!myReview?.reviewDiscountGranted
 	
-	const [user, setUser] = useState<User | null>(initialUser)
-
-	useEffect(() => {
-		if (!initialUser) return
-
-		const updateUserData = async () => {
-			try {
-				const updatedUser = await userService.getMe()
-				setUser(updatedUser)
-			} catch (error) {
-				console.error("Ошибка при обновлении данных пользователя:", error)
-			}
-		}
-
-		updateUserData()
-		const interval = setInterval(updateUserData, 60000)
-		return () => clearInterval(interval)
-	}, [initialUser])
+	const { data: refreshedUser } = useCurrentSessionUser(initialUser, 30_000)
+	const user = refreshedUser && refreshedUser.id === initialUser?.id ? refreshedUser : initialUser
 
 	const getLocalizedPath = (path: string) => {
 		return addLocaleToPath(path, currentLocale)
@@ -220,12 +204,14 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 	const isActive = hasTraffic(packageType, user)
 
 	const handleReplenish = () => {
+		if (isProxyTypeDisabled(packageType)) return
 		let tariff = "RESIDENT"
 		if (packageType === "RESIDENT_PREMIUM") tariff = "RESIDENT_PREMIUM"
 		else if (packageType === "IPV6_GB") tariff = "IPV6"
 		else if (packageType === "MOBILE_GB") tariff = "MOBILE"
 		else if (packageType === "MOBILE") tariff = "MOBILE"
 		else if (packageType === "PREMIUM_RESIDENTIAL") tariff = "PREMIUM_RESIDENTIAL"
+		else if (packageType === "ISP_USA" || packageType === "RESIDENTIAL_LITE") tariff = packageType
 		router.push(`${getLocalizedPath("/payment")}?tariff=${tariff}`)
 	}
 
@@ -285,14 +271,18 @@ export default function PackagePageClient({ packageData, user: initialUser, pric
 						</div>
 
 						<div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:flex-col xl:flex-row">
-							<button
+							{isProxyTypeDisabled(packageType) ? (
+								<p role="status" className="max-w-sm rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm leading-relaxed text-amber-200 light:border-amber-600/25 light:bg-amber-50 light:text-amber-900">
+									{T("package.temporarilyUnavailable")}
+								</p>
+							) : <button
 								type="button"
 								onClick={handleReplenish}
 								className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#4f8dff] to-[#2f6bff] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_16px_44px_-14px_rgba(59,130,246,0.85)] transition-transform duration-200 hover:-translate-y-0.5"
 							>
 								<Plus className="h-[18px] w-[18px]" strokeWidth={2.6} />
 								{T("package.replenishGb")}
-							</button>
+							</button>}
 							<button
 								type="button"
 								onClick={() => open(<RedeemKeyModal />)}

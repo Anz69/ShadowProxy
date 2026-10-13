@@ -5,6 +5,7 @@ import { LoggerService } from "../logger/logger.service";
 import { Prisma, ProxyStatus, ProxyType } from "@prisma/client";
 import { isDevEnv } from "../shared/utils/is-dev";
 import { NodeService } from "../node/node.service";
+import { timingSafeEqual } from "crypto";
 
 // These are the only database columns used by traffic accounting. Keep this
 // allowlist next to the raw SQL below so the dynamic identifier can never come
@@ -30,7 +31,23 @@ export class ProxyNodeController {
         private nodeService: NodeService,
     ) {}
 
-    // Регистрация прокси-ноды (для агентов, без авторизации)
+    private async authenticateNode(serverId: string, req: any) {
+        const bearer = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
+        if (!serverId || !bearer) throw new UnauthorizedException("Требуются идентификатор и токен прокси-ноды");
+        const server = await this.prisma.proxyServer.findFirst({
+            where: { host: serverId, status: "ACTIVE" },
+            select: { host: true, token: true },
+        });
+        if (!server?.token) throw new UnauthorizedException("Неизвестная прокси-нода");
+        const expected = Buffer.from(server.token);
+        const received = Buffer.from(bearer);
+        if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+            throw new UnauthorizedException("Неверный токен прокси-сервера");
+        }
+        return server;
+    }
+
+    // Регистрация допускается только с заранее выданным администратором токеном.
     // IP сервера: body.ip или body.server_id (для дебага) → иначе x-forwarded-for / req.ip
     @Post("/register")
     @HttpCode(HttpStatus.OK)
@@ -41,11 +58,11 @@ export class ProxyNodeController {
         const serverIp = body.ip ?? body.server_id ?? requestIp;
 
         this.logger.log(`[REGISTER] Запрос от IP: ${requestIp}, сервер для регистрации: ${serverIp}`);
-        this.logger.log(`[REGISTER] Body: ${JSON.stringify(body)}`);
 
         if (!serverIp) {
             throw new BadRequestException("Не удалось определить IP адрес сервера (передайте ip или server_id в body, или запрос должен содержать X-Forwarded-For / req.ip)");
         }
+        await this.authenticateNode(serverIp, req);
 
         try {
             const result = await this.proxyServerService.registerProxyNode(serverIp);
@@ -67,25 +84,7 @@ export class ProxyNodeController {
     @HttpCode(HttpStatus.OK)
     async receiveTraffic(@Body() body: any, @Req() req: any) {
         const serverId = typeof body.server_id === "string" ? body.server_id.trim() : "";
-        const reportingServer = serverId
-            ? await this.prisma.proxyServer.findFirst({
-                  where: { host: serverId },
-                  select: { host: true, token: true },
-              })
-            : null;
-
-        // Новые агенты передают реальный server_id. Для них проверяем тот же токен,
-        // которым защищён control-plane, и привязываем login к конкретному gateway.
-        // Legacy server_id пока принимается для плавного обновления старых нод.
-        if (serverId && !reportingServer) {
-            throw new UnauthorizedException("Неизвестная прокси-нода");
-        }
-        if (reportingServer) {
-            const bearer = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
-            if (!reportingServer.token || bearer !== reportingServer.token) {
-                throw new UnauthorizedException("Неверный токен прокси-сервера");
-            }
-        }
+        const reportingServer = await this.authenticateNode(serverId, req);
 
         const batchId = typeof body.batch_id === "string" ? body.batch_id.trim() : "";
         if (batchId && !/^[a-f0-9]{32}$/i.test(batchId)) {

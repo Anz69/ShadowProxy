@@ -5,188 +5,93 @@ import { type FC } from "react"
 import { useForm } from "react-hook-form"
 import toast from "react-hot-toast"
 
-import {
-	type ModifyTrafficDto,
-	modifyTrafficSchema
-} from "@/features/admin/schemas/mofify-traffic.schema"
+import { type ModifyTrafficDto, modifyTrafficSchema } from "@/features/admin/schemas/mofify-traffic.schema"
 import { useModifyUserTraffic } from "@/features/user/hooks/useModifyUserTraffic"
 import type { AdminUser } from "@/features/user/types/user.types"
-
 import Button from "@/shared/components/ui/Button"
 import Footnote from "@/shared/components/ui/Footnote"
 import Input from "@/shared/components/ui/Input"
 import Loader from "@/shared/components/ui/Loader/Loader"
 
-type ModifyUserTrafficProps = {
-	user: AdminUser
-}
+type ModifyUserTrafficProps = { user: AdminUser }
+
+const GIB = 1024 ** 3
+const trafficFields = [
+	{ key: "premiumTrafficLeft", label: "Residential Proxy" },
+	{ key: "premiumResidentialTrafficLeft", label: "Premium Residential" },
+	{ key: "ispUsaTrafficLeft", label: "ISP USA" },
+	{ key: "residentialLiteTrafficLeft", label: "Residential Lite" },
+	{ key: "mobileGbTrafficLeft", label: "Mobile GB" },
+	{ key: "mobileTrafficLeft", label: "Premium Mobile" }
+] as const
+
+const toGb = (bytes: string | null | undefined): number => Number(bytes || "0") / GIB
+// Совпадает с точностью backend (целые KiB), чтобы UI не пропускал скрытое уменьшение.
+const toBytes = (gb: number): bigint => BigInt(Math.round(gb * 1024 ** 2)) * BigInt(1024)
 
 const ModifyUserTraffic: FC<ModifyUserTrafficProps> = ({ user }) => {
 	const { modifyTraffic, isLoading } = useModifyUserTraffic()
 	const {
 		register,
 		handleSubmit,
-		formState: { errors },
+		formState: { errors, dirtyFields },
 		setError
 	} = useForm<ModifyTrafficDto>({
 		resolver: zodResolver(modifyTrafficSchema),
-		defaultValues: {
-			premiumTrafficLeft: Number(
-				Number(
-					BigInt(user.premiumTrafficLeft) / BigInt(1024 ** 3)
-				).toFixed(2)
-			),
-			mobileGbTrafficLeft: Number(
-				Number(
-					BigInt(user.mobileGbTrafficLeft || "0") / BigInt(1024 ** 3)
-				).toFixed(2)
-			),
-			ipv6GbTrafficLeft: Number(
-				Number(
-					BigInt(user.ipv6GbTrafficLeft || "0") / BigInt(1024 ** 3)
-				).toFixed(2)
-			),
-			premiumResidentialTrafficLeft: Number(
-				Number(
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					BigInt((user as any).premiumResidentialTrafficLeft || "0") / BigInt(1024 ** 3)
-				).toFixed(2)
-			),
-			mobileTrafficLeft: Number(
-				Number(
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					BigInt((user as any).mobileTrafficLeft || "0") / BigInt(1024 ** 3)
-				).toFixed(2)
-			)
-		}
+		defaultValues: Object.fromEntries(
+			trafficFields.map(({ key }) => [key, toGb(user[key])])
+		) as ModifyTrafficDto
 	})
 
-	const onSubmit = (dto: ModifyTrafficDto) => {
-		if (
-			dto.premiumTrafficLeft <
-			Number(BigInt(user.premiumTrafficLeft) / BigInt(1024 ** 3))
-		) {
-			setError("premiumTrafficLeft", {
-				message: "Трафик не может быть меньше, чем был"
-			})
-			return
-		}
-		if (
-			dto.mobileGbTrafficLeft <
-			Number(BigInt(user.mobileGbTrafficLeft || "0") / BigInt(1024 ** 3))
-		) {
-			setError("mobileGbTrafficLeft", {
-				message: "Трафик не может быть меньше, чем был"
-			})
-			return
-		}
-		if (
-			dto.ipv6GbTrafficLeft <
-			Number(BigInt(user.ipv6GbTrafficLeft || "0") / BigInt(1024 ** 3))
-		) {
-			setError("ipv6GbTrafficLeft", {
-				message: "Трафик не может быть меньше, чем был"
-			})
-			return
-		}
-		modifyTraffic(
-			{
-				id: user.id,
-				dto
-			},
-			{
-				onSuccess: () => {
-					toast.success("Трафик пользователя успешно сохранён!")
-				},
-				onError: ({ message }) =>
-					setError("root", {
-						message
-					})
+	const onSubmit = (values: ModifyTrafficDto) => {
+		const dto: ModifyTrafficDto = {}
+		for (const { key } of trafficFields) {
+			if (!dirtyFields[key]) continue
+			const value = values[key]
+			if (value === undefined) continue
+			if (toBytes(value) < BigInt(user[key] || "0")) {
+				setError(key, { message: "Трафик не может быть меньше текущего остатка" })
+				return
 			}
-		)
+			dto[key] = value
+		}
+
+		if (Object.keys(dto).length === 0) {
+			setError("root", { message: "Сначала измените нужный баланс" })
+			return
+		}
+
+		modifyTraffic({ id: user.id, dto }, {
+			onSuccess: () => toast.success("Трафик пользователя сохранён"),
+			onError: ({ message }) => setError("root", { message })
+		})
 	}
 
 	return (
-		<form
-			className="flex w-full flex-col items-center gap-4"
-			onSubmit={handleSubmit(onSubmit)}
-		>
-			<h2 className="text-body text-3xl font-semibold">
-				Изменение трафика
-			</h2>
-			<div className="flex w-full flex-col">
-				<span className="text-body/50 text-lg font-medium">
-					Residential Proxy (Delvin23)
-				</span>
-				<Input
-					type="number"
-					step="0.001"
-					rightLabel="Гб"
-					error={errors.premiumTrafficLeft?.message}
-					{...register("premiumTrafficLeft", {
-						valueAsNumber: true
-					})}
-				/>
+		<form className="flex w-full min-w-0 flex-col gap-5" onSubmit={handleSubmit(onSubmit)}>
+			<div className="pr-8">
+				<h2 className="text-body text-2xl font-semibold sm:text-3xl">Изменение трафика</h2>
+				<p className="text-body/60 mt-1 text-sm">Укажите новый остаток в ГБ. Неизменённые тарифы сохранятся как есть.</p>
 			</div>
-			<div className="flex w-full flex-col">
-				<span className="text-body/50 text-lg font-medium">
-					Premium Residential (ProxyEmpire)
-				</span>
-				<Input
-					type="number"
-					step="0.001"
-					rightLabel="Гб"
-					error={errors.premiumResidentialTrafficLeft?.message}
-					{...register("premiumResidentialTrafficLeft", {
-						valueAsNumber: true
-					})}
-				/>
+			<div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+				{trafficFields.map(({ key, label }) => (
+					<div className="min-w-0" key={key}>
+						<label className="text-body/75 mb-1.5 block text-sm font-medium" htmlFor={`traffic-${key}`}>{label}</label>
+						<Input
+							id={`traffic-${key}`}
+							type="number"
+							min="0"
+							step="any"
+							inputMode="decimal"
+							className="min-h-11 pr-14"
+							rightLabel="ГБ"
+							error={errors[key]?.message}
+							{...register(key, { valueAsNumber: true })}
+						/>
+					</div>
+				))}
 			</div>
-			<div className="flex w-full flex-col">
-				<span className="text-body/50 text-lg font-medium">
-					Mobile GB
-				</span>
-				<Input
-					type="number"
-					step="0.001"
-					rightLabel="Гб"
-					error={errors.mobileGbTrafficLeft?.message}
-					{...register("mobileGbTrafficLeft", {
-						valueAsNumber: true
-					})}
-				/>
-			</div>
-			<div className="flex w-full flex-col">
-				<span className="text-body/50 text-lg font-medium">
-					Mobile (ProxyEmpire)
-				</span>
-				<Input
-					type="number"
-					step="0.001"
-					rightLabel="Гб"
-					error={errors.mobileTrafficLeft?.message}
-					{...register("mobileTrafficLeft", {
-						valueAsNumber: true
-					})}
-				/>
-			</div>
-			<div className="flex w-full flex-col">
-				<span className="text-body/50 text-lg font-medium">
-					IPv6 прокси
-				</span>
-				<Input
-					type="number"
-					step="0.001"
-					rightLabel="Гб"
-					error={errors.ipv6GbTrafficLeft?.message}
-					{...register("ipv6GbTrafficLeft", {
-						valueAsNumber: true
-					})}
-				/>
-			</div>
-			{errors.root?.message && (
-				<Footnote variant="error">{errors.root.message}</Footnote>
-			)}
+			{errors.root?.message && <Footnote variant="error">{errors.root.message}</Footnote>}
 			<Button variant="fill" type="submit" disabled={isLoading}>
 				{isLoading ? <Loader /> : "Сохранить"}
 			</Button>

@@ -9,8 +9,8 @@ import { generateRandomString } from "../../../shared/utils/generate-random-stri
  * клиентские креды и serverHost навешивает proxy.service (как у MOBILE_GB/IPV6_GB).
  *
  * Формат upstream-строки (кладётся в proxy_username на гейтвей):
- *   BY_REQUEST: w8z673e2dx-country-US
- *   BY_TIME:    w8z673e2dx-country-US-time-{МИН}-session-{SESSION_ID}
+ *   BY_REQUEST: {FLASH_ISP_USA_USERNAME}-country-US
+ *   BY_TIME:    {FLASH_ISP_USA_USERNAME}-country-US-time-{МИН}-session-{SESSION_ID}
  */
 @Injectable()
 export class IspUsaProvider {

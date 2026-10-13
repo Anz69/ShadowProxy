@@ -17,12 +17,14 @@ type TransactionHistoryProps = {
 	payments: Invoice[]
 	packages: Package[]
 	locale?: SupportedLocale
+	bounded?: boolean
 }
 
 const TransactionHistory: FC<TransactionHistoryProps> = ({
 	payments,
 	packages,
-	locale = "ru"
+	locale = "ru",
+	bounded = false
 }) => {
 	const T = (key: string) => t(key, locale)
 	const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -130,14 +132,9 @@ const TransactionHistory: FC<TransactionHistoryProps> = ({
 	})
 
 	return (
-		<div className="flex w-full flex-col rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)] p-5 sm:p-6 shadow-[0_30px_70px_-44px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] light:border-[#e6e8ef] light:bg-none light:bg-white light:shadow-[0_24px_60px_-44px_rgba(14,16,25,0.14)]">
+		<div className={`flex w-full flex-col rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)] p-5 sm:p-6 shadow-[0_30px_70px_-44px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] light:border-[#e6e8ef] light:bg-none light:bg-white light:shadow-[0_24px_60px_-44px_rgba(14,16,25,0.14)] ${bounded ? "h-full min-h-0" : ""}`}>
 			{/* collapsible header */}
-			<button
-				type="button"
-				onClick={() => setOpen(o => !o)}
-				className="flex w-full items-center justify-between gap-3"
-				aria-expanded={open}
-			>
+			<div className="flex w-full shrink-0 items-center justify-between gap-3">
 				<span className="flex items-center gap-2.5">
 					<h2 className="font-[TalosDisplay] text-white text-xl font-bold light:text-[#0e1019]">
 						{T("payment.history")}
@@ -146,18 +143,18 @@ const TransactionHistory: FC<TransactionHistoryProps> = ({
 						{visiblePayments.length}
 					</span>
 				</span>
-				<ChevronDown className={`h-5 w-5 flex-shrink-0 text-white/40 transition-transform duration-300 light:text-[#8a93a3] ${open ? "rotate-180" : ""}`} />
-			</button>
+				{!bounded && <button type="button" onClick={() => setOpen(o => !o)} aria-label={T("payment.history")} aria-expanded={open} className="flex h-11 w-11 items-center justify-center"><ChevronDown className={`h-5 w-5 flex-shrink-0 text-white/40 transition-transform duration-300 light:text-[#8a93a3] ${open ? "rotate-180" : ""}`} /></button>}
+			</div>
 
 			{/* collapsible body (grid-rows trick for smooth height animation) */}
-			<div className={`grid transition-[grid-template-rows,margin] duration-300 ease-out ${open ? "mt-4 grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-				<div className="overflow-hidden">
+			<div className={bounded ? "mt-4 min-h-0 flex-1 overflow-hidden" : `grid transition-[grid-template-rows,margin] duration-300 ease-out ${open ? "mt-4 grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+				<div className={`overflow-hidden ${bounded ? "h-full min-h-0" : ""}`}>
 					{visiblePayments.length === 0 ? (
 						<div className="rounded-[14px] border border-white/[0.06] bg-white/[0.02] px-3 py-6 text-center text-[14px] text-white/45 light:border-[#eef0f4] light:bg-[#f8f9fc] light:text-[#8a93a3]">
 							{T("payment.history")}: 0
 						</div>
 					) : (
-						<div className="flex max-h-[340px] flex-col gap-1.5 overflow-y-auto pr-1 [mask-image:linear-gradient(to_bottom,#000_90%,transparent)]">
+						<div aria-label={T("payment.history")} tabIndex={0} className={`flex flex-col gap-1.5 overflow-y-auto overscroll-contain pr-1 ${bounded ? "h-full min-h-0" : "max-h-[340px]"}`}>
 							{visiblePayments.map((el) => {
 					const metadata = parseMetadata(el.metadata.contents[0])
 					return (

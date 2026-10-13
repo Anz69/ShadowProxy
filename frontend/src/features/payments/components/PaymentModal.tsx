@@ -359,7 +359,7 @@ const PaymentModal: FC<PaymentModalProps> = ({
 					</>
 				) : (
 					<>
-						<span>{T("payment.buy")}</span>
+						<span>{T("payment.pay")}</span>
 						<ArrowRightIcon />
 					</>
 				)}

@@ -63,7 +63,6 @@ const RegisterForm: FC<RegisterFormProps> = ({ embedded, onSwitchMode }) => {
 	const { registerUser, isLoading } = useRegister()
 
 	const onSubmit = (dto: RegisterDto) => {
-		console.log("RegisterForm onSubmit:", dto)
 		if (!isTermsAccepted) {
 			setError("root", {
 				message: T("auth.register.termsRequired")
@@ -87,13 +86,11 @@ const RegisterForm: FC<RegisterFormProps> = ({ embedded, onSwitchMode }) => {
 				recaptcha: recaptchaValue ?? undefined
 			},
 			{
-				onSuccess: async (data) => {
-					console.log("RegisterForm onSuccess:", data)
+				onSuccess: async () => {
 					const localizedPath = getLocalizedPath(pathname, "/auth/email-verification")
 					await router.push(localizedPath)
 				},
 				onError: e => {
-					console.log("RegisterForm onError:", e)
 					setError("root", {
 						message: e.message
 					})

@@ -122,7 +122,17 @@ describe("ProxyNodeController traffic accounting", () => {
 
     it("rejects reports from an unknown gateway host", async () => {
         prisma.proxyServer.findFirst.mockResolvedValueOnce(null);
-        await expect(controller.receiveTraffic({ server_id: "203.0.113.99", logs: [] }, { headers: {} })).rejects.toThrow("Неизвестная прокси-нода");
+        await expect(controller.receiveTraffic({ server_id: "203.0.113.99", logs: [] }, { headers: { authorization: "Bearer token" } })).rejects.toThrow("Неизвестная прокси-нода");
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it.each([{}, { server_id: "" }, { server_id: activeHost }])("rejects anonymous and legacy reports before changing data", async body => {
+        await expect(controller.receiveTraffic({ ...body, logs: [{ user: "qa-login", in_bytes: 99 }] }, { headers: {} })).rejects.toThrow();
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it("requires authentication before registering a gateway", async () => {
+        await expect(controller.registerProxyNode({ ip: activeHost }, { headers: {} })).rejects.toThrow();
         expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 });

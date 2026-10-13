@@ -64,7 +64,6 @@ const LoginForm: FC<LoginFormProps> = ({ embedded, onSwitchMode }) => {
 	const { login, isLoading } = useLogin()
 
 	const onSubmit = (dto: LoginDto) => {
-		console.log("LoginForm onSubmit:", dto)
 		setReason(null)
 		if (!isTermsAccepted) {
 			setError("root", {
@@ -85,14 +84,11 @@ const LoginForm: FC<LoginFormProps> = ({ embedded, onSwitchMode }) => {
 				recaptcha: recaptchaValue ?? undefined
 			},
 			{
-				onSuccess: async (data) => {
-					console.log("LoginForm onSuccess:", data)
-					console.log("All cookies:", document.cookie)
+				onSuccess: async () => {
 					const localizedPath = getLocalizedPath(pathname, "/dashboard")
 					await router.push(localizedPath)
 				},
 				onError: e => {
-					console.log("LoginForm onError:", e)
 					// Сбрасываем reCAPTCHA — token одноразовый, после ошибки
 					// сервер ответит "no longer valid / already used" на повторный submit.
 					recaptchaRef.current?.reset()

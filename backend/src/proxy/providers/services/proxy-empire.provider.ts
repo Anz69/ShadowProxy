@@ -56,6 +56,7 @@ export interface ProxyEmpireSubUserCreated {
 @Injectable()
 export class ProxyEmpireProvider implements OnModuleInit {
     private readonly api: AxiosInstance;
+    private readonly subUserInfoFailures = new Map<string, { reason: string; loggedAt: number }>();
     private resolvedHost: string = "v2.proxyempire.io";
 
     constructor(
@@ -64,6 +65,7 @@ export class ProxyEmpireProvider implements OnModuleInit {
     ) {
         this.api = axios.create({
             baseURL: "https://panel.proxyempire.io/api/v2",
+            timeout: 10000,
             headers: {
                 Authorization: `Bearer ${configService.get<string>("PROXYEMPIRE_API_KEY", "")}`,
             },
@@ -229,19 +231,10 @@ export class ProxyEmpireProvider implements OnModuleInit {
             const emailErr = body?.errors?.email?.[0] as string | undefined;
 
             if (status === 422 && emailErr && emailErr.toLowerCase().includes("already been taken")) {
-                await this.logger.log("SYSTEM", `ProxyEmpire: sub-user ${email} уже существует — DELETE + retry`);
-                try {
-                    await this.api.delete(`/subusers/${encodeURIComponent(email)}`);
-                } catch (delErr: any) {
-                    await this.logger.error(`ProxyEmpire: DELETE sub-user ${email} (status=${delErr?.response?.status}): ${JSON.stringify(delErr?.response?.data) || String(delErr)}`);
-                    return null;
-                }
-                try {
-                    return await this.doCreateSubUser(email, name, proxyType);
-                } catch (retryErr: any) {
-                    await this.logger.error(`ProxyEmpire: повторное создание sub-user ${email} (status=${retryErr?.response?.status}): ${JSON.stringify(retryErr?.response?.data) || String(retryErr)}`);
-                    return null;
-                }
+                // Concurrent creation or a lost acknowledgement is not consent
+                // to delete an existing provider account and its paid quota.
+                await this.logger.error(`ProxyEmpire: sub-user ${email} уже существует; аккаунт и квота сохранены, требуется восстановить его API token`);
+                return null;
             }
 
             await this.logger.error(`ProxyEmpire: ошибка создания sub-user ${email} (status=${status}): ${JSON.stringify(body) || String(e)}`);
@@ -294,23 +287,44 @@ export class ProxyEmpireProvider implements OnModuleInit {
             const res = await this.api.get<{ data: any; message: string }>(`/subusers/${encodeURIComponent(email)}`);
             const data = res.data?.data;
             if (!data) return null;
-            const pick = (b: any) => b
-                ? { total: Number(b.total ?? 0), used: Number(b.used ?? 0), remaining: Number(b.remaining ?? 0) }
-                : undefined;
-            return {
+            const pick = (b: any) => {
+                if (!b) return undefined;
+                if (b.total == null || b.used == null || b.remaining == null) throw new Error("Incomplete ProxyEmpire bandwidth response");
+                const values = [b.total, b.used, b.remaining].map(Number);
+                if (values.some(value => !Number.isSafeInteger(value) || value < 0)) {
+                    throw new Error("Invalid ProxyEmpire bandwidth response");
+                }
+                return { total: values[0], used: values[1], remaining: values[2] };
+            };
+            const counters = {
                 residential: pick(data.residential?.bandwidth),
                 mobile: pick(data.mobile?.bandwidth),
                 datacenter: pick(data.datacenter?.bandwidth),
             };
+            this.subUserInfoFailures.delete(email);
+            return counters;
         } catch (e: any) {
-            await this.logger.error(`ProxyEmpire: ошибка getSubUserInfo ${email} (status=${e?.response?.status}): ${JSON.stringify(e?.response?.data) || String(e)}`);
+            // Repeated failures from the same deleted/unavailable sub-user must
+            // stay visible without flooding the minute-by-minute quota sync.
+            // Keep requests live so recovery is picked up immediately.
+            const reason = `${e?.response?.status ?? e?.code ?? "invalid-response"}:${String(e?.response?.data?.message ?? e?.message ?? "unknown")}`;
+            const previous = this.subUserInfoFailures.get(email);
+            if (!previous || previous.reason !== reason || Date.now() - previous.loggedAt >= 3600000) {
+                if (this.subUserInfoFailures.size >= 10000) {
+                    const oldest = this.subUserInfoFailures.keys().next().value;
+                    if (oldest !== undefined) this.subUserInfoFailures.delete(oldest);
+                }
+                this.subUserInfoFailures.set(email, { reason, loggedAt: Date.now() });
+                await this.logger.error(`ProxyEmpire: ошибка getSubUserInfo ${email} (${reason}); одинаковые ошибки ограничены одной записью в час`);
+            }
             return null;
         }
     }
 
     async setSubUserBandwidth(email: string, proxyType: "residential" | "mobile" | "datacenter", targetBytes: number): Promise<boolean> {
         const info = await this.getSubUserInfo(email);
-        const currentTotal = info?.[proxyType]?.total ?? 0;
+        if (!info || !Number.isSafeInteger(targetBytes) || targetBytes < 0) return false;
+        const currentTotal = info[proxyType]?.total ?? 0;
         const delta = targetBytes - currentTotal;
 
         if (delta === 0) {
@@ -339,4 +353,5 @@ export class ProxyEmpireProvider implements OnModuleInit {
             return false;
         }
     }
+
 }

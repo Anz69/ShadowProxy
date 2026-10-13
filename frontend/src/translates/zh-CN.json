@@ -498,6 +498,7 @@
 		"referralBalance": "推荐余额",
 		"total": "总计",
 		"buy": "购买",
+		"pay": "支付",
 		"loading": "加载中...",
 		"successMessage": "付款已成功创建。您将被重定向到付款页面",
 		"statuses": {
@@ -550,6 +551,7 @@
 		"active": "活跃",
 		"finished": "套餐已用完",
 		"replenishGb": "充值GB",
+		"temporarilyUnavailable": "新购买暂时不可用。您的套餐和剩余流量已保留。",
 		"replenishTime": "充值时间",
 		"activateKey": "激活密钥",
 		"timeExpired": "时间已过期",
