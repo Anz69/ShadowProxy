@@ -30,6 +30,7 @@ import * as net from "net";
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { MOBILE_GB_ALLOWED_ISO2_LOWER, isMobileGbCountryAllowed } from "../shared/constants/mobile-gb-allowed-countries";
+import { RESIDENT_FALLBACK_ISO2 } from "../shared/constants/resident-fallback-countries";
 import { reconcileProxyEmpireUsage } from "./utils/proxy-empire-usage";
 
 @Injectable()
@@ -985,7 +986,10 @@ export class ProxyService implements OnModuleInit {
 
     @Cron(CronExpression.EVERY_30_MINUTES)
     async parseAvailableLocations() {
-        const mangoLocations = await this.mangoProxyProvider.getAvailableLocations();
+        const mangoLocationsRaw = await this.mangoProxyProvider.getAvailableLocations();
+        // Mango /locations/countries периодически отдаёт 400/timeout; пустой список
+        // оставил бы без стран не только Residential, но и Residential Lite.
+        const mangoLocations = mangoLocationsRaw.length ? mangoLocationsRaw : [...RESIDENT_FALLBACK_ISO2];
         const proxyEmpireLocations = await this.proxyEmpireProvider.getAvailableLocations();
 
         this.availableLocations = {
