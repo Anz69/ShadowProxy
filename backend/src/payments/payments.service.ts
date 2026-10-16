@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException, OnModuleInit } from "@nestjs/common";
+import { addTrafficCredit } from "../shared/utils/traffic-credit";
 import { CryptoBotProvider } from "./providers/services/crypto-bot.provider";
 import { Request } from "express";
 import { CryptoBotWebhookDataType } from "./providers/types/crypto-bot/crypto-bot-webhook-data.type";
@@ -439,6 +440,7 @@ export class PaymentsService implements OnModuleInit {
             `UPDATE "users" SET "${column}" = (CAST("${column}" AS NUMERIC) + $1::numeric)::text WHERE id = $2`,
             traffic, userId,
         );
+        await addTrafficCredit(tx, userId, tariff, traffic);
         // Durable outbox: a crash after commit cannot lose provider activation.
         const payment = await tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
         await tx.payment.update({

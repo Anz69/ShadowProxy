@@ -16,7 +16,11 @@ export class UserController {
     @HttpCode(HttpStatus.OK)
     @Authorization()
     async getMe(@User("id") userId: string) {
-        return this.userService.findById(userId, true, true);
+        const [user, trafficCredited] = await Promise.all([
+            this.userService.findById(userId, true, true),
+            this.userService.getTrafficCredited(userId),
+        ]);
+        return { ...user, trafficCredited };
     }
 
     @Get("stats")

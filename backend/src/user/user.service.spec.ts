@@ -57,7 +57,15 @@ describe("UserService", () => {
             balance += BigInt(amount);
             return Promise.resolve(1);
         });
-        const prisma = { $executeRawUnsafe: executeRaw };
+        // user_traffic_credits: каждое начисление должно дойти и до «всего начислено».
+        let credited = 0n;
+        const creditRaw = jest.fn((strings: TemplateStringsArray, ...values: unknown[]) => {
+            expect(strings.join("?")).toContain('"user_traffic_credits"');
+            expect(values).toEqual(expect.arrayContaining(["user-1", "ISP_USA"]));
+            credited += BigInt(values[2] as string);
+            return Promise.resolve(1);
+        });
+        const prisma = { $executeRawUnsafe: executeRaw, $executeRaw: creditRaw };
         const packageService = { createPackageIfNotExists: jest.fn().mockResolvedValue({}) };
         const userService = new UserService(prisma as any, {} as any, {} as any, packageService as any, {} as any, {} as any, {} as any);
         jest.spyOn(userService, "findById").mockResolvedValue({ id: "user-1", ispUsaTrafficLeft: "0" } as any);
@@ -68,7 +76,9 @@ describe("UserService", () => {
         ]);
 
         expect(balance).toBe(200n);
+        expect(credited).toBe(200n);
         expect(executeRaw).toHaveBeenCalledTimes(2);
+        expect(creditRaw).toHaveBeenCalledTimes(2);
         expect(executeRaw.mock.calls.every(([query]) => query.includes('"isp_usa_traffic_left"'))).toBe(true);
     });
 

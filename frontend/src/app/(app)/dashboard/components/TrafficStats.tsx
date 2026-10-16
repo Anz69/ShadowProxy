@@ -60,11 +60,16 @@ export default function TrafficStats({ user, packages }: TrafficStatsProps) {
 	const nonZero = allRows.filter(r => r.bytes > 0)
 	const rows = owned.length ? owned : nonZero.length ? nonZero : allRows.slice(0, 3)
 
-	// Полоска = «осталось из купленного»: остаток / (остаток + израсходовано).
+	// Полоска = «осталось из начисленного»: остаток / всего начислено по тарифу
+	// (user_traffic_credits: покупки, триал, ключи, промо, админка). traffic_logs
+	// пишут не все провайдеры, поэтому остаток + расход — только нижняя граница.
+	const credited = user.trafficCredited ?? {}
 	const fillPct = (row: { type: string; bytes: number }): number => {
 		const used = usedByType[row.type] ?? 0
-		const total = row.bytes + used
-		return total > 0 ? Math.round((row.bytes / total) * 100) : 0
+		const known = row.bytes + used
+		const total = Math.max(Number(credited[row.type] ?? 0), known)
+		if (total <= 0) return 0
+		return Math.min(100, Math.max(0, Math.round((row.bytes / total) * 100)))
 	}
 
 	return (

@@ -1,0 +1,21 @@
+/// Сколько всего трафика было начислено пользователю по тарифу (покупки, триал,
+/// ключи, промо, админка). Остаток лежит в users.*TrafficLeft; полоска на
+/// дашборде = остаток / начислено и не зависит от того, пишет ли провайдер
+/// расход в traffic_logs (Mango в api-режиме и ProxyEmpire его не пишут).
+model UserTrafficCredit {
+  id String @id @default(uuid(4))
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  type ProxyType @map("type")
+
+  /// Суммарно начислено, байты (text — как и балансы в users).
+  creditedBytes String @default("0") @map("credited_bytes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([userId, type])
+  @@map("user_traffic_credits")
+}

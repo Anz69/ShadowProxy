@@ -52,6 +52,8 @@ export type User = {
 	updatedAt: string
 	account: Account[]
 	accounts?: Account[]
+	/** Всего начислено по тарифу (байты), ключ — ProxyType. Знаменатель полоски трафика. */
+	trafficCredited?: Partial<Record<string, string>>
 }
 
 /**

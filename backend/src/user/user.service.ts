@@ -1,4 +1,5 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { TRAFFIC_LEFT_FIELD_TO_TYPE, addTrafficCredit, reduceTrafficCredit } from "../shared/utils/traffic-credit";
 import { PrismaService } from "../prisma/prisma.service";
 import { LogType, PackageType, Prisma, ProxyStatus, ProxyType } from "@prisma/client";
 import { hash } from "argon2";
@@ -383,6 +384,7 @@ export class UserService {
                     traffic,
                     userId,
                 );
+                await addTrafficCredit(this.prisma, userId, tariff, traffic);
             }
         }
     }
@@ -534,9 +536,25 @@ export class UserService {
             }
         }
         if (Object.keys(directUpdate).length > 0) {
-            return this.updateById(userId, directUpdate);
+            const updated = await this.updateById(userId, directUpdate);
+            // Ручное уменьшение остатка — не расход: снимаем дельту и с начислений.
+            for (const [field, value, diff] of balances) {
+                if (field in directUpdate && diff < 0n) {
+                    await reduceTrafficCredit(this.prisma, userId, TRAFFIC_LEFT_FIELD_TO_TYPE[field], -diff, value);
+                }
+            }
+            return updated;
         }
         return this.findById(userId);
+    }
+
+    /** Начислено по тарифам (user_traffic_credits) — знаменатель полоски трафика на дашборде. */
+    async getTrafficCredited(userId: string): Promise<Record<string, string>> {
+        const rows = await this.prisma.userTrafficCredit.findMany({
+            where: { userId },
+            select: { type: true, creditedBytes: true },
+        });
+        return Object.fromEntries(rows.map((r) => [r.type, r.creditedBytes]));
     }
 
     async modifyUserBalance(dto: ModifyUserBalanceDto, userId: string) {
