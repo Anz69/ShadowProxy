@@ -114,3 +114,14 @@ Read-only preflight проверил 28 связанных с БД Mango-суб�
 - Авторизованный desktop/mobile проход dashboard, balance, support и admin с production-данными.
 
 Релизный порядок и точные команды находятся в `RELEASE-RUNBOOK.md`.
+
+## Production-выкладка 16 октября 2026
+
+- Прод (`212.80.7.117`, `/root/server`, compose-проект `server`) переведён с `a65add1` (28 апреля) на `deploy/production-sprints` `1b389e4`. Код доставлен через `git bundle` (GitHub-токен в remote серверов не работает). Перед выкладкой: `pg_dump -Fc` (279 MB), три `.env`, архив исходников со старым хотфиксом и теги образов `*:rollback-20261016` в `/root/backups/predeploy-20261016/`.
+- Старый `master` хранил корневой `.env` в git; checkout новой ветки удалил его — восстановлен из бэкапа до пересоздания контейнеров. При следующих деплоях на проде проверять наличие `.env` после `git checkout`.
+- Env: все 17 общих секретов прода и дева совпали по хэшам. На прод добавлены из дева `PROXYEMPIRE_API_KEY`, `FLASH_*` (6), `NEXT_PUBLIC_API_URL`; флаги `USE_NODE_GATEWAY=true`, `MANGO_MODE=api`, `ENABLE_MANGO_SYNC=false` (паритет со старым продом, где cron был закомментирован), `ENABLE_PROXYEMPIRE_USAGE_SYNC=true`. `NEXT_PUBLIC_SITE_KEY` оставлен продовский.
+- Gateway: агент v2 собран из исходников репо (Go 1.23, `go test` ok) в `/opt/shadowproxy-agent`, systemd `proxy-agent-v2` + `shadowproxy-control-firewall` (подсеть docker-сети прода `172.18.0.0/16`). Нода `212.80.7.117` ACTIVE в `proxy_servers`, старые `84.21.173.154/.112` → OFFLINE (записи и прокси сохранены; их 71 MOBILE_GB-прокси — legacy, баланс перенесён в MOBILE миграцией `20260514150000`). Smoke через прод-gateway: ISP NL, ISP USA, Residential Lite — 3/3 по 100 KB.
+- Prisma-миграции применились автоматически (15 новых, статус `up to date`). Но прод-БД не содержала ручной миграции `docs/proxy-expansion/migrations/2026-06-26-…` и значения `ISP_USA`: `/api/proxy/prices` отдавал 500. Применён аддитивный SQL `migrations/2026-10-16-prod-schema-align-and-legacy-isp.sql` (enum-значения, 3 колонки балансов, `broadcasts`, `rented_ips`). Остаточный drift совпадает с девом.
+- Legacy-тариф `ISP` отсутствует в Prisma-enum, а на проде были 6 пакетов и 2402 ключа этого типа (332 ACTIVATED) — Prisma падал на любом чтении. Строки перенесены без удаления в `legacy_isp_packages_20261016` и `legacy_isp_keys_20261016`.
+- Счётчики users/proxies/payments/user_packages/sub_accounts/traffic_logs и сумма балансов до и после выкладки совпали. Mango `/parent_account_info` с прода: HTTP 201, code 1. Nginx: добавлен `client_max_body_size 50m` для `/api/` (вложения поддержки).
+- Не сделано: Mango остаётся в `api`-режиме; обнуление/восстановление Mango и переход в gateway-режим — отдельная операция по runbook после экспорта username. Живая покупка/генерация на проде этим прогоном не проверялась.
