@@ -52,14 +52,14 @@ export class UserController {
 
     @Patch("/:userId/traffic")
     @HttpCode(HttpStatus.OK)
-    @Authorization(UserRole.ADMIN, UserRole.SUPPORT)
+    @Authorization(UserRole.ADMIN)
     async modifyUserTraffic(@Param("userId") userId: string, @Body() dto: ModifyUserTrafficDto) {
         return this.userService.modifyUserTraffic(dto, userId);
     }
 
     @Patch("/:userId/balance")
     @HttpCode(HttpStatus.OK)
-    @Authorization(UserRole.ADMIN, UserRole.SUPPORT)
+    @Authorization(UserRole.ADMIN)
     async modifyUserBalance(@Param("userId") userId: string, @Body() dto: ModifyUserBalanceDto) {
         return this.userService.modifyUserBalance(dto, userId);
     }

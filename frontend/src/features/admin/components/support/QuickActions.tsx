@@ -9,6 +9,7 @@ import ModifyUserTraffic from "@/features/admin/components/modals/ModifyUserTraf
 import ProxyCheckerButton from "@/features/admin/components/support/ProxyCheckerButton"
 import { adminSupportService } from "@/features/support/services/admin-support.service"
 import type { AdminTicketUser } from "@/features/support/types/admin-support.types"
+import { useCurrentSessionUser } from "@/features/user/hooks/useCurrentSessionUser"
 import type { AdminUser } from "@/features/user/types/user.types"
 
 import Loader from "@/shared/components/ui/Loader/Loader"
@@ -24,6 +25,9 @@ import { formatTraffic } from "@/shared/utils/format-traffic"
  */
 const QuickActions: FC<{ user: AdminTicketUser }> = ({ user }) => {
 	const { open } = useModalStore()
+	// Балансы и трафик меняет только ADMIN (бэкенд это тоже проверяет); поддержке — тикеты и чекер.
+	const { data: me } = useCurrentSessionUser()
+	const canEditFunds = me?.role === "ADMIN"
 
 	const {
 		data: proxies,
@@ -49,7 +53,8 @@ const QuickActions: FC<{ user: AdminTicketUser }> = ({ user }) => {
 				<span className="text-[12px] text-white/45">Регистрация: {formatDate(user.createdAt)}</span>
 			</div>
 
-			{/* Быстрые действия */}
+			{/* Быстрые действия — только для полного админа */}
+			{canEditFunds && (
 			<div className="flex flex-col gap-2">
 				<button
 					type="button"
@@ -68,6 +73,7 @@ const QuickActions: FC<{ user: AdminTicketUser }> = ({ user }) => {
 					Баланс USDT
 				</button>
 			</div>
+			)}
 
 			{/* Прокси клиента + чекер */}
 			<div className="flex flex-col gap-3 rounded-[14px] border border-white/[0.08] bg-white/[0.03] p-4">
