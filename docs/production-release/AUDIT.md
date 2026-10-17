@@ -125,3 +125,11 @@ Read-only preflight проверил 28 связанных с БД Mango-суб�
 - Legacy-тариф `ISP` отсутствует в Prisma-enum, а на проде были 6 пакетов и 2402 ключа этого типа (332 ACTIVATED) — Prisma падал на любом чтении. Строки перенесены без удаления в `legacy_isp_packages_20261016` и `legacy_isp_keys_20261016`.
 - Счётчики users/proxies/payments/user_packages/sub_accounts/traffic_logs и сумма балансов до и после выкладки совпали. Mango `/parent_account_info` с прода: HTTP 201, code 1. Nginx: добавлен `client_max_body_size 50m` для `/api/` (вложения поддержки).
 - Не сделано: Mango остаётся в `api`-режиме; обнуление/восстановление Mango и переход в gateway-режим — отдельная операция по runbook после экспорта username. Живая покупка/генерация на проде этим прогоном не проверялась.
+
+## Выкладка 17 октября 2026 (dev + prod)
+
+- Коммиты `10873e9`, `64361d3`, `e9f0df8` поверх `6533950`: xRocket Pay как мерчант (инвойс `POST /tg-invoices`, вебхук `POST /api/payments/webhook/xrocket`, подпись `rocket-pay-signature` = HMAC-SHA256 тела ключом sha256(token)); роль `SUPPORT` (админка только с разделом «Поддержка», создание/снятие аккаунтов в «Настройках»); кнопка «Проверить баланс Mango» в «Статистике» (`GET /admin/mango/balance` → `/parent_account_info`); `tg_login` сохраняется при привязке Telegram и обновляется при входе; в пресетах пакетов показывается цена за ГБ/IP и выгода относительно самой дорогой единицы.
+- `GET /api/payments/merchants` отдаёт, у каких мерчантов есть ключи; фронт прячет остальных. На проде и деве `XROCKET_API_KEY` пока пустой — xRocket не показывается до получения токена и включения вебхука в боте.
+- Security-ревью: `PATCH /users/:id/balance|traffic` остаются только для ADMIN; у SUPPORT в быстрых действиях этих кнопок нет.
+- Миграции `20261017100000_add_xrocket_provider`, `20261017100500_add_support_role` (и `20261016150000_user_traffic_credits` на деве) применены автоматически; backend healthy на обоих серверах.
+- Не сделано: новые ключи Heleket (ждём от владельца), токен xRocket и URL вебхука в боте, живая оплата через xRocket.
