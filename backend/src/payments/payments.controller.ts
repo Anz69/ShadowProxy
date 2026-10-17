@@ -29,6 +29,13 @@ export class PaymentsController {
         return this.paymentsService.processHeleketWebhook(data);
     }
 
+    /** Какие мерчанты реально настроены — UI прячет кнопку, пока ключа нет. */
+    @Get("/merchants")
+    @HttpCode(HttpStatus.OK)
+    async getMerchants() {
+        return this.paymentsService.getEnabledMerchants();
+    }
+
     @Post("/webhook/xrocket")
     @HttpCode(HttpStatus.OK)
     async xrocketWebhook(@Req() req: Request, @Body() data: XRocketWebhookData) {

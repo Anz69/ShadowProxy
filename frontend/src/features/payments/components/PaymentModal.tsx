@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import React, { type FC } from "react"
 
 import { assetsForMerchant } from "@/features/payments/constants/payment.constants"
+import { useEnabledMerchants } from "@/features/payments/hooks/useEnabledMerchants"
 import { formatSeconds } from "@/shared/utils/format-seconds"
 import type {
 	AvailableAssets,
@@ -96,6 +97,7 @@ const PaymentModal: FC<PaymentModalProps> = ({
 	const T = (key: string) => t(key, locale)
 	const { close } = useModalStore()
 	const [merchant, setMerchant] = React.useState<Merchant>(initialMerchant)
+	const { isEnabled: isMerchantEnabled } = useEnabledMerchants()
 	const [asset, setAsset] = React.useState<AvailableAssets>(initialAsset)
 	const [assetPrice, setAssetPrice] = React.useState(initialAssetPrice)
 
@@ -156,11 +158,13 @@ const PaymentModal: FC<PaymentModalProps> = ({
 	}
 
 	type MerchantOption = { key: Merchant; label: string; icon?: string; balance?: number }
-	const merchantOptions: MerchantOption[] = [
-		{ key: "CRYPTO_BOT", label: "CryptoBot", icon: "/crypto_bot.svg" },
-		{ key: "HELEKET", label: "Heleket", icon: "/heleket.svg" },
-		{ key: "XROCKET", label: "xRocket", icon: "/xrocket.svg" }
-	]
+	const merchantOptions: MerchantOption[] = (
+		[
+			{ key: "CRYPTO_BOT", label: "CryptoBot", icon: "/crypto_bot.svg" },
+			{ key: "HELEKET", label: "Heleket", icon: "/heleket.svg" },
+			{ key: "XROCKET", label: "xRocket", icon: "/xrocket.svg" }
+		] as MerchantOption[]
+	).filter(o => isMerchantEnabled(o.key))
 	const merchantAssets = assetsForMerchant(merchant)
 	if (!isBalanceReplenish) {
 		merchantOptions.push(

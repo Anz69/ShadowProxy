@@ -94,6 +94,18 @@ export class PaymentsService implements OnModuleInit {
         }
     }
 
+    getEnabledMerchants(): Record<"CRYPTO_BOT" | "HELEKET" | "XROCKET", boolean> {
+        const configured = (name: string) => {
+            const v = (this.configService.get<string>(name) || "").trim();
+            return v.length > 0 && !/^(changeme|change_me|todo|xxx)$/i.test(v);
+        };
+        return {
+            CRYPTO_BOT: configured("CRYPTO_BOT_API_KEY"),
+            HELEKET: configured("HELEKET_API_KEY") && configured("HELEKET_MERCHANT"),
+            XROCKET: configured("XROCKET_API_KEY"),
+        };
+    }
+
     async processXRocketWebhook(req: Request, data: XRocketWebhookData) {
         if (!this.xrocketProvider) throw new ForbiddenException("errors.wrong_signature");
         const verifyResult = this.xrocketProvider.verifyWebhookSignature(data, req.headers["rocket-pay-signature"] as string);

@@ -3,6 +3,7 @@ import type { SupportedLocale } from "@/shared/utils/i18n"
 
 import type { Merchant } from "@/features/payments/types/payment.types"
 import { t } from "@/shared/utils/i18n"
+import { useEnabledMerchants } from "@/features/payments/hooks/useEnabledMerchants"
 
 type Props = {
 	merchant: Merchant
@@ -13,6 +14,7 @@ type Props = {
 
 const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = false }: Props) => {
 	const T = (key: string) => t(key, locale)
+	const { isEnabled } = useEnabledMerchants()
 	
 	if (isModal) {
 		return (
@@ -49,6 +51,7 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 						</span>
 					</div>
 
+{isEnabled("XROCKET") && (
 					<div
 						onClick={() => setMerchant("XROCKET")}
 						className={`glass-tile ${merchant === "XROCKET" ? "is-active" : ""} flex h-[46px] w-full flex-row items-center justify-center gap-2 rounded-xl p-3`}
@@ -63,6 +66,7 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 							xRocket
 						</span>
 					</div>
+)}
 				</div>
 			</div>
 		)
@@ -102,6 +106,7 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 					</span>
 				</div>
 
+{isEnabled("XROCKET") && (
 				<div
 					onClick={() => setMerchant("XROCKET")}
 					className={`glass-tile ${merchant === "XROCKET" ? "is-active" : ""} flex h-[46px] w-full flex-row items-center justify-between rounded-xl p-3`}
@@ -116,6 +121,7 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 						xRocket
 					</span>
 				</div>
+)}
 			</div>
 		</div>
 	)
