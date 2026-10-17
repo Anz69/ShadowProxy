@@ -6,6 +6,7 @@ import { Authorization } from "../auth/decorators/auth.decorator";
 import { CreateResidentInvoiceDto } from "./dtos/create-resident-invoice.dto";
 import { User } from "../auth/decorators/user.decorator";
 import { type HeleketWebhookData } from "./providers/types/heleket/heleket-webhook.type";
+import { type XRocketWebhookData } from "./providers/types/xrocket/xrocket-invoice.type";
 import { CreatePackageInvoiceDto } from "./dtos/create-package-invoice.dto";
 import { CreateMobileInvoiceDto } from "./dtos/create-mobile-invoice.dto";
 import { UserRole } from "@prisma/client";
@@ -26,6 +27,12 @@ export class PaymentsController {
     @HttpCode(HttpStatus.OK)
     async heleketWebhook(@Body() data: HeleketWebhookData) {
         return this.paymentsService.processHeleketWebhook(data);
+    }
+
+    @Post("/webhook/xrocket")
+    @HttpCode(HttpStatus.OK)
+    async xrocketWebhook(@Req() req: Request, @Body() data: XRocketWebhookData) {
+        return this.paymentsService.processXRocketWebhook(req, data);
     }
 
     @Post("/invoice/resident")

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import type { FC } from "react"
 
 import { adminSupportService } from "@/features/support/services/admin-support.service"
+import { useCurrentSessionUser } from "@/features/user/hooks/useCurrentSessionUser"
 
 const NAV = [
 	{ href: "/admin/users", label: "Пользователи" },
@@ -30,6 +31,9 @@ const NAV = [
  */
 const AdminNav: FC<{ active?: string }> = ({ active }) => {
 	const pathname = usePathname()
+	// Роль SUPPORT видит только раздел поддержки (бэкенд и middleware это тоже гарантируют).
+	const { data: me } = useCurrentSessionUser()
+	const items = me?.role === "SUPPORT" ? NAV.filter(i => i.href === "/admin/support") : NAV
 
 	const { data: supportUnread = 0 } = useQuery({
 		queryKey: ["admin-support-unread"],
@@ -39,7 +43,7 @@ const AdminNav: FC<{ active?: string }> = ({ active }) => {
 
 	return (
 		<nav className="flex w-full max-w-full flex-row flex-wrap gap-1.5 rounded-[16px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)] p-1.5 shadow-[0_24px_60px_-44px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)]">
-			{NAV.map(item => {
+			{items.map(item => {
 				const isActive = active
 					? active === item.href
 					: pathname === item.href ||

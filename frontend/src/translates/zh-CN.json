@@ -491,7 +491,8 @@
 			"fixedPrice": "固定价格",
 			"tariffPrice": "按套餐价格",
 			"selected": "已选择",
-			"choose": "选择"
+			"choose": "选择",
+			"savings": "节省 {{pct}}%"
 		},
 		"merchant": "商户",
 		"balance": "余额",
@@ -887,6 +888,7 @@
 		"proxy_gb_price_not_set": "服务器错误：未设置流量价格",
 		"payment_provider_server_error": "商户侧发生错误，请稍后再试",
 		"too_small_amount": "金额对该商户来说太小。",
+		"asset_not_supported": "该商户不支持所选币种，请选择其他币种。",
 		"unknown_error_payment": "创建支付时发生未知错误，请稍后再试。",
 		"package_not_found": "未找到套餐",
 		"wrong_number": "数字无效",

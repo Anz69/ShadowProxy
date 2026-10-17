@@ -7,6 +7,7 @@ enum PaymentStatus {
 enum PaymentProvider {
   CRYPTO_BOT
   HELEKET
+  XROCKET
   BALANCE
   REFERRAL_BALANCE
 }

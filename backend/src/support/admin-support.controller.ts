@@ -22,7 +22,7 @@ import { SUPPORT_MAX_FILES, supportMulterOptions, toAttachments } from "./suppor
 
 /** Админ-часть системы поддержки (ТЗ п.2): диалоги, быстрые действия, чекер прокси. */
 @Controller("admin/support")
-@Authorization(UserRole.ADMIN)
+@Authorization(UserRole.ADMIN, UserRole.SUPPORT)
 export class AdminSupportController {
     constructor(
         private readonly supportService: SupportService,

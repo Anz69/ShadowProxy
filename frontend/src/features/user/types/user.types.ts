@@ -10,6 +10,7 @@ export type UserStats = {
 export enum UserRole {
 	User = "USER",
 	Admin = "ADMIN",
+	Support = "SUPPORT",
 	Banned = "BANNED"
 }
 

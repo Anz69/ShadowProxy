@@ -639,6 +639,24 @@ async createProxyAccount(username: string) {
         return true;
     }
 
+    /** Баланс родительского (агентского) аккаунта Mango — для кнопки в админке. */
+    async getParentAccountInfo(): Promise<{ ok: boolean; status?: number; code?: unknown; message?: string; data?: unknown; ms: number }> {
+        const started = Date.now();
+        try {
+            const res = await this.mangoProxyApi.post<{ code?: unknown; msg?: string; message?: string; ret_data?: unknown }>("/parent_account_info", {}, { validateStatus: () => true });
+            return {
+                ok: res.status < 400 && String(res.data?.code ?? "") !== "0" ,
+                status: res.status,
+                code: res.data?.code,
+                message: res.data?.msg ?? res.data?.message,
+                data: res.data?.ret_data ?? res.data,
+                ms: Date.now() - started,
+            };
+        } catch (e: any) {
+            return { ok: false, message: e?.code || e?.message || String(e), ms: Date.now() - started };
+        }
+    }
+
     async getAvailableLocations() {
         try {
             const locationsRes = await this.mangoProxyApi.post<{ data: { code: string }[] }>("/locations/countries", {

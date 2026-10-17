@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Param } from "@nestjs/common";
+import { Body, ConflictException, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Post, Query, Param } from "@nestjs/common";
 import { AdminService } from "./admin.service";
 import { Authorization } from "../auth/decorators/auth.decorator";
 import { UserRole } from "@prisma/client";
@@ -11,6 +11,9 @@ import { CreateBroadcastDto } from "./dtos/create-broadcast.dto";
 import type { BroadcastSegment } from "./dtos/create-broadcast.dto";
 import { CreateProxyTestDto } from "./dtos/proxy-test.dto";
 import { ProxyTestService } from "./proxy-test.service";
+import { UserService } from "../user/user.service";
+import { CreateSupportAccountDto } from "./dtos/create-support-account.dto";
+import { LoggerService } from "../logger/logger.service";
 
 @Controller("admin")
 export class AdminController {
@@ -18,7 +21,52 @@ export class AdminController {
         private readonly adminService: AdminService,
         private readonly mangoProxyProvider: MangoProxyProvider,
         private readonly proxyTestService: ProxyTestService,
+        private readonly userService: UserService,
+        private readonly logger: LoggerService,
     ) {}
+
+    // ───────── Аккаунты поддержки (роль SUPPORT: админка только с разделом «Поддержка») ─────────
+
+    @Get("/support-accounts")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.OK)
+    async getSupportAccounts() {
+        return this.userService.findMany({
+            where: { role: UserRole.SUPPORT },
+            select: { id: true, email: true, createdAt: true },
+            orderBy: { createdAt: "desc" },
+        });
+    }
+
+    @Post("/support-accounts")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.CREATED)
+    async createSupportAccount(@Body() dto: CreateSupportAccountDto, @User("id") adminId: string) {
+        const email = dto.email.trim().toLowerCase();
+        if (await this.userService.findByEmail(email)) throw new ConflictException("errors.email_already_exists");
+        const user = await this.userService.create({
+            email,
+            password: dto.password,
+            authMethod: "CREDENTIALS",
+            role: UserRole.SUPPORT,
+            emailVerified: true,
+            region: "EUROPE",
+        });
+        await this.logger.log("SYSTEM", `Админ ${adminId} создал аккаунт поддержки ${email}`, adminId);
+        return { id: user.id, email: user.email, createdAt: user.createdAt };
+    }
+
+    /** Снимает роль поддержки (аккаунт остаётся обычным пользователем, история не теряется). */
+    @Delete("/support-accounts/:id")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.OK)
+    async revokeSupportAccount(@Param("id") id: string, @User("id") adminId: string) {
+        const user = await this.userService.findById(id).catch(() => null);
+        if (!user || user.role !== UserRole.SUPPORT) throw new NotFoundException("errors.user_not_found");
+        await this.userService.updateById(id, { role: UserRole.USER });
+        await this.logger.log("SYSTEM", `Админ ${adminId} снял роль поддержки с ${user.email}`, adminId);
+        return { ok: true };
+    }
 
     @Post("/setting")
     @Authorization(UserRole.ADMIN)
@@ -39,6 +87,14 @@ export class AdminController {
     @HttpCode(HttpStatus.OK)
     async syncProxyEmpireQuotas() {
         return this.adminService.syncProxyEmpireQuotas();
+    }
+
+    /** Кнопка «Проверить баланс Mango» в админке: read-only запрос к /parent_account_info. */
+    @Get("/mango/balance")
+    @Authorization(UserRole.ADMIN)
+    @HttpCode(HttpStatus.OK)
+    async getMangoBalance() {
+        return this.mangoProxyProvider.getParentAccountInfo();
     }
 
     @Get("/stats")

@@ -45,21 +45,21 @@ export class UserController {
     /** Статистика трафика конкретного юзера для админ-модалки (лениво, по клику). */
     @Get(":userId/stats")
     @HttpCode(HttpStatus.OK)
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SUPPORT)
     async getUserStatsAdmin(@Param("userId") userId: string) {
         return this.userService.getUserTraffic(userId);
     }
 
     @Patch("/:userId/traffic")
     @HttpCode(HttpStatus.OK)
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SUPPORT)
     async modifyUserTraffic(@Param("userId") userId: string, @Body() dto: ModifyUserTrafficDto) {
         return this.userService.modifyUserTraffic(dto, userId);
     }
 
     @Patch("/:userId/balance")
     @HttpCode(HttpStatus.OK)
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SUPPORT)
     async modifyUserBalance(@Param("userId") userId: string, @Body() dto: ModifyUserBalanceDto) {
         return this.userService.modifyUserBalance(dto, userId);
     }

@@ -272,7 +272,7 @@ export default function DashboardClient({ user, prices, plans }: { user: User | 
 								</div>
 								<div className="flex items-center justify-between gap-3">
 									<span className="text-[13px] text-white/45 light:text-[#8a93a3]">{T("dashboard.user.telegramLogin")}</span>
-									<span className="text-[14px] text-white/80 light:text-[#475467]">{user?.tgLogin ? `@${user.tgLogin}` : '—'}</span>
+									<span className="text-[14px] text-white/80 light:text-[#475467]">{currentUser?.tgLogin ? `@${currentUser.tgLogin}` : '—'}</span>
 								</div>
 							</div>
 						</div>
@@ -356,9 +356,9 @@ export default function DashboardClient({ user, prices, plans }: { user: User | 
 						{renderPackages()}
 
 						{/* Привязанные аккаунты (Часть 2 ТЗ) */}
-						{user && (
+						{currentUser && (
 							<section id="linked-accounts" className="dashboard-linked-accounts w-full">
-								<LinkedAccounts user={user} locale={currentLocale} />
+								<LinkedAccounts user={currentUser} locale={currentLocale} />
 							</section>
 						)}
 					</section>

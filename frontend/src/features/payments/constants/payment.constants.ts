@@ -1,3 +1,14 @@
+import type { AvailableAssets } from "@/features/payments/types/payment.types"
+import type { Merchant } from "@/features/payments/types/payment.types"
+
+/** Ассеты, которых нет у мерчанта (xRocket не принимает LTC). */
+export const unsupportedAssetsByMerchant: Partial<Record<Merchant, AvailableAssets[]>> = {
+	XROCKET: ["LTC"]
+}
+
+export const assetsForMerchant = (merchant: Merchant) =>
+	availableAssets.filter(a => !(unsupportedAssetsByMerchant[merchant] ?? []).includes(a.value as AvailableAssets))
+
 export const availableAssets = [
 	{
 		label: "USDT",

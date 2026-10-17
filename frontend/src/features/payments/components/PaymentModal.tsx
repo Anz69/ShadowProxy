@@ -5,7 +5,7 @@ import { X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import React, { type FC } from "react"
 
-import { availableAssets } from "@/features/payments/constants/payment.constants"
+import { assetsForMerchant } from "@/features/payments/constants/payment.constants"
 import { formatSeconds } from "@/shared/utils/format-seconds"
 import type {
 	AvailableAssets,
@@ -111,6 +111,11 @@ const PaymentModal: FC<PaymentModalProps> = ({
 		setAssetPrice(initialAssetPrice)
 	}, [initialMerchant, initialAsset, initialAssetPrice])
 
+	// У выбранного мерчанта может не быть текущего ассета — переключаем на USDT.
+	React.useEffect(() => {
+		if (!assetsForMerchant(merchant).some(a => a.value === asset)) setAsset("USDT")
+	}, [merchant, asset])
+
 	React.useEffect(() => {
 		const calculateAssetPrice = (p: number) => {
 			if (asset.startsWith("USD")) {
@@ -153,8 +158,10 @@ const PaymentModal: FC<PaymentModalProps> = ({
 	type MerchantOption = { key: Merchant; label: string; icon?: string; balance?: number }
 	const merchantOptions: MerchantOption[] = [
 		{ key: "CRYPTO_BOT", label: "CryptoBot", icon: "/crypto_bot.svg" },
-		{ key: "HELEKET", label: "Heleket", icon: "/heleket.svg" }
+		{ key: "HELEKET", label: "Heleket", icon: "/heleket.svg" },
+		{ key: "XROCKET", label: "xRocket", icon: "/xrocket.svg" }
 	]
+	const merchantAssets = assetsForMerchant(merchant)
 	if (!isBalanceReplenish) {
 		merchantOptions.push(
 			{ key: "BALANCE", label: T("payment.balance"), balance: userBalance },
@@ -284,7 +291,7 @@ const PaymentModal: FC<PaymentModalProps> = ({
 				<section className="flex flex-col gap-2.5">
 					<span className="text-white/60 text-sm font-medium light:text-[#5b6472]">{T("payment.currency")}</span>
 					<div className="grid grid-cols-2 gap-2">
-						{availableAssets.map(({ value, label }) => {
+						{merchantAssets.map(({ value, label }) => {
 							const isActive = asset === value
 							return (
 								<button

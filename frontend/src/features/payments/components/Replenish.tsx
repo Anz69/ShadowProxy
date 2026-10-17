@@ -11,7 +11,7 @@ import PaymentModal from "@/features/payments/components/PaymentModal"
 import ProxyTypeCard from "@/features/payments/components/ProxyTypeCard"
 import TrafficInput from "@/features/payments/components/TrafficInput"
 import TransactionHistory from "@/features/payments/components/TransactionHistory"
-import { useReplenishLogic } from "@/features/payments/hooks/useReplenishLogic"
+import { pricePerGbForTariff, useReplenishLogic } from "@/features/payments/hooks/useReplenishLogic"
 import { useActiveDiscount } from "@/features/payments/hooks/useActiveDiscount"
 import { orderResidentSchema } from "@/features/payments/schemas/order-resident.schema"
 import type {
@@ -275,6 +275,8 @@ const Replenish: FC<ReplenishProps> = ({
 									selectedPackageId={selectedPackage?.id ?? null}
 									onSelect={handlePackageSelect}
 									locale={locale}
+									tariffPricePerUnit={pricePerGbForTariff(tariff, prices)}
+									isIpv6={tariff === "IPV6"}
 								/>
 							)}
 

@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 import AdminNav from "@/features/admin/components/AdminNav"
 import AdminStatsCharts from "@/features/admin/components/AdminStatsCharts"
+import MangoBalanceCard from "@/features/admin/components/MangoBalanceCard"
 import StatBlock from "@/features/admin/components/StatBlock"
 import type { AdminChartsStats, AdminStats } from "@/features/admin/types/admin.types"
 
@@ -39,6 +40,8 @@ const Statistics: FC<StatisticsProps> = ({ stats, chartsData = null }) => {
 				</span>
 				</div>
 			</Card>
+
+			<MangoBalanceCard />
 
 			<div className="grid w-full grid-cols-1 gap-5 xl:grid-cols-3">
 				<StatBlock

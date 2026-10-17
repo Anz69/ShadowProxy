@@ -13,6 +13,18 @@ type Props = {
 	selectedPackageId: string | null
 	onSelect: (packageId: string) => void
 	locale?: SupportedLocale
+	/** Базовая цена тарифа за ГБ (за IP для IPv6) — по ней считаются пакеты «по тарифу» и произвольный объём. */
+	tariffPricePerUnit?: number
+	/** IPv6: traffic хранит количество IP, а не байты. */
+	isIpv6?: boolean
+}
+
+/** Цена за единицу объёма для пакета: фиксированная цена / объём, иначе тариф. */
+const unitPriceOf = (pkg: Package, tariffPricePerUnit: number, isIpv6: boolean): number => {
+	const units = isIpv6 ? Number(pkg.traffic) : bytesToGb(pkg.traffic)
+	const packagePrice = Number(pkg.price)
+	if (Number.isFinite(packagePrice) && packagePrice > 0 && units > 0) return packagePrice / units
+	return tariffPricePerUnit
 }
 
 const bytesToGb = (value: string): number => {
@@ -43,9 +55,17 @@ const PackagePresetSelector: FC<Props> = ({
 	packages,
 	selectedPackageId,
 	onSelect,
-	locale = "ru"
+	locale = "ru",
+	tariffPricePerUnit = 0,
+	isIpv6 = false
 }) => {
-	const T = (key: string) => t(key, locale)
+	const T = (key: string, params?: Record<string, string | number>) =>
+		t(key, locale, params && Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])))
+	const unitLabel = T(isIpv6 ? "payment.units.ip" : "payment.units.gb")
+	// Точка отсчёта выгоды — самая дорогая единица среди пакетов и базового тарифа
+	// (произвольный объём оплачивается по тарифу), чтобы процент был честным.
+	const unitPrices = packages.map(pkg => unitPriceOf(pkg, tariffPricePerUnit, isIpv6))
+	const referenceUnitPrice = Math.max(tariffPricePerUnit, ...unitPrices.filter(v => Number.isFinite(v) && v > 0), 0)
 
 	return (
 		<section
@@ -78,6 +98,9 @@ const PackagePresetSelector: FC<Props> = ({
 					const traffic = formatTraffic(pkg.traffic, locale)
 					const packagePrice = Number(pkg.price)
 					const hasFixedPrice = Number.isFinite(packagePrice) && packagePrice > 0
+					const unitPrice = unitPriceOf(pkg, tariffPricePerUnit, isIpv6)
+					const savingsPct =
+						referenceUnitPrice > 0 && unitPrice > 0 ? Math.round((1 - unitPrice / referenceUnitPrice) * 100) : 0
 
 					return (
 						<button
@@ -121,8 +144,15 @@ const PackagePresetSelector: FC<Props> = ({
 										{hasFixedPrice ? `${formatPrice(packagePrice)}$` : T("payment.packagePresets.tariffPrice")}
 									</p>
 									<p className="mt-0.5 truncate text-xs text-white/45 light:text-[#667085]">
-										{hasFixedPrice ? T("payment.packagePresets.fixedPrice") : T("payment.packagePresets.tariffPrice")}
+										{unitPrice > 0
+											? `${formatPrice(unitPrice)}$ / ${unitLabel}`
+											: hasFixedPrice ? T("payment.packagePresets.fixedPrice") : T("payment.packagePresets.tariffPrice")}
 									</p>
+									{savingsPct > 0 && (
+										<span className="mt-1.5 inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300 light:border-emerald-500/30 light:bg-emerald-500/10 light:text-emerald-700">
+											{T("payment.packagePresets.savings", { pct: savingsPct })}
+										</span>
+									)}
 								</div>
 								<span className={[
 									"inline-flex shrink-0 items-center gap-1 text-sm font-semibold transition-colors",

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import { accountLinkService } from "@/features/user/services/account-link.service"
@@ -10,6 +11,7 @@ const BOT_ID = process.env.NEXT_PUBLIC_TELEGRAM_BOT_ID
  */
 export function useTelegramLink(onDone?: () => void) {
 	const [isProcessing, setIsProcessing] = useState(false)
+	const queryClient = useQueryClient()
 
 	useEffect(() => {
 		if (typeof window === "undefined") return
@@ -34,6 +36,8 @@ export function useTelegramLink(onDone?: () => void) {
 				.then(() => {
 					toast.success("Telegram привязан")
 					cleanUrl()
+					// Дашборд читает tgLogin из клиентской сессии — обновляем её сразу.
+					queryClient.invalidateQueries({ queryKey: ["current-session-user"] })
 					onDone?.()
 				})
 				.catch((e: Error) => {

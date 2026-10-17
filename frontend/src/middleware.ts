@@ -101,7 +101,13 @@ export default async function middleware(request: NextRequest) {
 				return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
 			}
 			const data = await res.json()
-			if (data.role !== "ADMIN") {
+			if (data.role === "SUPPORT") {
+				// Поддержке доступен только раздел /admin/support.
+				if (!pathWithoutLocale.startsWith("/admin/support")) {
+					const redirectPath = addLocaleToPath("/admin/support", locale)
+					return NextResponse.redirect(new URL(redirectPath, redirectOrigin))
+				}
+			} else if (data.role !== "ADMIN") {
 				const redirectPath = addLocaleToPath("/dashboard", locale)
 				return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
 			}

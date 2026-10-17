@@ -19,6 +19,7 @@ type TransactionsModalProps = {
 const PROVIDER_LABEL: Record<string, string> = {
 	CRYPTO_BOT: "CryptoBot",
 	HELEKET: "Heleket",
+	XROCKET: "xRocket",
 	BALANCE: "Баланс",
 	REFERRAL_BALANCE: "Реферальный баланс"
 }

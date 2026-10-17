@@ -10,6 +10,8 @@ import axios from "axios";
 import { CreateResidentInvoiceDto } from "./dtos/create-resident-invoice.dto";
 import { SettingsService } from "../settings/settings.service";
 import { HeleketProvider } from "./providers/services/heleket.provider";
+import { XRocketProvider } from "./providers/services/xrocket.provider";
+import { XRocketWebhookData } from "./providers/types/xrocket/xrocket-invoice.type";
 import { HeleketWebhookData } from "./providers/types/heleket/heleket-webhook.type";
 import { PaymentFactory } from "./payment-factory";
 import { AvailableAssets, availableAssetsArray } from "./types/available-assets.type";
@@ -52,6 +54,8 @@ export class PaymentsService implements OnModuleInit {
         private readonly referralService: ReferralService,
         private readonly notificationService: NotificationService,
         private readonly provisioningQueue: ProvisioningQueueService,
+        // Последним — чтобы не сдвигать позиционные аргументы в spec/qa-скриптах.
+        private readonly xrocketProvider?: XRocketProvider,
     ) {}
 
     async onModuleInit() {
@@ -90,12 +94,35 @@ export class PaymentsService implements OnModuleInit {
         }
     }
 
-    async processPaidOrder(tx: Prisma.TransactionClient, data: CryptoBotWebhookDataType | HeleketWebhookData, expectedProvider?: PaymentProvider) {
+    async processXRocketWebhook(req: Request, data: XRocketWebhookData) {
+        if (!this.xrocketProvider) throw new ForbiddenException("errors.wrong_signature");
+        const verifyResult = this.xrocketProvider.verifyWebhookSignature(data, req.headers["rocket-pay-signature"] as string);
+
+        if (!verifyResult) {
+            throw new ForbiddenException("errors.wrong_signature");
+        }
+
+        if (data.type === "invoicePay" && data.data?.status === "paid") {
+            await this.prisma.$transaction(async (tx) => await this.processPaidOrder(tx, data, PaymentProvider.XROCKET), { timeout: 30000 });
+        }
+    }
+
+    async processPaidOrder(
+        tx: Prisma.TransactionClient,
+        data: CryptoBotWebhookDataType | HeleketWebhookData | XRocketWebhookData,
+        expectedProvider?: PaymentProvider,
+    ) {
         let paymentId: string;
 
         if ("update_id" in data) {
             try {
                 paymentId = JSON.parse(data.payload.payload || "")?.paymentId;
+            } catch {
+                throw new BadRequestException("errors.payment_not_found");
+            }
+        } else if ("timestamp" in data && "data" in data) {
+            try {
+                paymentId = JSON.parse(data.data.payload || "")?.paymentId;
             } catch {
                 throw new BadRequestException("errors.payment_not_found");
             }
@@ -936,10 +963,14 @@ export class PaymentsService implements OnModuleInit {
 
         let providerInvoice: { pay_url?: string; url?: string };
         try {
-            providerInvoice =
-                provider === PaymentProvider.CRYPTO_BOT
-                    ? await this.cryptoBotProvider.createInvoice(invoiceDto)
-                    : await this.heleketProvider.createInvoice(invoiceDto);
+            if (provider === PaymentProvider.CRYPTO_BOT) {
+                providerInvoice = await this.cryptoBotProvider.createInvoice(invoiceDto);
+            } else if (provider === PaymentProvider.XROCKET) {
+                if (!this.xrocketProvider) throw new InternalServerErrorException("errors.payment_provider_server_error");
+                providerInvoice = await this.xrocketProvider.createInvoice(invoiceDto);
+            } else {
+                providerInvoice = await this.heleketProvider.createInvoice(invoiceDto);
+            }
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error(`[Payments] ${provider} paymentId=${invoiceDto.paymentId} ${msg}`);

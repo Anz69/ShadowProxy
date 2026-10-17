@@ -490,7 +490,8 @@
 			"fixedPrice": "Fixed price",
 			"tariffPrice": "Tariff price",
 			"selected": "Selected",
-			"choose": "Choose"
+			"choose": "Choose",
+			"savings": "Save {{pct}}%"
 		},
 		"merchant": "Merchant",
 		"balance": "Balance",
@@ -883,6 +884,7 @@
 		"proxy_gb_price_not_set": "Server error. Traffic price is not set",
 		"payment_provider_server_error": "A merchant-side error occurred, please try later",
 		"too_small_amount": "Amount is too small for this merchant.",
+		"asset_not_supported": "This merchant does not accept the selected currency — choose another one.",
 		"unknown_error_payment": "Unknown error while creating the payment, please try later.",
 		"package_not_found": "Package not found",
 		"wrong_number": "Invalid number",

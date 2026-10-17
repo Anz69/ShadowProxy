@@ -3,7 +3,7 @@ import { ValidatorConstraint, ValidatorConstraintInterface } from "class-validat
 @ValidatorConstraint({ name: "IsMerchantExistsConstraint", async: false })
 export class IsMerchantExistsConstraint implements ValidatorConstraintInterface {
     public validate(value: string) {
-        return ["CRYPTO_BOT", "HELEKET", "BALANCE", "REFERRAL_BALANCE"].includes(value);
+        return ["CRYPTO_BOT", "HELEKET", "XROCKET", "BALANCE", "REFERRAL_BALANCE"].includes(value);
     }
 
     public defaultMessage() {

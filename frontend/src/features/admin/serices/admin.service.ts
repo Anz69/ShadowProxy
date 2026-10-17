@@ -15,6 +15,17 @@ import type {
 
 import { extractError } from "@/shared/utils/extract-error"
 
+export type MangoBalanceInfo = {
+	ok: boolean
+	status?: number
+	code?: unknown
+	message?: string
+	data?: unknown
+	ms: number
+}
+
+export type SupportAccount = { id: string; email: string; createdAt: string }
+
 class AdminService {
 	private readonly api: AxiosInstance
 
@@ -23,6 +34,42 @@ class AdminService {
 			baseURL: `${process.env.NEXT_PUBLIC_BACKEND_URI}/admin`,
 			withCredentials: true
 		})
+	}
+
+	async getMangoBalance() {
+		try {
+			const res = await this.api.get<MangoBalanceInfo>("/mango/balance")
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
+	}
+
+	async getSupportAccounts() {
+		try {
+			const res = await this.api.get<SupportAccount[]>("/support-accounts")
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
+	}
+
+	async createSupportAccount(dto: { email: string; password: string }) {
+		try {
+			const res = await this.api.post<SupportAccount>("/support-accounts", dto)
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
+	}
+
+	async revokeSupportAccount(id: string) {
+		try {
+			const res = await this.api.delete<{ ok: boolean }>(`/support-accounts/${id}`)
+			return res.data
+		} catch (e) {
+			throw new Error(extractError(e))
+		}
 	}
 
 	async modifyPrices(dto: ModifyPricesDto) {

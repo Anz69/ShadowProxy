@@ -18,7 +18,7 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 		return (
 			<div className="flex w-full flex-col gap-2">
 				<span className="text-white/50 text-base font-medium">{T("payment.merchant")}</span>
-				<div className="grid w-full grid-cols-1 md:grid-cols-2 gap-2">
+				<div className="grid w-full grid-cols-1 md:grid-cols-3 gap-2">
 					<div
 						onClick={() => setMerchant("CRYPTO_BOT")}
 						className={`glass-tile ${merchant === "CRYPTO_BOT" ? "is-active" : ""} flex h-[46px] w-full flex-row items-center justify-center gap-2 rounded-xl p-3`}
@@ -46,6 +46,21 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 						/>
 						<span className="text-white text-base font-medium">
 							Heleket
+						</span>
+					</div>
+
+					<div
+						onClick={() => setMerchant("XROCKET")}
+						className={`glass-tile ${merchant === "XROCKET" ? "is-active" : ""} flex h-[46px] w-full flex-row items-center justify-center gap-2 rounded-xl p-3`}
+					>
+						<Image
+							src="/xrocket.svg"
+							alt="xRocket"
+							width={24}
+							height={24}
+						/>
+						<span className="text-white text-base font-medium">
+							xRocket
 						</span>
 					</div>
 				</div>
@@ -84,6 +99,21 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 					/>
 					<span className="text-body text-xl font-medium">
 						Heleket
+					</span>
+				</div>
+
+				<div
+					onClick={() => setMerchant("XROCKET")}
+					className={`glass-tile ${merchant === "XROCKET" ? "is-active" : ""} flex h-[46px] w-full flex-row items-center justify-between rounded-xl p-3`}
+				>
+					<Image
+						src="/xrocket.svg"
+						alt="xRocket"
+						width={24}
+						height={24}
+					/>
+					<span className="text-body text-xl font-medium">
+						xRocket
 					</span>
 				</div>
 			</div>

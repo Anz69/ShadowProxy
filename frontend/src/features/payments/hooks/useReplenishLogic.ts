@@ -24,7 +24,7 @@ const packageTrafficGb = (pkg: Package): number =>
 const packageTypeForTariff = (tariff: ReplenishTariff): RechargeableProxyType =>
 	tariff === "IPV6" ? "IPV6_GB" : tariff as RechargeableProxyType
 
-const pricePerGbForTariff = (tariff: ReplenishTariff, prices: Prices): number => {
+export const pricePerGbForTariff = (tariff: ReplenishTariff, prices: Prices): number => {
 	switch (tariff) {
 		case "RESIDENT":
 		case "RESIDENT_PREMIUM":

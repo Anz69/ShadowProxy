@@ -196,6 +196,11 @@ export class AuthService {
         if (account?.userId) {
             const userFound = await this.userService.findById(account.userId, false);
             if (userFound) {
+                // Ник в Telegram мог смениться — держим tg_login актуальным.
+                const freshTgLogin = dto.username || `${dto.first_name}${dto.last_name ? ` ${dto.last_name}` : ""}`;
+                if (freshTgLogin && userFound.tgLogin !== freshTgLogin) {
+                    await this.userService.updateById(userFound.id, { tgLogin: freshTgLogin });
+                }
                 await this.logger.log("SYSTEM", `Пользователь ${userFound.id} успешно авторизовался, используя Telegram`, userFound.id);
                 return this.saveSession(req, userFound);
             }
@@ -321,6 +326,11 @@ export class AuthService {
         } else if (!existing.userId) {
             await this.accountService.update(existing.id, { user: { connect: { id: currentUserId } } });
         }
+        // Раньше tg_login писался только при регистрации через Telegram, поэтому после
+        // привязки дашборд показывал «—». Сохраняем ник (или имя) и при привязке.
+        await this.userService.updateById(currentUserId, {
+            tgLogin: dto.username || `${dto.first_name}${dto.last_name ? ` ${dto.last_name}` : ""}`,
+        });
         await this.logger.log("SYSTEM", `Пользователь ${currentUserId} привязал TELEGRAM`, currentUserId);
         return { ok: true, provider: providerKey };
     }
@@ -349,6 +359,9 @@ export class AuthService {
         }
 
         await this.accountService.delete(account.id);
+        if (providerKey === "TELEGRAM") {
+            await this.userService.updateById(currentUser.id, { tgLogin: null });
+        }
         await this.logger.log("SYSTEM", `Пользователь ${currentUser.id} отвязал ${providerKey}`, currentUser.id);
         return { ok: true, provider: providerKey };
     }

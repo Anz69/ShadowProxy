@@ -95,12 +95,13 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 	const basePath = removeLocaleFromPath(pathname)
 	// Unified premium "header-light" capsule is applied on every page now
 	// (styles live in globals.css); no per-route header variant.
-	const adminLink = getLocalizedLink("/admin")
 	const adminLabel = T("header.nav.admin")
 	// Роль могла прийти либо с SSR, либо после клиентской перепроверки. Достаточно
-	// любого подтверждённого ADMIN; кнопку показываем и внутри самой админки.
-	const shouldShowAdminButton =
-		user?.role === UserRole.Admin || sessionUser?.role === UserRole.Admin
+	// любого подтверждённого ADMIN/SUPPORT; кнопку показываем и внутри самой админки.
+	const isAdminRole = (r?: string | null) => r === UserRole.Admin || r === UserRole.Support
+	const shouldShowAdminButton = isAdminRole(user?.role) || isAdminRole(sessionUser?.role)
+	const isSupportOnly = !(user?.role === UserRole.Admin || sessionUser?.role === UserRole.Admin)
+	const adminLink = getLocalizedLink(isSupportOnly ? "/admin/support" : "/admin")
 
 	// Пункт навигации: стеклянная пилюля, активный = синяя подсветка по роуту.
 	const navCls = (route: string) => {

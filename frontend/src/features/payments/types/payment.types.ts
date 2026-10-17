@@ -8,7 +8,7 @@ export type AvailableAssets =
 	| "TRX"
 	| "USDC"
 
-export type Merchant = "CRYPTO_BOT" | "HELEKET" | "BALANCE" | "REFERRAL_BALANCE"
+export type Merchant = "CRYPTO_BOT" | "HELEKET" | "XROCKET" | "BALANCE" | "REFERRAL_BALANCE"
 
 type BasePaymentDto = {
 	asset: AvailableAssets
