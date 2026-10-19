@@ -16,20 +16,42 @@ type TrafficData = {
 	isToday?: boolean
 }
 
-// Catmull-Rom → cubic bezier: gives a smooth, organic curve through all points.
+// Монотонный кубический сплайн (Fritsch–Carlson) → cubic bezier. В отличие от
+// Catmull-Rom не «проваливается» ниже нуля между 253 МБ в понедельник и пустыми
+// днями и не рисует волну там, где данных нет: кривая проходит через точки и
+// между двумя одинаковыми значениями остаётся прямой.
 const buildSmoothPath = (pts: { x: number; y: number }[]): string => {
-	if (pts.length === 0) return ""
-	if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`
+	const n = pts.length
+	if (n === 0) return ""
+	if (n === 1) return `M ${pts[0].x} ${pts[0].y}`
+	const dx: number[] = []
+	const slope: number[] = []
+	for (let i = 0; i < n - 1; i++) {
+		const h = pts[i + 1].x - pts[i].x || 1e-6
+		dx.push(h)
+		slope.push((pts[i + 1].y - pts[i].y) / h)
+	}
+	// Касательные: 0 на экстремумах/плато, иначе гармоническое среднее соседних наклонов.
+	const m: number[] = new Array(n).fill(0)
+	m[0] = slope[0]
+	m[n - 1] = slope[n - 2]
+	for (let i = 1; i < n - 1; i++) {
+		if (slope[i - 1] * slope[i] <= 0) m[i] = 0
+		else {
+			const w1 = 2 * dx[i] + dx[i - 1]
+			const w2 = dx[i] + 2 * dx[i - 1]
+			m[i] = (w1 + w2) / (w1 / slope[i - 1] + w2 / slope[i])
+		}
+	}
 	const d = [`M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`]
-	for (let i = 0; i < pts.length - 1; i++) {
-		const p0 = pts[i - 1] || pts[i]
+	for (let i = 0; i < n - 1; i++) {
 		const p1 = pts[i]
 		const p2 = pts[i + 1]
-		const p3 = pts[i + 2] || p2
-		const cp1x = p1.x + (p2.x - p0.x) / 6
-		const cp1y = p1.y + (p2.y - p0.y) / 6
-		const cp2x = p2.x - (p3.x - p1.x) / 6
-		const cp2y = p2.y - (p3.y - p1.y) / 6
+		const h = dx[i]
+		const cp1x = p1.x + h / 3
+		const cp1y = p1.y + (m[i] * h) / 3
+		const cp2x = p2.x - h / 3
+		const cp2y = p2.y - (m[i + 1] * h) / 3
 		d.push(`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)} ${cp2x.toFixed(2)} ${cp2y.toFixed(2)} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`)
 	}
 	return d.join(" ")
@@ -304,14 +326,13 @@ const TrafficChart: FC<TrafficChartProps> = ({ packageId }) => {
 	return (
 		<div className="traffic-chart-mobile relative flex w-full flex-col gap-6 rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,#0e1830,#0a1020)] p-6 sm:p-7 shadow-[0_30px_70px_-44px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] light:border-[#e6e8ef] light:bg-none light:bg-white light:shadow-[0_24px_60px_-44px_rgba(14,16,25,0.14)]">
 			<style>{`
-				.tc-line { stroke-dasharray: 100; stroke-dashoffset: 100; animation: tc-draw 1.4s cubic-bezier(.16,1,.3,1) forwards; }
-				@keyframes tc-draw { to { stroke-dashoffset: 0; } }
+				.tc-line { opacity: 0; animation: tc-fade .9s ease-out forwards; }
 				.tc-area { opacity: 0; animation: tc-fade 1.1s ease-out .25s forwards; }
 				@keyframes tc-fade { to { opacity: 1; } }
 				.tc-dot { opacity: 0; animation: tc-pop .4s ease-out forwards; }
 				@keyframes tc-pop { from { opacity: 0; transform: translate(-50%,-50%) scale(.4); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
 				@media (prefers-reduced-motion: reduce) {
-					.tc-line { animation: none; stroke-dashoffset: 0; }
+					.tc-line { animation: none; opacity: 1; }
 					.tc-area, .tc-dot { animation: none; opacity: 1; }
 				}
 			`}</style>
@@ -386,7 +407,6 @@ const TrafficChart: FC<TrafficChartProps> = ({ packageId }) => {
 						strokeLinecap="round"
 						strokeLinejoin="round"
 						vectorEffect="non-scaling-stroke"
-						pathLength={100}
 						opacity={chart.hasData ? 1 : 0.55}
 						style={{ filter: "drop-shadow(0 10px 18px rgba(79,141,255,0.28))" }}
 					/>
