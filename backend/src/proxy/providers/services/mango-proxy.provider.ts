@@ -544,6 +544,60 @@ async createProxyAccount(username: string) {
         }
     }
 
+    /**
+     * Оплаченный Residential (Mango) в api-режиме: сайт уже зачислил трафик (creditTraffic),
+     * а Mango считает квоту у себя — без доливки субаккаунт уходит в минус и апстрим
+     * отвечает 407, хотя на сайте остаток есть. Доливаем ровно купленный объём плюс
+     * отрицательный last_flow (перерасход до отсечки на агенте), иначе покупка ушла бы в долг.
+     * Идемпотентно: цель total_flow хранится в metadata платежа, ретрай доливает только недостающее.
+     */
+    @OnEvent("payment.provision", { suppressErrors: false })
+    async provisionPaidMangoTraffic({ tariff, userId, paymentId }: { tariff: string; userId: string; paymentId: string }) {
+        if (tariff !== "RESIDENT_PREMIUM" || this.isGatewayMode()) return;
+        const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+        const metadata = ((payment?.metadata as Record<string, unknown>) ?? {}) as Record<string, unknown>;
+        const creditedMb = Math.ceil(Number(BigInt(String(metadata.creditedTraffic ?? "0"))) / 1024 ** 2);
+        if (!creditedMb) return;
+
+        let user = await this.userService.findById(userId, true, false);
+        if (!user.premiumUsername?.length) {
+            if (!(await this.createUser({ userId, type: "RESIDENT_PREMIUM" }))) {
+                throw new Error(`Mango: не удалось создать аккаунт для ${userId}`);
+            }
+            user = await this.userService.findById(userId, true, false);
+        }
+        const username = user.premiumUsername.split(":")[0];
+
+        const info = await this.mangoProxyApi.post<{ code?: string | number; ret_data?: { last_flow?: number; total_flow?: number } }>("/user_info", { username });
+        const totalFlow = Number(info.data?.ret_data?.total_flow);
+        if (!isSuccessfulMangoResponse(info) || !Number.isFinite(totalFlow)) {
+            throw new Error(`Mango /user_info failed for ${username} (HTTP ${info.status}, code ${info.data?.code ?? "missing"})`);
+        }
+
+        let target = Number(metadata.mangoTargetTotalFlow);
+        if (!Number.isFinite(target)) {
+            const lastFlow = Number(info.data?.ret_data?.last_flow);
+            const debt = Number.isFinite(lastFlow) && lastFlow < 0 ? Math.ceil(-lastFlow) : 0;
+            target = totalFlow + creditedMb + debt;
+            await this.prisma.payment.update({
+                where: { id: paymentId },
+                data: { metadata: { ...metadata, mangoTargetTotalFlow: String(target) } as any },
+            });
+        }
+
+        const missing = Math.ceil(target - totalFlow);
+        if (missing <= 0) return;
+        const topUp = await this.mangoProxyApi.post<{ code?: string | number }>("/add_user_flow", { username, flow: missing });
+        if (!isSuccessfulMangoResponse(topUp)) {
+            throw new Error(`Mango /add_user_flow failed for ${username} (HTTP ${topUp.status}, code ${topUp.data?.code ?? "missing"})`);
+        }
+        await this.logger.log(
+            "SYSTEM",
+            `Mango: долито ${missing} МБ по платежу ${paymentId} (куплено ${creditedMb} МБ, total_flow ${totalFlow} → ${target})`,
+            userId,
+        );
+    }
+
     @OnEvent("user.distribute_traffic")
     async distributeTraffic(
         {
