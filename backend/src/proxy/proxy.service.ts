@@ -439,6 +439,60 @@ export class ProxyService implements OnModuleInit {
         return created.apiToken;
     }
 
+    /** Порог предупреждения о низком остатке мастер-аккаунта ProxyEmpire (ТЗ: «менее 2 ГБ»). */
+    static readonly PROXY_EMPIRE_LOW_BALANCE_BYTES = 2 * 1024 ** 3;
+    private lowBalanceAlertRunning = false;
+
+    /**
+     * Раз в час проверяет остаток мастер-аккаунта ProxyEmpire (residential и mobile) и,
+     * если он ниже 2 ГБ, кладёт уведомление всем администраторам. Пользователям ничего
+     * не отключает: это только сигнал пополнить провайдера. Повтор — не чаще раза в сутки
+     * на тип, пока уведомление не прочитано.
+     */
+    @Cron(CronExpression.EVERY_HOUR)
+    async alertAdminsOnLowProxyEmpireBalance() {
+        if (this.configService.get<string>("ENABLE_PROVIDER_BALANCE_ALERTS") === "false") return;
+        if (this.lowBalanceAlertRunning) return;
+        this.lowBalanceAlertRunning = true;
+        try {
+            const info = await this.proxyEmpireProvider.getUserInfo();
+            if (!info) return;
+            const gb = (bytes: number) => (bytes / 1024 ** 3).toFixed(2);
+            const low: Array<{ kind: "residential" | "mobile"; remaining: number; total: number }> = [];
+            for (const kind of ["residential", "mobile"] as const) {
+                const bandwidth = (info as any)?.[kind]?.bandwidth as { total?: number; used?: number; remaining?: number } | undefined;
+                const remaining = Number(bandwidth?.remaining);
+                if (!Number.isFinite(remaining)) continue;
+                if (remaining < ProxyService.PROXY_EMPIRE_LOW_BALANCE_BYTES) low.push({ kind, remaining, total: Number(bandwidth?.total) || 0 });
+            }
+            if (low.length === 0) return;
+
+            const admins = await this.prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+            const dayAgo = new Date(Date.now() - 86_400_000);
+            for (const item of low) {
+                const type = `provider_low_balance_${item.kind}`;
+                const label = item.kind === "mobile" ? "Premium Mobile" : "Premium Residential";
+                const title = `ProxyEmpire: мало трафика (${label})`;
+                const body = `На мастер-аккаунте ProxyEmpire осталось ${gb(item.remaining)} ГБ ${item.kind}-трафика из ${gb(item.total)} ГБ. Выдача ${label} пользователям остановится, когда остаток закончится — пополните аккаунт провайдера.`;
+                await this.logger.log("SYSTEM", `⚠️ ${title}: осталось ${gb(item.remaining)} ГБ`);
+                for (const admin of admins) {
+                    const recent = await this.prisma.notification.findFirst({
+                        where: { userId: admin.id, type, OR: [{ readAt: null }, { createdAt: { gte: dayAgo } }] },
+                        select: { id: true },
+                    });
+                    if (recent) continue;
+                    await this.prisma.notification.create({
+                        data: { userId: admin.id, type, title, body, link: "/admin/stats" },
+                    });
+                }
+            }
+        } catch (e: unknown) {
+            await this.logger.error(`ProxyEmpire low-balance alert: ${e instanceof Error ? e.message : String(e)}`);
+        } finally {
+            this.lowBalanceAlertRunning = false;
+        }
+    }
+
     @Cron(CronExpression.EVERY_MINUTE)
     async syncProxyEmpireUsage() {
         if (this.configService.get<string>("ENABLE_PROXYEMPIRE_USAGE_SYNC") === "false") return;
