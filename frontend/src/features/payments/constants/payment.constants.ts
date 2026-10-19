@@ -3,7 +3,7 @@ import type { Merchant } from "@/features/payments/types/payment.types"
 
 /** Ассеты, которых нет у мерчанта (xRocket не принимает LTC). */
 export const unsupportedAssetsByMerchant: Partial<Record<Merchant, AvailableAssets[]>> = {
-	XROCKET: ["LTC"]
+	XROCKET: ["LTC", "TON"]
 }
 
 export const assetsForMerchant = (merchant: Merchant) =>

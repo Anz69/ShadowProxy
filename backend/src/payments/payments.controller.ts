@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, HttpCode, HttpStatus, Post, Req } from "@nestjs/common";
+import { Body, Controller, Get, Param, HttpCode, HttpStatus, Post, Req, type RawBodyRequest } from "@nestjs/common";
 import { PaymentsService } from "./payments.service";
 import { type CryptoBotWebhookDataType } from "./providers/types/crypto-bot/crypto-bot-webhook-data.type";
 import { type Request } from "express";
@@ -38,7 +38,7 @@ export class PaymentsController {
 
     @Post("/webhook/xrocket")
     @HttpCode(HttpStatus.OK)
-    async xrocketWebhook(@Req() req: Request, @Body() data: XRocketWebhookData) {
+    async xrocketWebhook(@Req() req: RawBodyRequest<Request>, @Body() data: XRocketWebhookData) {
         return this.paymentsService.processXRocketWebhook(req, data);
     }
 

@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException, OnModuleInit } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException, OnModuleInit, type RawBodyRequest } from "@nestjs/common";
 import { addTrafficCredit } from "../shared/utils/traffic-credit";
 import { CryptoBotProvider } from "./providers/services/crypto-bot.provider";
 import { Request } from "express";
@@ -107,15 +107,25 @@ export class PaymentsService implements OnModuleInit {
         };
     }
 
-    async processXRocketWebhook(req: Request, data: XRocketWebhookData) {
+    async processXRocketWebhook(req: RawBodyRequest<Request>, data: XRocketWebhookData) {
         if (!this.xrocketProvider) throw new ForbiddenException("errors.wrong_signature");
-        const verifyResult = this.xrocketProvider.verifyWebhookSignature(data, req.headers["rocket-pay-signature"] as string);
+        const header = (name: string) => {
+            const v = req.headers[name];
+            return Array.isArray(v) ? v[0] : v;
+        };
+        const verifyResult = this.xrocketProvider.verifyWebhookSignature(req.rawBody, {
+            signature: header("signature"),
+            version: header("signature-version"),
+            timestamp: header("signature-timestamp"),
+        });
 
         if (!verifyResult) {
             throw new ForbiddenException("errors.wrong_signature");
         }
 
-        if (data.type === "invoicePay" && data.data?.status === "paid") {
+        // Оба события (payment_status_changed / invoice_status_changed) несут invoice;
+        // зачисляем по статусу инвойса, повторные доставки гасит claim WAITING→PAID.
+        if (data.type === "invoice" && data.data?.invoice?.status === "paid") {
             await this.prisma.$transaction(async (tx) => await this.processPaidOrder(tx, data, PaymentProvider.XROCKET), { timeout: 30000 });
         }
     }
@@ -134,7 +144,7 @@ export class PaymentsService implements OnModuleInit {
                 { provider: PaymentProvider.CRYPTO_BOT, payloads: this.cryptoBotProvider.getPaidInvoices().then((l) => l.map((i) => i.payload)) },
             ];
             if (this.xrocketProvider && this.getEnabledMerchants().XROCKET) {
-                sources.push({ provider: PaymentProvider.XROCKET, payloads: this.xrocketProvider.getPaidInvoices().then((l) => l.map((i) => i.payload)) });
+                sources.push({ provider: PaymentProvider.XROCKET, payloads: this.xrocketProvider.getPaidInvoices().then((l) => l.map((i) => i.clientInvoiceId && JSON.stringify({ paymentId: i.clientInvoiceId }))) });
             }
             for (const { provider, payloads } of sources) {
                 const ids = new Set<string>();
@@ -182,11 +192,9 @@ export class PaymentsService implements OnModuleInit {
                 throw new BadRequestException("errors.payment_not_found");
             }
         } else if ("timestamp" in data && "data" in data) {
-            try {
-                paymentId = JSON.parse(data.data.payload || "")?.paymentId;
-            } catch {
-                throw new BadRequestException("errors.payment_not_found");
-            }
+            const inv = data.data.invoice;
+            const fromPayload = inv?.callback?.payload?.paymentId;
+            paymentId = inv?.clientInvoiceId || (typeof fromPayload === "string" ? fromPayload : "");
         } else {
             paymentId = data.order_id;
         }

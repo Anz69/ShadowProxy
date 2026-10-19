@@ -46,7 +46,8 @@ if (!process.env.REDIS_URI || process.env.REDIS_URI.includes('${')) {
 }
 
 async function bootstrap() {
-    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    // rawBody нужен для проверки подписи вебхуков xRocket по сырым байтам тела.
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
     const config = app.get(ConfigService);
     const useRedis = process.env.REDIS_ENABLED !== "false";
     let sessionStore: session.Store;
