@@ -555,15 +555,35 @@ async createProxyAccount(username: string) {
     async provisionPaidMangoTraffic({ tariff, userId, paymentId }: { tariff: string; userId: string; paymentId: string }) {
         if (tariff !== "RESIDENT_PREMIUM" || this.isGatewayMode()) return;
 
-        // Платёж обязан принадлежать пользователю, быть оплаченным и ждать провижининга —
-        // событие не доверяем на слово. Всё под advisory-lock пользователя: два экземпляра
-        // не должны одновременно прочитать total_flow до доливки и долить дважды.
-        await this.prisma.$transaction(async (tx) => {
+        // Аккаунт Mango создаём до транзакций: это HTTP + запись в users, под lock им не место.
+        let user = await this.userService.findById(userId, true, false);
+        if (!user.premiumUsername?.length) {
+            if (!(await this.createUser({ userId, type: "RESIDENT_PREMIUM" }))) {
+                throw new Error(`Mango: не удалось создать аккаунт для ${userId}`);
+            }
+            user = await this.userService.findById(userId, true, false);
+        }
+        const username = user.premiumUsername.split(":")[0];
+
+        const readTotalFlow = async (): Promise<{ totalFlow: number; lastFlow: number }> => {
+            const info = await this.mangoProxyApi.post<{ code?: string | number; ret_data?: { last_flow?: number; total_flow?: number } }>("/user_info", { username });
+            const totalFlow = Number(info.data?.ret_data?.total_flow);
+            if (!isSuccessfulMangoResponse(info) || !Number.isFinite(totalFlow) || totalFlow < 0) {
+                throw new Error(`Mango /user_info failed for ${username} (HTTP ${info.status}, code ${info.data?.code ?? "missing"})`);
+            }
+            const lastFlow = Number(info.data?.ret_data?.last_flow);
+            return { totalFlow, lastFlow: Number.isFinite(lastFlow) ? lastFlow : 0 };
+        };
+
+        // Шаг 1 (как у ProxyEmpire): под advisory-lock пользователя проверяем платёж —
+        // его владельца, статус и ожидание провижининга — и фиксируем абсолютную цель
+        // total_flow в metadata. Ретрай после сбоя не сможет долить дважды.
+        const prepared = await this.prisma.$transaction(async (tx) => {
             await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
             const payment = await tx.payment.findFirst({
                 where: { id: paymentId, userId, status: "PAID", metadata: { path: ["provisioningPending"], equals: "RESIDENT_PREMIUM" } },
             });
-            if (!payment) return;
+            if (!payment) return null;
             const metadata = payment.metadata as Record<string, unknown>;
 
             let creditedBytes: bigint;
@@ -573,51 +593,47 @@ async createProxyAccount(username: string) {
                 throw new Error(`Mango: некорректный creditedTraffic у платежа ${paymentId}`);
             }
             const creditedMb = Math.ceil(Number(creditedBytes) / 1024 ** 2);
-            // Верхняя граница доливки: купленный объём + перерасход; больше 1 ТБ за один платёж — ошибка данных.
+            // Больше 1 ТБ за один платёж — ошибка данных, не доливаем.
             if (!Number.isSafeInteger(creditedMb) || creditedMb <= 0 || creditedMb > 1024 * 1024) {
                 throw new Error(`Mango: недопустимый объём ${creditedMb} МБ у платежа ${paymentId}`);
             }
 
-            let user = await this.userService.findById(userId, true, false);
-            if (!user.premiumUsername?.length) {
-                if (!(await this.createUser({ userId, type: "RESIDENT_PREMIUM" }))) {
-                    throw new Error(`Mango: не удалось создать аккаунт для ${userId}`);
-                }
-                user = await this.userService.findById(userId, true, false);
-            }
-            const username = user.premiumUsername.split(":")[0];
+            const persisted = Number(metadata.mangoTargetTotalFlow);
+            if (Number.isFinite(persisted)) return { target: persisted, creditedMb };
 
-            const info = await this.mangoProxyApi.post<{ code?: string | number; ret_data?: { last_flow?: number; total_flow?: number } }>("/user_info", { username });
-            const totalFlow = Number(info.data?.ret_data?.total_flow);
-            if (!isSuccessfulMangoResponse(info) || !Number.isFinite(totalFlow) || totalFlow < 0) {
-                throw new Error(`Mango /user_info failed for ${username} (HTTP ${info.status}, code ${info.data?.code ?? "missing"})`);
-            }
+            const { totalFlow, lastFlow } = await readTotalFlow();
+            // Отрицательный остаток — перерасход до отсечки на агенте; иначе покупка уйдёт в долг.
+            const debt = lastFlow < 0 ? Math.ceil(-lastFlow) : 0;
+            const target = Math.ceil(totalFlow + creditedMb + debt);
+            if (!Number.isSafeInteger(target)) throw new Error(`Mango: недопустимая цель ${target} у платежа ${paymentId}`);
+            await tx.payment.update({
+                where: { id: paymentId },
+                data: { metadata: { ...metadata, mangoTargetTotalFlow: String(target) } as any },
+            });
+            return { target, creditedMb };
+        }, { timeout: 30000 });
+        if (!prepared) return;
 
-            let target = Number(metadata.mangoTargetTotalFlow);
-            if (!Number.isFinite(target)) {
-                const lastFlow = Number(info.data?.ret_data?.last_flow);
-                const debt = Number.isFinite(lastFlow) && lastFlow < 0 ? Math.ceil(-lastFlow) : 0;
-                target = totalFlow + creditedMb + debt;
-                if (!Number.isSafeInteger(Math.ceil(target))) throw new Error(`Mango: недопустимая цель ${target} у платежа ${paymentId}`);
-                await tx.payment.update({
-                    where: { id: paymentId },
-                    data: { metadata: { ...metadata, mangoTargetTotalFlow: String(target) } as any },
-                });
-            }
-
-            const missing = Math.ceil(target - totalFlow);
+        // Шаг 2: цель зафиксирована — доливаем недостающее до неё по свежему total_flow,
+        // снова под lock, чтобы параллельный экземпляр не долил то же самое.
+        await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+            const { totalFlow } = await readTotalFlow();
+            const missing = Math.ceil(prepared.target - totalFlow);
             if (missing <= 0) return;
-            if (missing > creditedMb + 1024 * 1024) throw new Error(`Mango: доливка ${missing} МБ превышает купленное по платежу ${paymentId}`);
+            if (missing > prepared.creditedMb + 1024 * 1024) {
+                throw new Error(`Mango: доливка ${missing} МБ превышает купленное по платежу ${paymentId}`);
+            }
             const topUp = await this.mangoProxyApi.post<{ code?: string | number }>("/add_user_flow", { username, flow: missing });
             if (!isSuccessfulMangoResponse(topUp)) {
                 throw new Error(`Mango /add_user_flow failed for ${username} (HTTP ${topUp.status}, code ${topUp.data?.code ?? "missing"})`);
             }
             await this.logger.log(
                 "SYSTEM",
-                `Mango: долито ${missing} МБ по платежу ${paymentId} (куплено ${creditedMb} МБ, total_flow ${totalFlow} → ${target})`,
+                `Mango: долито ${missing} МБ по платежу ${paymentId} (куплено ${prepared.creditedMb} МБ, total_flow ${totalFlow} → ${prepared.target})`,
                 userId,
             );
-        }, { timeout: 60000 });
+        }, { timeout: 30000 });
     }
 
     @OnEvent("user.distribute_traffic")
