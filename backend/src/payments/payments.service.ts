@@ -36,6 +36,7 @@ import { NotificationService } from "../notification/notification.service";
 @Injectable()
 export class PaymentsService implements OnModuleInit {
     private provisioningPaidInvoices = false;
+    private reconcilingProviderInvoices = false;
     public exchangeCache = new Map<string, { value: number; timestamp: number }>();
 
     private readonly cacheTtlMs = 300_000;
@@ -119,14 +120,62 @@ export class PaymentsService implements OnModuleInit {
         }
     }
 
+    /**
+     * Сверка с провайдерами: если вебхук не дошёл (так было с CryptoBot с сентября),
+     * оплаченный инвойс всё равно будет зачислен. Идемпотентно: PAID не трогаем.
+     */
+    @Cron(CronExpression.EVERY_MINUTE)
+    async reconcileProviderInvoices() {
+        if (this.configService.get<string>("ENABLE_PAYMENT_RECONCILE") === "false") return;
+        if (this.reconcilingProviderInvoices) return;
+        this.reconcilingProviderInvoices = true;
+        try {
+            const sources: Array<{ provider: PaymentProvider; payloads: Promise<Array<string | undefined>> }> = [
+                { provider: PaymentProvider.CRYPTO_BOT, payloads: this.cryptoBotProvider.getPaidInvoices().then((l) => l.map((i) => i.payload)) },
+            ];
+            if (this.xrocketProvider && this.getEnabledMerchants().XROCKET) {
+                sources.push({ provider: PaymentProvider.XROCKET, payloads: this.xrocketProvider.getPaidInvoices().then((l) => l.map((i) => i.payload)) });
+            }
+            for (const { provider, payloads } of sources) {
+                const ids = new Set<string>();
+                for (const payload of await payloads) {
+                    try {
+                        const id = JSON.parse(payload || "")?.paymentId;
+                        if (typeof id === "string" && id) ids.add(id);
+                    } catch { /* чужой payload */ }
+                }
+                if (ids.size === 0) continue;
+                const pending = await this.prisma.payment.findMany({
+                    where: { id: { in: [...ids] }, provider, status: { not: PaymentStatus.PAID } },
+                    select: { id: true, status: true },
+                });
+                for (const p of pending) {
+                    try {
+                        await this.prisma.$transaction(
+                            async (tx) => await this.processPaidOrder(tx, { reconcile: true, paymentId: p.id }, provider),
+                            { timeout: 30000 },
+                        );
+                        await this.logger.log("SYSTEM", `Платёж ${p.id} (${provider}) зачислен сверкой с провайдером; вебхук не приходил, статус был ${p.status}`);
+                    } catch (e: unknown) {
+                        await this.logger.error(`Сверка ${provider} ${p.id}: ${e instanceof Error ? e.message : String(e)}`);
+                    }
+                }
+            }
+        } finally {
+            this.reconcilingProviderInvoices = false;
+        }
+    }
+
     async processPaidOrder(
         tx: Prisma.TransactionClient,
-        data: CryptoBotWebhookDataType | HeleketWebhookData | XRocketWebhookData,
+        data: CryptoBotWebhookDataType | HeleketWebhookData | XRocketWebhookData | { reconcile: true; paymentId: string },
         expectedProvider?: PaymentProvider,
     ) {
         let paymentId: string;
 
-        if ("update_id" in data) {
+        if ("reconcile" in data) {
+            paymentId = data.paymentId;
+        } else if ("update_id" in data) {
             try {
                 paymentId = JSON.parse(data.payload.payload || "")?.paymentId;
             } catch {
@@ -160,7 +209,9 @@ export class PaymentsService implements OnModuleInit {
         // The conditional transition serializes concurrent callbacks. All money
         // and traffic credits below belong to this same transaction.
         const claimed = await tx.payment.updateMany({
-            where: { id: paymentId, status: PaymentStatus.WAITING },
+            // Сверка по API провайдера может оживить CANCELLED: деньги уже списаны, а отмена
+            // пришла от cron по сроку жизни. Для вебхуков инвариант прежний — только WAITING.
+            where: { id: paymentId, status: "reconcile" in data ? { in: [PaymentStatus.WAITING, PaymentStatus.CANCELLED] } : PaymentStatus.WAITING },
             data: { status: PaymentStatus.PAID },
         });
         if (claimed.count !== 1) return;

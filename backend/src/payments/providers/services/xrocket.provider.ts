@@ -71,6 +71,17 @@ export class XRocketProvider {
         }
     }
 
+    /** Оплаченные инвойсы из последних созданных — страховка на случай, если вебхук не дошёл. */
+    async getPaidInvoices(limit = 100): Promise<XRocketInvoiceType[]> {
+        try {
+            const res = await this.api.get<{ success: boolean; data: { results: XRocketInvoiceType[] } }>("/tg-invoices", { params: { limit, offset: 0 } });
+            return (res.data?.data?.results ?? []).filter((i) => i.status === "paid");
+        } catch (e: unknown) {
+            await this.logger.error(`xRocket getInvoices: ${String(e)}`);
+            return [];
+        }
+    }
+
     async getInvoice(id: number | string): Promise<XRocketInvoiceType | null> {
         try {
             const res = await this.api.get<{ success: boolean; data: XRocketInvoiceType }>(`/tg-invoices/${id}`);

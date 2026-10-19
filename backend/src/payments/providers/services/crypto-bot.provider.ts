@@ -53,6 +53,20 @@ export class CryptoBotProvider {
         }
     }
 
+    /** Оплаченные инвойсы (новые первыми) — страховка на случай, если вебхук не дошёл. */
+    async getPaidInvoices(count = 100): Promise<CryptoBotInvoiceType[]> {
+        try {
+            const res = await this.cryptoBotApi.get<{ ok: boolean; result: { items: CryptoBotInvoiceType[] } }>("/getInvoices", {
+                params: { status: "paid", count },
+                timeout: 15000,
+            });
+            return res.data?.result?.items ?? [];
+        } catch (e: unknown) {
+            await this.logger.error(`Crypto Bot getInvoices: ${String(e)}`);
+            return [];
+        }
+    }
+
     verifyWebhookSignature(body: CryptoBotWebhookDataType, signature: string) {
         if (typeof signature !== "string" || !/^[a-f0-9]{64}$/i.test(signature)) return false;
         const secret = createHash("sha256").update(this.configService.getOrThrow<string>("CRYPTO_BOT_API_KEY")).digest();
