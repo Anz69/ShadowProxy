@@ -143,3 +143,49 @@ func TestQuotaBlocksLoginOnTheReadThatExceedsIt(t *testing.T) {
 		t.Fatalf("unlimited login must not be blocked")
 	}
 }
+
+// A quota-limited login must be blocked mid-stream, not after the whole response
+// has been relayed: the copy path has to report bytes chunk by chunk.
+func TestWriteToCountsInChunksSoQuotaCutsMidStream(t *testing.T) {
+	auth := NewAuthRegistry()
+	tracker := NewTrafficTracker(&Config{CoreURL: "http://127.0.0.1:1", AuthToken: "t", ServerID: "s"}, auth)
+	upstream, upstreamPeer := net.Pipe()
+	client, clientPeer := net.Pipe()
+	defer upstream.Close()
+	defer upstreamPeer.Close()
+	defer client.Close()
+	defer clientPeer.Close()
+
+	tracker.SetLimitHandler(func(login string) {
+		if auth.BlockOnce(login) {
+			client.Close() // what ConnectionManager.CloseAll does
+		}
+	})
+	auth.ActivatePort(&LoginConfig{Login: "stream", Password: "p", LimitEnabled: true, BytesLimit: 100 * 1024})
+
+	go func() {
+		chunk := bytes.Repeat([]byte("x"), 32*1024)
+		for i := 0; i < 32; i++ { // 1 MB
+			if _, err := upstreamPeer.Write(chunk); err != nil {
+				return
+			}
+		}
+		upstreamPeer.Close()
+	}()
+	received := make(chan int64, 1)
+	go func() {
+		n, _ := io.Copy(io.Discard, clientPeer)
+		received <- n
+	}()
+
+	counting := &countingConn{conn: upstream, login: "stream", tracker: tracker, direction: "out"}
+	_, _ = counting.WriteTo(client)
+	clientPeer.Close()
+	got := <-received
+	if !auth.Get("stream").Blocked {
+		t.Fatalf("login was not blocked")
+	}
+	if got >= 512*1024 {
+		t.Fatalf("client still received %d bytes; the stream was not cut near the 100 KB quota", got)
+	}
+}

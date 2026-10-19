@@ -292,20 +292,22 @@ func (c *countingConn) Close() error {
 	return c.conn.Close()
 }
 
-// WriteTo keeps io.Copy's fast path while preserving accounting. The fallback
-// must use a reader-only wrapper: calling io.Copy(w, c) from here would call
-// WriteTo again and recurse until the agent crashes with stack overflow.
+// WriteTo deliberately avoids the kernel zero-copy fast path (TCPConn.WriteTo
+// uses splice and reports the byte count only after the whole stream has gone
+// through), because the quota check lives in AddBytes and must see every chunk
+// as it passes: otherwise a 3 MB download on a 200 KB quota completes before the
+// login is blocked. Copying in 64 KB chunks bounds the overshoot to one chunk.
+// The reader-only wrapper is required: io.Copy(w, c) would call WriteTo again
+// and recurse until the agent crashes with stack overflow.
 func (c *countingConn) WriteTo(w io.Writer) (int64, error) {
-	if wt, ok := c.conn.(io.WriterTo); ok {
-		n, err := wt.WriteTo(w)
-		if n > 0 {
-			c.tracker.AddBytes(c.login, c.direction, n)
-		}
-		return n, err
-	}
+	buf := make([]byte, 64*1024)
+	return io.CopyBuffer(writerOnly{Writer: w}, readerOnly{Reader: c}, buf)
+}
 
-	n, err := io.Copy(w, readerOnly{Reader: c})
-	return n, err
+// writerOnly hides io.ReaderFrom so io.CopyBuffer cannot hand the stream to a
+// kernel splice on the destination socket either.
+type writerOnly struct {
+	io.Writer
 }
 
 // readerOnly intentionally exposes only io.Reader so io.Copy cannot dispatch
