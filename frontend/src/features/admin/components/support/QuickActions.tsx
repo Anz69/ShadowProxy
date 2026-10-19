@@ -23,6 +23,24 @@ import { formatTraffic } from "@/shared/utils/format-traffic"
  * Переиспользует существующие админ-модалки (трафик/баланс) — юзер передаётся как AdminUser
  * (модалки читают только id/email/balance/*TrafficLeft, все они есть в AdminTicketUser).
  */
+const TRAFFIC_BALANCES: { key: keyof AdminTicketUser; label: string }[] = [
+	{ key: "premiumTrafficLeft", label: "Residential" },
+	{ key: "premiumResidentialTrafficLeft", label: "Premium Residential" },
+	{ key: "mobileGbTrafficLeft", label: "Premium Mobile (GB)" },
+	{ key: "mobileTrafficLeft", label: "Premium Mobile" },
+	{ key: "ispUsaTrafficLeft", label: "ISP USA" },
+	{ key: "ispEuTrafficLeft", label: "ISP Netherlands" },
+	{ key: "residentialLiteTrafficLeft", label: "Residential Lite" },
+	{ key: "ipv6GbTrafficLeft", label: "IPv6" }
+]
+const hasBytes = (v: unknown) => {
+	try {
+		return BigInt(String(v ?? "0")) > BigInt(0)
+	} catch {
+		return false
+	}
+}
+
 const QuickActions: FC<{ user: AdminTicketUser }> = ({ user }) => {
 	const { open } = useModalStore()
 	// Балансы и трафик меняет только ADMIN (бэкенд это тоже проверяет); поддержке — тикеты и чекер.
@@ -50,6 +68,18 @@ const QuickActions: FC<{ user: AdminTicketUser }> = ({ user }) => {
 				<span className="text-[12px] text-white/45">ID: {user.id}</span>
 				{user.tgLogin && <span className="text-[12px] text-white/45">Telegram: {user.tgLogin}</span>}
 				<span className="text-[12px] text-white/45">Баланс: ${Number(user.balance).toFixed(2)}</span>
+				{/* Купленные пакеты: остаток по каждому тарифу (то, что видит клиент на дашборде) */}
+				{TRAFFIC_BALANCES.some(b => hasBytes(user[b.key])) && (
+					<div className="mt-1 flex flex-col gap-1 border-t border-white/[0.06] pt-2">
+						<span className="text-[11px] uppercase tracking-[0.12em] text-white/35">Пакеты · остаток</span>
+						{TRAFFIC_BALANCES.filter(b => hasBytes(user[b.key])).map(b => (
+							<span key={b.key} className="flex items-center justify-between text-[12px]">
+								<span className="text-white/60">{b.label}</span>
+								<span className="font-mono text-white/85">{formatTraffic(user[b.key] as string)}</span>
+							</span>
+						))}
+					</div>
+				)}
 				<span className="text-[12px] text-white/45">Регистрация: {formatDate(user.createdAt)}</span>
 			</div>
 

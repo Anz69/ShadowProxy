@@ -105,3 +105,41 @@ func TestCountingWrappersAccountBytesForwardedInBothDirections(t *testing.T) {
 		t.Fatalf("unexpected live counters: in=%d out=%d exists=%t", inBytes, outBytes, ok)
 	}
 }
+
+func TestQuotaBlocksLoginOnTheReadThatExceedsIt(t *testing.T) {
+	auth := NewAuthRegistry()
+	tracker := NewTrafficTracker(&Config{CoreURL: "http://127.0.0.1:1", AuthToken: "t", ServerID: "s"}, auth)
+	blocked := make([]string, 0)
+	tracker.SetLimitHandler(func(login string) {
+		if auth.BlockOnce(login) {
+			blocked = append(blocked, login)
+		}
+	})
+
+	// 100 bytes already flowed before activation: the quota must count from now.
+	tracker.AddBytes("quota-login", "out", 100)
+	cfg := &LoginConfig{Login: "quota-login", Password: "p", LimitEnabled: true, BytesLimit: 50}
+	cfg.LimitBaseIn, cfg.LimitBaseOut = tracker.Totals("quota-login")
+	auth.ActivatePort(cfg)
+
+	tracker.AddBytes("quota-login", "in", 20)
+	tracker.AddBytes("quota-login", "out", 29)
+	if len(blocked) != 0 || auth.Get("quota-login").Blocked {
+		t.Fatalf("login blocked before quota was reached")
+	}
+	tracker.AddBytes("quota-login", "out", 1)
+	if len(blocked) != 1 || !auth.Get("quota-login").Blocked {
+		t.Fatalf("login not blocked at quota: blocked=%v", blocked)
+	}
+	tracker.AddBytes("quota-login", "out", 500)
+	if len(blocked) != 1 {
+		t.Fatalf("block handler fired more than once: %v", blocked)
+	}
+
+	// Logins without a quota are never blocked by the tracker.
+	auth.ActivatePort(&LoginConfig{Login: "free-login", Password: "p"})
+	tracker.AddBytes("free-login", "out", 1<<30)
+	if auth.Get("free-login").Blocked {
+		t.Fatalf("unlimited login must not be blocked")
+	}
+}

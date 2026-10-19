@@ -8,15 +8,22 @@ import (
 
 // LoginConfig holds configuration for a registered login
 type LoginConfig struct {
-	Login          string
-	Password       string
-	Port           int
-	UserID         string
-	UpstreamHost   string
-	UpstreamPort   int
-	UpstreamUser   string
-	UpstreamPass   string
-	Blocked        bool
+	Login        string
+	Password     string
+	Port         int
+	UserID       string
+	UpstreamHost string
+	UpstreamPort int
+	UpstreamUser string
+	UpstreamPass string
+	Blocked      bool
+	// Квота от CORE: сколько байт (in+out) ещё можно пропустить с момента активации.
+	// LimitEnabled=false — лимит не передан (провайдерский учёт), не ограничиваем.
+	LimitEnabled bool
+	BytesLimit   int64
+	// Счётчики трекера на момент установки лимита — отсчёт идёт от них.
+	LimitBaseIn  int64
+	LimitBaseOut int64
 }
 
 // AuthRegistry validates credentials against registered logins
@@ -86,6 +93,32 @@ func (r *AuthRegistry) SetBlocked(login string, blocked bool) bool {
 		return false
 	}
 	cfg.Blocked = blocked
+	return true
+}
+
+// LimitReached reports whether the login has consumed its CORE-provided quota.
+// Totals are the tracker's live counters for the login.
+func (r *AuthRegistry) LimitReached(login string, totalIn, totalOut int64) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	cfg, ok := r.logins[login]
+	if !ok || !cfg.LimitEnabled || cfg.Blocked {
+		return false
+	}
+	used := (totalIn - cfg.LimitBaseIn) + (totalOut - cfg.LimitBaseOut)
+	return used >= cfg.BytesLimit
+}
+
+// BlockOnce marks the login blocked and reports whether this call did it
+// (false when unknown or already blocked), so the caller closes connections once.
+func (r *AuthRegistry) BlockOnce(login string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	cfg, ok := r.logins[login]
+	if !ok || cfg.Blocked {
+		return false
+	}
+	cfg.Blocked = true
 	return true
 }
 

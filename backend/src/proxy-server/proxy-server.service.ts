@@ -7,6 +7,7 @@ import {
     ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BALANCE_FIELDS_SELECT, bytesLimitForAgent, remainingBytesForProxyType } from "../shared/utils/proxy-type-balance";
 import { ProxyServerStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import axios from 'axios';
@@ -270,6 +271,7 @@ export class ProxyServerService {
                 userLogin: { not: null },
                 userPassword: { not: null },
             } as any,
+            include: { user: { select: BALANCE_FIELDS_SELECT } },
         });
 
         const ports = activeProxies.map((proxy: any) => ({
@@ -280,6 +282,8 @@ export class ProxyServerService {
             proxy_port: proxy.port,
             proxy_username: proxy.username,
             proxy_password: proxy.password,
+            // Остаток пользователя — агент рвёт соединения сам, как только он выбран.
+            ...bytesLimitForAgent(proxy.user, proxy.type),
         }));
 
         try {
@@ -518,7 +522,9 @@ export class ProxyServerService {
         proxyPort: number,
         proxyUsername: string,
         proxyPassword: string,
-        authToken: string
+        authToken: string,
+        /** Остаток пользователя в байтах для отсечки на агенте; null/undefined — без лимита. */
+        bytesLimit?: number | null,
     ): Promise<void> {
         const maxRetries = 2;
         let lastError: any = null;
@@ -537,7 +543,8 @@ export class ProxyServerService {
                         proxy_host: proxyHost,
                         proxy_port: proxyPort,
                         proxy_username: proxyUsername,
-                        proxy_password: proxyPassword
+                        proxy_password: proxyPassword,
+                        ...(bytesLimit !== null && bytesLimit !== undefined ? { bytes_limit: bytesLimit } : {}),
                     },
                     {
                         headers: {
@@ -656,6 +663,7 @@ export class ProxyServerService {
                 userLogin: { not: null },
                 userPassword: { not: null },
             },
+            include: { user: { select: BALANCE_FIELDS_SELECT } },
         });
 
         if (suspendedProxies.length === 0) {
@@ -705,6 +713,7 @@ export class ProxyServerService {
                 proxy_port: proxy.port,
                 proxy_username: proxy.username,
                 proxy_password: proxy.password,
+                ...bytesLimitForAgent((proxy as any).user, proxy.type),
             }));
 
             try {
@@ -745,7 +754,8 @@ export class ProxyServerService {
                                 proxy.port,
                                 proxy.username,
                                 proxy.password,
-                                token
+                                token,
+                                remainingBytesForProxyType((proxy as any).user, proxy.type),
                             );
                             proxyIdsToActivate.push(proxy.id);
                             success++;

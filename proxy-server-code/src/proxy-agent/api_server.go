@@ -111,6 +111,21 @@ type addPortPayload struct {
 	ProxyPort     int    `json:"proxy_port,omitempty"`
 	ProxyUsername string `json:"proxy_username,omitempty"`
 	ProxyPassword string `json:"proxy_password,omitempty"`
+	// Остаток пользователя в байтах; nil — без лимита (провайдерский учёт).
+	BytesLimit *int64 `json:"bytes_limit,omitempty"`
+}
+
+// applyLimit copies the CORE quota into the login config, anchoring it to the
+// tracker's current counters so only traffic after this activation counts.
+func (s *APIServer) applyLimit(cfg *LoginConfig, limit *int64) {
+	if limit == nil {
+		return
+	}
+	cfg.LimitEnabled = true
+	cfg.BytesLimit = *limit
+	if s.tracker != nil {
+		cfg.LimitBaseIn, cfg.LimitBaseOut = s.tracker.Totals(cfg.Login)
+	}
 }
 
 func (s *APIServer) addPortHandler(w http.ResponseWriter, r *http.Request) {
@@ -137,6 +152,7 @@ func (s *APIServer) addPortHandler(w http.ResponseWriter, r *http.Request) {
 		UpstreamUser: p.ProxyUsername,
 		UpstreamPass: p.ProxyPassword,
 	}
+	s.applyLimit(cfg, p.BytesLimit)
 	s.auth.ActivatePort(cfg)
 	logrus.Infof("Added login %s", p.Login)
 	w.WriteHeader(http.StatusOK)
@@ -178,6 +194,7 @@ func (s *APIServer) addPortsHandler(w http.ResponseWriter, r *http.Request) {
 			UpstreamUser: port.ProxyUsername,
 			UpstreamPass: port.ProxyPassword,
 		}
+		s.applyLimit(cfg, port.BytesLimit)
 		s.auth.ActivatePort(cfg)
 		added++
 	}
@@ -201,6 +218,7 @@ type syncPayload struct {
 		ProxyPort     int    `json:"proxy_port,omitempty"`
 		ProxyUsername string `json:"proxy_username,omitempty"`
 		ProxyPassword string `json:"proxy_password,omitempty"`
+		BytesLimit    *int64 `json:"bytes_limit,omitempty"`
 	} `json:"activePorts"`
 	Timestamp int64 `json:"timestamp"`
 }
@@ -220,7 +238,7 @@ func (s *APIServer) syncActivePortsHandler(w http.ResponseWriter, r *http.Reques
 		if item.Login == "" {
 			continue
 		}
-		configs = append(configs, &LoginConfig{
+		cfg := &LoginConfig{
 			Login:        item.Login,
 			Password:     item.Password,
 			Port:         item.Port,
@@ -229,7 +247,9 @@ func (s *APIServer) syncActivePortsHandler(w http.ResponseWriter, r *http.Reques
 			UpstreamPort: item.ProxyPort,
 			UpstreamUser: item.ProxyUsername,
 			UpstreamPass: item.ProxyPassword,
-		})
+		}
+		s.applyLimit(cfg, item.BytesLimit)
+		configs = append(configs, cfg)
 	}
 	s.auth.ReplaceAll(configs)
 	logrus.Infof("Sync: replaced with %d logins", len(configs))

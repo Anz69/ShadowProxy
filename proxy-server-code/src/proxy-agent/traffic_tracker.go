@@ -55,6 +55,24 @@ type TrafficTracker struct {
 	pending        *pendingTrafficBatch
 	auth           *AuthRegistry
 	shutdown       chan struct{}
+	// Вызывается один раз, когда логин выбрал квоту (см. AuthRegistry.LimitReached).
+	onLimit func(login string)
+}
+
+// SetLimitHandler registers the callback that blocks a login whose quota is spent.
+func (t *TrafficTracker) SetLimitHandler(fn func(login string)) {
+	t.onLimit = fn
+}
+
+// Totals returns live in/out counters for a login (0,0 when it never carried traffic).
+func (t *TrafficTracker) Totals(login string) (int64, int64) {
+	t.statsMu.RLock()
+	entry := t.stats[login]
+	t.statsMu.RUnlock()
+	if entry == nil {
+		return 0, 0
+	}
+	return atomic.LoadInt64(&entry.bytesIn), atomic.LoadInt64(&entry.bytesOut)
 }
 
 // NewTrafficTracker creates a new tracker
@@ -91,6 +109,16 @@ func (t *TrafficTracker) AddBytes(login, direction string, n int64) {
 		atomic.AddInt64(&entry.bytesIn, n)
 	} else {
 		atomic.AddInt64(&entry.bytesOut, n)
+	}
+
+	// Квота проверяется на каждом чтении: отсечка происходит в момент перерасхода,
+	// а не через 5-секундный батч в CORE.
+	if t.onLimit != nil && t.auth != nil {
+		in := atomic.LoadInt64(&entry.bytesIn)
+		out := atomic.LoadInt64(&entry.bytesOut)
+		if t.auth.LimitReached(login, in, out) {
+			t.onLimit(login)
+		}
 	}
 }
 
@@ -134,7 +162,8 @@ func (t *TrafficTracker) getSnapshot() map[string]*loginStats {
 
 // Run starts the periodic send loop
 func (t *TrafficTracker) Run() {
-	ticker := time.NewTicker(5 * time.Second)
+	// 2 секунды: CORE быстрее видит расход; точную отсечку делает сам агент по квоте.
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
 	for {

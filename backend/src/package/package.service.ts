@@ -1,4 +1,5 @@
 import { BadRequestException, forwardRef, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
+import { remainingBytesForProxyType } from "../shared/utils/proxy-type-balance";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma, PackageType, ProxyStatus } from "@prisma/client";
 import { CreatePackageDto } from "./dto/create-package.dto";
@@ -946,7 +947,8 @@ export class PackageService {
                     providerProxy.port,
                     providerProxy.username,
                     providerProxy.password,
-                    server.token
+                    server.token,
+                    remainingBytesForProxyType(user as any, packageType),
                 );
             } else {
                 console.warn(`[PACKAGE SERVICE] Сервер ${server.host} не имеет токена для активации`);
@@ -1152,6 +1154,7 @@ export class PackageService {
                 await this.proxyServerService.activatePortOnServer(
                     p.serverHost!, p.userPort!, p.userLogin!, p.userPassword!,
                     p.host, p.port, p.username, p.password, token,
+                    remainingBytesForProxyType(u as any, p.type),
                 );
                 const ok = await this.proxyService.verifyIssuedProxyWorks(p.serverHost!, p.userPort!, p.userLogin!, p.userPassword!, 3);
                 if (!ok) {

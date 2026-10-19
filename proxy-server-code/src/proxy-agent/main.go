@@ -87,6 +87,12 @@ func main() {
 	tracker := NewTrafficTracker(config, auth)
 	proxyListener := NewProxyListener(config, auth, tracker, connMgr)
 	apiServer := NewAPIServer(config, auth, connMgr, tracker)
+	tracker.SetLimitHandler(func(login string) {
+		if auth.BlockOnce(login) {
+			closed := connMgr.CloseAll(login)
+			logrus.Infof("Quota reached: blocked login %s, closed %d connections", login, closed)
+		}
+	})
 
 	if err := proxyListener.Start(); err != nil {
 		logrus.Fatalf("Proxy listener failed: %v", err)

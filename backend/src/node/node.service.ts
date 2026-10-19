@@ -1,4 +1,5 @@
 import { forwardRef, Inject, Injectable, InternalServerErrorException, OnModuleInit } from "@nestjs/common";
+import { BALANCE_FIELDS_SELECT, bytesLimitForAgent } from "../shared/utils/proxy-type-balance";
 import { Socket } from "socket.io";
 import { InitializeDto } from "./dtos/initialize.dto";
 import { ProxyType } from "@prisma/client";
@@ -352,6 +353,7 @@ export class NodeService implements OnModuleInit {
                 userLogin: { not: null },
                 userPassword: { not: null },
             } as any,
+            include: { user: { select: BALANCE_FIELDS_SELECT } },
         });
 
         if (activePorts.length === 0) {
@@ -411,6 +413,7 @@ export class NodeService implements OnModuleInit {
                 proxy_port: proxy.port,
                 proxy_username: proxy.username,
                 proxy_password: proxy.password,
+                ...bytesLimitForAgent((proxy as any).user, proxy.type),
             });
 
         }
