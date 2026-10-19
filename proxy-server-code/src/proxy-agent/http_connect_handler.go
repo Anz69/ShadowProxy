@@ -92,7 +92,7 @@ func HandleHTTPConnect(conn net.Conn, br *bufio.Reader, auth *AuthRegistry, trac
 }
 
 // handleHTTPForward проксирует GET/POST/HEAD через upstream (для Dolphin HTTP check)
-func handleHTTPForward(conn net.Conn, _ *bufio.Reader, req *httpRequest, rawReq []byte, cfg *LoginConfig, _ *AuthRegistry, tracker *TrafficTracker, _ *ConnectionManager) {
+func handleHTTPForward(conn net.Conn, _ *bufio.Reader, req *httpRequest, rawReq []byte, cfg *LoginConfig, _ *AuthRegistry, tracker *TrafficTracker, connMgr *ConnectionManager) {
 	parsed, err := url.Parse(req.target)
 	if err != nil {
 		conn.Write([]byte("HTTP/1.1 400 Bad Request\r\n\r\n"))
@@ -117,6 +117,11 @@ func handleHTTPForward(conn net.Conn, _ *bufio.Reader, req *httpRequest, rawReq 
 	}
 	defer upstreamConn.Close()
 
+	// Как и CONNECT/SOCKS5: соединение в менеджере, чтобы блокировка по квоте
+	// или команде CORE рвала и plain-HTTP форвард, а не только туннели.
+	connMgr.Add(cfg.Login, conn)
+	defer connMgr.Remove(cfg.Login, conn)
+
 	if _, err := upstreamConn.Write(rawReq); err != nil {
 		return
 	}
@@ -130,9 +135,9 @@ func handleHTTPForward(conn net.Conn, _ *bufio.Reader, req *httpRequest, rawReq 
 }
 
 type httpRequest struct {
-	method  string
-	target  string
-	login   string
+	method   string
+	target   string
+	login    string
 	password string
 }
 

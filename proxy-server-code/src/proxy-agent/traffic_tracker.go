@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -121,6 +122,19 @@ func (t *TrafficTracker) AddBytes(login, direction string, n int64) {
 		}
 	}
 }
+
+// errLoginBlocked aborts a relay whose login was blocked while the stream was open.
+var errLoginBlocked = errors.New("login blocked")
+
+// blocked reports whether the login may no longer carry traffic; the relay loops
+// stop on the next chunk instead of finishing the response.
+func (t *TrafficTracker) blocked(login string) bool {
+	return t.auth != nil && t.auth.IsBlocked(login)
+}
+
+// Один общий пул буферов релея: без него каждое соединение держало бы свой
+// 64 КБ-буфер, а число соединений ограничено только клиентом.
+var copyBufPool = sync.Pool{New: func() any { b := make([]byte, 32*1024); return &b }}
 
 // Stats returns live counters and the portion already acknowledged by CORE.
 // The boolean is false when the login has never carried traffic.
@@ -280,6 +294,9 @@ func (c *countingConn) Read(p []byte) (int, error) {
 	n, err := c.conn.Read(p)
 	if n > 0 {
 		c.tracker.AddBytes(c.login, c.direction, int64(n))
+		if err == nil && c.tracker.blocked(c.login) {
+			return n, errLoginBlocked
+		}
 	}
 	return n, err
 }
@@ -296,12 +313,14 @@ func (c *countingConn) Close() error {
 // uses splice and reports the byte count only after the whole stream has gone
 // through), because the quota check lives in AddBytes and must see every chunk
 // as it passes: otherwise a 3 MB download on a 200 KB quota completes before the
-// login is blocked. Copying in 64 KB chunks bounds the overshoot to one chunk.
+// login is blocked. Copying in 32 KB chunks bounds the overshoot to one chunk per
+// in-flight stream; Read also stops on the next chunk once the login is blocked.
 // The reader-only wrapper is required: io.Copy(w, c) would call WriteTo again
 // and recurse until the agent crashes with stack overflow.
 func (c *countingConn) WriteTo(w io.Writer) (int64, error) {
-	buf := make([]byte, 64*1024)
-	return io.CopyBuffer(writerOnly{Writer: w}, readerOnly{Reader: c}, buf)
+	buf := copyBufPool.Get().(*[]byte)
+	defer copyBufPool.Put(buf)
+	return io.CopyBuffer(writerOnly{Writer: w}, readerOnly{Reader: c}, *buf)
 }
 
 // writerOnly hides io.ReaderFrom so io.CopyBuffer cannot hand the stream to a
@@ -328,6 +347,9 @@ func (c *countingReader) Read(p []byte) (int, error) {
 	n, err := c.r.Read(p)
 	if n > 0 {
 		c.tracker.AddBytes(c.login, c.direction, int64(n))
+		if err == nil && c.tracker.blocked(c.login) {
+			return n, errLoginBlocked
+		}
 	}
 	return n, err
 }
