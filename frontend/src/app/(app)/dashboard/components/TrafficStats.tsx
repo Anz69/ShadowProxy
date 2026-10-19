@@ -55,10 +55,10 @@ export default function TrafficStats({ user, packages }: TrafficStatsProps) {
 	// чтобы левая карточка баланса совпадала с правым списком пакетов (иначе виден
 	// «остаток» по типу, которого справа нет — сбивает с толку).
 	const ownedTypes = new Set((packages ?? []).map(p => p.type as string))
-	const owned = allRows.filter(r => ownedTypes.has(r.type))
-	// Фолбэк (пакеты ещё не подгрузились): показываем ненулевые, иначе базовые три.
-	const nonZero = allRows.filter(r => r.bytes > 0)
-	const rows = owned.length ? owned : nonZero.length ? nonZero : allRows.slice(0, 3)
+	// Ненулевой остаток показываем всегда, даже если строки пакета этого типа ещё нет
+	// (балансы, перенесённые миграциями, жили без пакетов — пользователи видели «баланс пропал»).
+	const visible = allRows.filter(r => ownedTypes.has(r.type) || r.bytes > 0)
+	const rows = visible.length ? visible : allRows.slice(0, 3)
 
 	// Полоска = «осталось из начисленного»: остаток / всего начислено по тарифу
 	// (user_traffic_credits: покупки, триал, ключи, промо, админка). traffic_logs

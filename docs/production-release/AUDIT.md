@@ -133,3 +133,11 @@ Read-only preflight проверил 28 связанных с БД Mango-суб�
 - Security-ревью: `PATCH /users/:id/balance|traffic` остаются только для ADMIN; у SUPPORT в быстрых действиях этих кнопок нет.
 - Миграции `20261017100000_add_xrocket_provider`, `20261017100500_add_support_role` (и `20261016150000_user_traffic_credits` на деве) применены автоматически; backend healthy на обоих серверах.
 - Не сделано: новые ключи Heleket (ждём от владельца), токен xRocket и URL вебхука в боте, живая оплата через xRocket.
+
+## 19 октября 2026: «пропавшие» балансы Premium Mobile / Residential
+
+- Причина: миграция `20260514150000` перенесла `mobile_gb_traffic_left` → `mobile_traffic_left`, а Mango-балансы исторически жили без `user_packages`. Дашборд показывал остаток только по типам, у которых есть строка пакета, поэтому 188 пользователей Premium Mobile и 4 508 пользователей Residential видели «баланс пропал», хотя в БД он цел (пример: tambunganelia@gmail.com — 9,77 ГБ в `mobile_traffic_left`).
+- Исправление данных: `migrations/2026-10-19-backfill-user-packages.sql` создал строки `user_packages` для всех положительных балансов без пакета (4 508 RESIDENT_PREMIUM, 188 MOBILE, 17 IPV6_GB; бэкап таблицы `user_packages-before-backfill.dump`). Балансы не менялись.
+- Исправление UI: `TrafficStats` показывает любой ненулевой остаток независимо от наличия пакета.
+- Открыто: у 188 мигрированных Premium Mobile пользователей нет sub-user ProxyEmpire; создание и заливка квоты (`ENABLE_PROXYEMPIRE_BACKFILL=true`) упирается в пустой баланс мастер-аккаунта PE (`Main account does not have enough`). Включать backfill после пополнения PE.
+- xRocket переведён на Pay API v1 (Bearer, подпись `Signature`/`Signature-Timestamp` по raw body, `XROCKET_WEBHOOK_SECRET`); токен и секрет заведены на проде и деве. CryptoBot: вебхуки не доходят с сентября — добавлена поминутная сверка оплаченных инвойсов, 4 потерянных платежа зачислены.
