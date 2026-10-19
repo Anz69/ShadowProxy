@@ -315,7 +315,7 @@
 		"traffic": {
 			"title": "流量",
 			"resident": "住宅",
-			"premium": "高级"
+			"premium": "Residential Proxy"
 		},
 		"proxies": {
 			"title": "代理",

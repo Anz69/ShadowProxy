@@ -34,7 +34,7 @@ import { formatTimeLeft } from "@/shared/utils/format-time-left"
 
 const proxyTypeLabel = {
 	RESIDENT: "Резидентские",
-	RESIDENT_PREMIUM: "Премиум",
+	RESIDENT_PREMIUM: "Residential Proxy",
 	MOBILE: "Premium Mobile",
 	MOBILE_GB: "Мобильные ГБ",
 	IPV6_GB: "IPv6 ГБ",
@@ -55,7 +55,7 @@ const regionLabels = {
 
 const proxyTypeMapping: Map<ProxyTypeLabel, ProxyType> = new Map()
 	.set("Residental", "RESIDENT")
-	.set("Premium", "RESIDENT_PREMIUM")
+	.set("Residential", "RESIDENT_PREMIUM")
 	.set("PremiumResidential", "PREMIUM_RESIDENTIAL")
 	.set("Mobile", "MOBILE")
 	.set("MobileGb", "MOBILE_GB")
@@ -64,7 +64,7 @@ const proxyTypeMapping: Map<ProxyTypeLabel, ProxyType> = new Map()
 	.set("IspNetherlands", "ISP_EU")
 	.set("ResidentialLite", "RESIDENTIAL_LITE")
 
-type ProxyTypeLabel = "Residental" | "Premium" | "PremiumResidential" | "Mobile" | "MobileGb" | "Ipv6Gb" | "IspUsa" | "IspNetherlands" | "ResidentialLite"
+type ProxyTypeLabel = "Residental" | "Residential" | "PremiumResidential" | "Mobile" | "MobileGb" | "Ipv6Gb" | "IspUsa" | "IspNetherlands" | "ResidentialLite"
 
 type ProxyTableProps = {
 	locations: Locations
@@ -119,7 +119,7 @@ const ProxyTable: FC<ProxyTableProps> = ({ locations }) => {
 		<div className="flex w-full flex-col gap-4">
 			<div className="mx-auto w-full md:w-[900px]">
 				<SegmentedControl
-					options={["Residental", "Premium", "PremiumResidential", "ISP", "Mobile"]}
+					options={["Residental", "Residential", "PremiumResidential", "ISP", "Mobile"]}
 					value={type}
 					onChange={val => {
 						localStorage.setItem("proxy_type", val)

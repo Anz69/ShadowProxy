@@ -109,6 +109,14 @@ func (r *AuthRegistry) LimitReached(login string, totalIn, totalOut int64) bool 
 	return used >= cfg.BytesLimit
 }
 
+// IsBlocked reports whether the login is currently blocked (quota or CORE command).
+func (r *AuthRegistry) IsBlocked(login string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	cfg, ok := r.logins[login]
+	return ok && cfg.Blocked
+}
+
 // BlockOnce marks the login blocked and reports whether this call did it
 // (false when unknown or already blocked), so the caller closes connections once.
 func (r *AuthRegistry) BlockOnce(login string) bool {

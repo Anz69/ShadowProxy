@@ -326,7 +326,7 @@
 		"traffic": {
 			"title": "Трафик",
 			"resident": "Резидентный",
-			"premium": "Премиум"
+			"premium": "Residential Proxy"
 		},
 		"proxies": {
 			"title": "Прокси",
