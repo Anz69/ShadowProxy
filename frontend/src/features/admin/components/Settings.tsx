@@ -3,7 +3,6 @@ import type { FC } from "react"
 import AdminNav from "@/features/admin/components/AdminNav"
 import Packages from "@/features/admin/components/Packages"
 import ProxyPricesModifier from "@/features/admin/components/ProxyPricesModifier"
-import SupportAccounts from "@/features/admin/components/SupportAccounts"
 import type { Prices } from "@/features/proxy/types/proxy.types"
 
 type SettingsProps = {
@@ -21,7 +20,6 @@ const Settings: FC<SettingsProps> = ({ prices }) => {
 				<ProxyPricesModifier prices={prices} />
 				<Packages />
 			</div>
-			<SupportAccounts />
 		</div>
 	)
 }

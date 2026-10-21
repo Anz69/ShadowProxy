@@ -18,6 +18,7 @@ const NAV = [
 	{ href: "/admin/proxy-tests", label: "Проверка прокси" },
 	{ href: "/admin/reviews", label: "Отзывы" },
 	{ href: "/admin/support", label: "Поддержка" },
+	{ href: "/admin/staff", label: "Сотрудники" },
 	{ href: "/admin/broadcasts", label: "Рассылки" },
 	{ href: "/admin/promos", label: "Промокоды" }
 ]
