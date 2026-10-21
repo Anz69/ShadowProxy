@@ -889,10 +889,12 @@ export class PackageService {
                 // Провайдер валидирует каждую страну по allowed-списку и собирает upstream.
                 if (!validatedLocation) throw new BadRequestException("location обязателен для ISP_EU пакетов");
                 providerProxy = this.ispEuProvider.createProxy(validatedLocation, rotationTime);
+                await this.proxyService.assertUpstreamCountryAvailable("ISP_EU", validatedLocation, providerProxy);
             } else if ((packageType as string) === "RESIDENTIAL_LITE") {
                 // RESIDENTIAL_LITE: любая страна (ISO-2). Провайдер собирает upstream (lite.flashproxy.io).
                 if (!validatedLocation) throw new BadRequestException("location обязателен для RESIDENTIAL_LITE пакетов");
                 providerProxy = this.residentialLiteProvider.createProxy(validatedLocation, rotationTime);
+                await this.proxyService.assertUpstreamCountryAvailable("RESIDENTIAL_LITE", validatedLocation, providerProxy);
             } else if (packageType === "RESIDENT_PREMIUM") {
                 if (!validatedLocation) throw new BadRequestException("location обязателен для данного типа пакета");
                 providerProxy = await this.mangoProxyProvider.createProxy(

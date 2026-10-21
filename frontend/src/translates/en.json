@@ -923,5 +923,6 @@
 		"rented_ip_not_found": "Rented IP not found",
 		"rented_ip_replace_limit": "IP replacement limit reached for this rental",
 		"proxy_type_unavailable": "This proxy type is temporarily unavailable"
+		"country_unavailable_at_provider": "The provider has no proxies for the selected country right now. Choose another country — no traffic was charged.",
 	}
 }

@@ -1120,6 +1120,48 @@ export class ProxyService implements OnModuleInit {
      * Подтверждает, что цепочка до внешки работает (не только открыт TCP-порт).
      * TLS до целевого HOST не валидируется — цель проверки только работоспособность туннеля, не доверие к сертификату сайта.
      */
+    /** Кэш проверки «есть ли у провайдера страна»: ключ `${type}:${country}`. */
+    private readonly upstreamCountryCache = new Map<string, { ok: boolean; ts: number }>();
+
+    /**
+     * Residential Lite / ISP предлагают широкий список стран, но у Flash не для каждой
+     * есть пул (Швейцария у Lite — нет). Перед выдачей пробуем апстрим напрямую: если
+     * CONNECT не проходит, не плодим мёртвые прокси, а говорим пользователю выбрать
+     * другую страну. Трафик при этом не списывается. Результат кэшируется.
+     */
+    public async assertUpstreamCountryAvailable(
+        type: string,
+        country: string,
+        upstream: { host: string; port: number; username: string; password: string },
+    ): Promise<void> {
+        const key = `${type}:${country.toUpperCase()}`;
+        const cached = this.upstreamCountryCache.get(key);
+        const now = Date.now();
+        if (cached && now - cached.ts < (cached.ok ? 15 * 60_000 : 3 * 60_000)) {
+            if (cached.ok) return;
+            throw new BadRequestException("errors.country_unavailable_at_provider");
+        }
+        const proxyUrl = `http://${encodeURIComponent(upstream.username)}:${encodeURIComponent(upstream.password)}@${upstream.host}:${upstream.port}`;
+        const agent = new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
+        let ok = false;
+        for (let i = 0; i < 2 && !ok; i++) {
+            try {
+                const res = await axios.get(this.getProxyHealthVerifyUrl(), {
+                    httpsAgent: agent, proxy: false, timeout: 12000, validateStatus: () => true, responseType: "text",
+                    headers: { "User-Agent": "ShadowProxy-CountryProbe/1.0" },
+                });
+                ok = res.status === 200;
+            } catch {
+                ok = false;
+            }
+        }
+        this.upstreamCountryCache.set(key, { ok, ts: now });
+        if (!ok) {
+            await this.logger.log("SYSTEM", `Провайдер не отдал прокси для ${key} (${upstream.host}:${upstream.port}) — выдача отклонена без списания`);
+            throw new BadRequestException("errors.country_unavailable_at_provider");
+        }
+    }
+
     public async verifyIssuedProxyWorks(
         serverHost: string,
         port: number,

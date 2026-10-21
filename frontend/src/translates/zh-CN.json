@@ -927,5 +927,6 @@
 		"rented_ip_not_found": "未找到租用的 IP",
 		"rented_ip_replace_limit": "该租用已达到 IP 更换上限",
 		"proxy_type_unavailable": "该代理类型暂时不可用"
+		"country_unavailable_at_provider": "供应商目前没有所选国家的代理。请选择其他国家，流量未扣除。",
 	}
 }

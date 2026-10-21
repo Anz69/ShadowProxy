@@ -664,7 +664,9 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, packageType }) => 
 											const generatedProxies = proxiesArray.map((item: { proxyPort: { serverHost: string; port: number; login: string; password: string } }) =>
 												`${item.proxyPort.serverHost}:${item.proxyPort.port}:${item.proxyPort.login}:${item.proxyPort.password}`
 											)
-											setNewProxies(prev => [...prev, ...generatedProxies])
+											// Каждая генерация показывает только свой результат: при смене гео старый
+											// список не смешивается с новым (прокси в БД остаются, см. «Мои прокси»).
+											setNewProxies(generatedProxies)
 											toast.success(T("package.proxyGenerator.generationSuccess"))
 										},
 										onError: (error: Error) => {
