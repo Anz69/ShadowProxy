@@ -189,3 +189,76 @@ func TestWriteToCountsInChunksSoQuotaCutsMidStream(t *testing.T) {
 		t.Fatalf("client still received %d bytes; the stream was not cut near the 100 KB quota", got)
 	}
 }
+
+// Thousands of active logins must not produce one oversized batch: the snapshot is
+// split into chunks, each acknowledged on its own, and a failed chunk is retried
+// with the same id while already acknowledged chunks are not resent.
+func TestSendBatchSplitsLargeSnapshotIntoChunks(t *testing.T) {
+	var mu sync.Mutex
+	var batches []TrafficBatch
+	failSecond := true
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		var batch TrafficBatch
+		if err := json.NewDecoder(r.Body).Decode(&batch); err != nil {
+			t.Errorf("decode batch: %v", err)
+		}
+		mu.Lock()
+		batches = append(batches, batch)
+		n := len(batches)
+		mu.Unlock()
+		if n == 2 && failSecond {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	auth := NewAuthRegistry()
+	tracker := NewTrafficTracker(&Config{CoreURL: server.URL, AuthToken: "t", ServerID: "s"}, auth)
+	total := maxLogsPerBatch*2 + 50
+	for i := 0; i < total; i++ {
+		tracker.AddBytes("login-"+strconvItoa(i), "out", 10)
+	}
+
+	tracker.sendBatch() // chunk 1 ok, chunk 2 fails
+	failSecond = false
+	tracker.sendBatch() // retries chunk 2 (same id), then chunk 3
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(batches) != 4 {
+		t.Fatalf("expected 4 POSTs (1 ok, 1 failed, retry, last), got %d", len(batches))
+	}
+	if batches[1].BatchID != batches[2].BatchID {
+		t.Fatalf("failed chunk must be retried with the same id")
+	}
+	seen := map[string]bool{}
+	for i, b := range []TrafficBatch{batches[0], batches[2], batches[3]} {
+		if len(b.Logs) > maxLogsPerBatch {
+			t.Fatalf("chunk %d has %d logs, limit %d", i, len(b.Logs), maxLogsPerBatch)
+		}
+		for _, l := range b.Logs {
+			if seen[l.User] {
+				t.Fatalf("login %s reported twice", l.User)
+			}
+			seen[l.User] = true
+		}
+	}
+	if len(seen) != total {
+		t.Fatalf("expected %d logins reported once, got %d", total, len(seen))
+	}
+}
+
+func strconvItoa(i int) string {
+	if i == 0 {
+		return "0"
+	}
+	var b []byte
+	for i > 0 {
+		b = append([]byte{byte('0' + i%10)}, b...)
+		i /= 10
+	}
+	return string(b)
+}

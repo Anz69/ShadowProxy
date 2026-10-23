@@ -39,6 +39,11 @@ type pendingTrafficBatch struct {
 	snapshot map[string]*loginStats
 }
 
+// maxLogsPerBatch caps one POST to CORE. With tens of thousands of active logins
+// a single batch outgrew CORE's body limit and its transaction timeout, the same
+// batch was retried forever and all traffic accounting stopped.
+const maxLogsPerBatch = 200
+
 type loginStats struct {
 	bytesIn  int64
 	bytesOut int64
@@ -53,7 +58,7 @@ type TrafficTracker struct {
 	lastReported   map[string]*loginStats
 	lastReportedMu sync.RWMutex
 	sendMu         sync.Mutex
-	pending        *pendingTrafficBatch
+	pending        []*pendingTrafficBatch
 	auth           *AuthRegistry
 	shutdown       chan struct{}
 	// Вызывается один раз, когда логин выбрал квоту (см. AuthRegistry.LimitReached).
@@ -196,20 +201,26 @@ func (t *TrafficTracker) Shutdown() {
 }
 
 func (t *TrafficTracker) sendBatch() {
-	// Keep the exact same batch until CORE acknowledges it. A transport timeout
+	// Keep the exact same batches until CORE acknowledges them. A transport timeout
 	// can happen after CORE committed the debit; retrying a new batch would then
-	// bill the same bytes twice.
+	// bill the same bytes twice. Large snapshots are split into chunks of
+	// maxLogsPerBatch, each with its own id and only its own logins' counters.
 	t.sendMu.Lock()
 	defer t.sendMu.Unlock()
 
-	if t.pending == nil {
+	if len(t.pending) == 0 {
 		snap := t.getSnapshot()
 		if len(snap) == 0 {
 			return
 		}
 
-		var logs []TrafficLog
-		var totalIn, totalOut int64
+		var chunk *pendingTrafficBatch
+		flush := func() {
+			if chunk != nil && len(chunk.batch.Logs) > 0 {
+				t.pending = append(t.pending, chunk)
+			}
+			chunk = nil
+		}
 		t.lastReportedMu.RLock()
 		for login, s := range snap {
 			last := t.lastReported[login]
@@ -221,65 +232,71 @@ func (t *TrafficTracker) sendBatch() {
 				inDelta = s.bytesIn
 				outDelta = s.bytesOut
 			}
-			if inDelta > 0 || outDelta > 0 {
-				port := 0
-				if cfg := t.auth.Get(login); cfg != nil {
-					port = cfg.Port
+			if inDelta <= 0 && outDelta <= 0 {
+				continue
+			}
+			if chunk == nil {
+				batchIDBytes := make([]byte, 16)
+				if _, err := rand.Read(batchIDBytes); err != nil {
+					t.lastReportedMu.RUnlock()
+					logrus.Errorf("TrafficTracker: cannot create batch id: %v", err)
+					t.pending = nil
+					return
 				}
-				logs = append(logs, TrafficLog{
-					Timestamp: time.Now(),
-					User:      login,
-					Port:      port,
-					InBytes:   inDelta,
-					OutBytes:  outDelta,
-				})
-				totalIn += inDelta
-				totalOut += outDelta
+				chunk = &pendingTrafficBatch{
+					batch: TrafficBatch{
+						BatchID:   hex.EncodeToString(batchIDBytes),
+						ServerID:  t.config.ServerID,
+						Timestamp: time.Now(),
+					},
+					snapshot: make(map[string]*loginStats),
+				}
+			}
+			port := 0
+			if cfg := t.auth.Get(login); cfg != nil {
+				port = cfg.Port
+			}
+			chunk.batch.Logs = append(chunk.batch.Logs, TrafficLog{
+				Timestamp: time.Now(),
+				User:      login,
+				Port:      port,
+				InBytes:   inDelta,
+				OutBytes:  outDelta,
+			})
+			chunk.batch.TotalIn += inDelta
+			chunk.batch.TotalOut += outDelta
+			chunk.snapshot[login] = &loginStats{bytesIn: s.bytesIn, bytesOut: s.bytesOut}
+			if len(chunk.batch.Logs) >= maxLogsPerBatch {
+				flush()
 			}
 		}
 		t.lastReportedMu.RUnlock()
-
-		if len(logs) == 0 {
+		flush()
+		if len(t.pending) == 0 {
 			return
 		}
+	}
 
-		batchIDBytes := make([]byte, 16)
-		if _, err := rand.Read(batchIDBytes); err != nil {
-			logrus.Errorf("TrafficTracker: cannot create batch id: %v", err)
+	// Send in order; stop at the first failure and retry the same chunk next tick.
+	for len(t.pending) > 0 {
+		pending := t.pending[0]
+		resp, err := t.client.R().SetBody(pending.batch).Post("/api/proxy-node/traffic")
+		if err != nil {
+			logrus.Warnf("TrafficTracker: send failed for batch %s: %v", pending.batch.BatchID, err)
 			return
 		}
-		batchID := hex.EncodeToString(batchIDBytes)
-		t.pending = &pendingTrafficBatch{
-			batch: TrafficBatch{
-				BatchID:   batchID,
-				ServerID:  t.config.ServerID,
-				Timestamp: time.Now(),
-				Logs:      logs,
-				TotalIn:   totalIn,
-				TotalOut:  totalOut,
-			},
-			snapshot: snap,
+		if resp.StatusCode() != http.StatusOK {
+			logrus.Warnf("TrafficTracker: CORE returned %d for batch %s: %s", resp.StatusCode(), pending.batch.BatchID, resp.String())
+			return
 		}
+		t.lastReportedMu.Lock()
+		for login, s := range pending.snapshot {
+			t.lastReported[login] = &loginStats{bytesIn: s.bytesIn, bytesOut: s.bytesOut}
+		}
+		t.lastReportedMu.Unlock()
+		t.pending = t.pending[1:]
+		logrus.Infof("TrafficTracker: acknowledged batch %s (%d logs, in=%d out=%d, %d chunks left)", pending.batch.BatchID, len(pending.batch.Logs), pending.batch.TotalIn, pending.batch.TotalOut, len(t.pending))
 	}
-
-	pending := t.pending
-	resp, err := t.client.R().SetBody(pending.batch).Post("/api/proxy-node/traffic")
-	if err != nil {
-		logrus.Warnf("TrafficTracker: send failed for batch %s: %v", pending.batch.BatchID, err)
-		return
-	}
-	if resp.StatusCode() != http.StatusOK {
-		logrus.Warnf("TrafficTracker: CORE returned %d for batch %s: %s", resp.StatusCode(), pending.batch.BatchID, resp.String())
-		return
-	}
-
-	t.lastReportedMu.Lock()
-	for login, s := range pending.snapshot {
-		t.lastReported[login] = &loginStats{bytesIn: s.bytesIn, bytesOut: s.bytesOut}
-	}
-	t.lastReportedMu.Unlock()
-	t.pending = nil
-	logrus.Infof("TrafficTracker: acknowledged batch %s (%d logs, in=%d out=%d)", pending.batch.BatchID, len(pending.batch.Logs), pending.batch.TotalIn, pending.batch.TotalOut)
 }
 
 // countingConn wraps net.Conn to count bytes on Read (for tunnel traffic accounting)
