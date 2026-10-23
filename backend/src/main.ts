@@ -48,6 +48,11 @@ if (!process.env.REDIS_URI || process.env.REDIS_URI.includes('${')) {
 async function bootstrap() {
     // rawBody нужен для проверки подписи вебхуков xRocket по сырым байтам тела.
     const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
+    // Батч трафика от gateway-агента содержит строку на каждый активный логин. При ~25k
+    // логинов он вырос за дефолтные 100 КБ, CORE отвечал 413 и учёт трафика встал
+    // (22.10 06:33 UTC). Лимит с запасом; nginx на /api/ пропускает до 50 МБ.
+    app.useBodyParser("json", { limit: "20mb" });
+    app.useBodyParser("urlencoded", { limit: "20mb", extended: true });
     const config = app.get(ConfigService);
     const useRedis = process.env.REDIS_ENABLED !== "false";
     let sessionStore: session.Store;
