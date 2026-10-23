@@ -60,6 +60,8 @@ export class MangoProxyProvider implements OnModuleInit {
 
     async onModuleInit() {
         await this.refreshResolvedHost();
+        // Первая синхронизация остатков Mango сразу после старта, не дожидаясь крона.
+        setTimeout(() => void this.syncMangoFlowToSiteBalance().catch(() => undefined), 30_000);
     }
 
     /**
@@ -758,6 +760,67 @@ async createProxyAccount(username: string) {
         } catch (e: unknown) {
             await this.logger.error(`Ошибка при парсинге доступных локаций на Mango Proxy: ${String(e)}`, undefined, e && typeof e === "object" ? e : undefined);
             return [];
+        }
+    }
+
+    private mangoFlowSyncRunning = false;
+
+    /**
+     * api-режим: остаток пользователя ведёт сайт (gateway режет по квоте), а Mango ведёт
+     * свой last_flow и считает трафик чуть иначе. Как только Mango уходит в ноль раньше
+     * сайта, апстрим отвечает 407 и прокси «не работают» при живом балансе на сайте.
+     * Раз в 10 минут доводим last_flow до остатка на сайте (только вверх) для всех, у кого
+     * есть активные Residential-прокси. Перерасход невозможен: лимит держит агент.
+     */
+    @Cron(CronExpression.EVERY_10_MINUTES)
+    async syncMangoFlowToSiteBalance(): Promise<{ checked: number; toppedUp: number; failed: number }> {
+        const result = { checked: 0, toppedUp: 0, failed: 0 };
+        if (this.isGatewayMode()) return result;
+        if (this.configService.get<string>("ENABLE_MANGO_FLOW_SYNC", "true") !== "true") return result;
+        if (this.mangoFlowSyncRunning) return result;
+        this.mangoFlowSyncRunning = true;
+        try {
+            const users = await this.prisma.user.findMany({
+                where: {
+                    premiumUsername: { not: "" },
+                    proxies: { some: { type: "RESIDENT_PREMIUM", status: "ACTIVE", serverHost: { not: null } } },
+                },
+                select: { id: true, premiumUsername: true, premiumTrafficLeft: true },
+            });
+            for (const user of users) {
+                let siteMb: number;
+                try {
+                    siteMb = Math.floor(Number(BigInt(user.premiumTrafficLeft || "0")) / 1024 ** 2);
+                } catch {
+                    continue;
+                }
+                if (!Number.isFinite(siteMb) || siteMb <= 0) continue;
+                const username = user.premiumUsername.split(":")[0];
+                result.checked++;
+                try {
+                    const info = await this.mangoProxyApi.post<{ code?: string | number; ret_data?: { last_flow?: number } }>("/user_info", { username });
+                    const lastFlow = Number(info.data?.ret_data?.last_flow);
+                    if (!isSuccessfulMangoResponse(info) || !Number.isFinite(lastFlow)) throw new Error(`/user_info HTTP ${info.status} code ${info.data?.code ?? "missing"}`);
+                    const missing = Math.ceil(siteMb - lastFlow);
+                    if (missing <= 0) continue;
+                    // Предохранитель: не больше остатка на сайте + 1 ГБ долга за раз.
+                    if (missing > siteMb + 1024) throw new Error(`доливка ${missing} МБ больше остатка на сайте ${siteMb} МБ`);
+                    const topUp = await this.mangoProxyApi.post<{ code?: string | number }>("/add_user_flow", { username, flow: missing });
+                    if (!isSuccessfulMangoResponse(topUp)) throw new Error(`/add_user_flow HTTP ${topUp.status} code ${topUp.data?.code ?? "missing"}`);
+                    result.toppedUp++;
+                    await this.logger.log("SYSTEM", `Mango sync: ${username} last_flow ${lastFlow} → ${siteMb} МБ (+${missing}), по остатку на сайте`, user.id);
+                } catch (e: unknown) {
+                    result.failed++;
+                    await this.logger.error(`Mango sync ${username}: ${e instanceof Error ? e.message : String(e)}`, user.id);
+                }
+                await sleep(150);
+            }
+            if (result.toppedUp || result.failed) {
+                await this.logger.log("SYSTEM", `Mango sync: проверено ${result.checked}, долито ${result.toppedUp}, ошибок ${result.failed}`);
+            }
+            return result;
+        } finally {
+            this.mangoFlowSyncRunning = false;
         }
     }
 
