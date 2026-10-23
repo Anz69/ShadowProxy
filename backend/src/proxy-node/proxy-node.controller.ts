@@ -240,7 +240,7 @@ export class ProxyNodeController {
                         data: { status: ProxyStatus.SUSPENDED },
                     });
                 }
-            });
+            }, { timeout: 120_000, maxWait: 20_000 }); // большой батч (тысячи логинов) не укладывается в дефолтные 5 с
         } catch (error) {
             if (duplicateBatch) {
                 this.logger.debug(`[TRAFFIC] duplicate batch ${batchId} ignored`);
