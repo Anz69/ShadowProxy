@@ -134,24 +134,62 @@ export class AdminService {
         return dto;
     }
 
+    /** Короткий кэш: страница статистики дёргает оба эндпоинта, а данные меняются плавно. */
+    private readonly statsCache = new Map<string, { at: number; value: Promise<unknown> }>();
+    private cached<T>(key: string, ttlMs: number, load: () => Promise<T>): Promise<T> {
+        const hit = this.statsCache.get(key);
+        if (hit && Date.now() - hit.at < ttlMs) return hit.value as Promise<T>;
+        const value = load().catch((e) => {
+            this.statsCache.delete(key);
+            throw e;
+        });
+        this.statsCache.set(key, { at: Date.now(), value });
+        return value;
+    }
+
     async getStats() {
+        return this.cached("stats", 60_000, () => this.computeStats());
+    }
+
+    private async computeStats() {
         const now = Date.now();
         // Все агрегаты ниже считаются по окнам максимум «месяц» — логи старше месяца
         // на результат не влияют. Раньше грузились ВСЕ REPLENISH/USAGE-логи за всю
         // историю: /admin/stats замедлялся линейно с ростом таблицы logs.
         const monthAgo = new Date(now - 2_592_000_000);
-        const [allProxy, repleinishLogs, usageLogs, usersTotal] = await Promise.all([
-            this.proxyService.findMany({ where: { status: ProxyStatus.ACTIVE } }),
-            this.logger.getLogs({ where: { type: LogType.REPLENISH, createdAt: { gte: monthAgo } } }),
-            this.logger.getLogs({ where: { type: LogType.USAGE, createdAt: { gte: monthAgo } } }),
-            this.prisma.user.count(),
-        ]);
         const t = {
             hour: now - 3600_000,
             day: now - 86_400_000,
             week: now - 604_800_000,
             month: now - 2_592_000_000,
         };
+        const at = (ms: number) => new Date(ms);
+        // Всё тяжёлое считает Postgres: раньше сюда выгружались все ACTIVE-прокси (~500k)
+        // и все USAGE-логи за месяц (~1M строк) — /admin/stats падал по таймауту (504).
+        // Расход берём из traffic_logs (почасовые бакеты по пакетам) — те же байты, что в USAGE.
+        const [proxyRows, repleinishLogs, usageRows, usersTotal] = await Promise.all([
+            this.prisma.$queryRaw<Array<{ t: string; h: number; d: number; w: number; m: number }>>`
+                SELECT type::text AS t,
+                       COUNT(*) FILTER (WHERE created_at >= ${at(t.hour)})::int AS h,
+                       COUNT(*) FILTER (WHERE created_at >= ${at(t.day)})::int AS d,
+                       COUNT(*) FILTER (WHERE created_at >= ${at(t.week)})::int AS w,
+                       COUNT(*)::int AS m
+                FROM proxies
+                WHERE status = 'ACTIVE' AND created_at >= ${monthAgo}
+                GROUP BY 1`,
+            this.logger.getLogs({ where: { type: LogType.REPLENISH, createdAt: { gte: monthAgo } } }),
+            this.prisma.$queryRaw<Array<{ t: string; h: string; d: string; w: string; m: string }>>`
+                SELECT up.type::text AS t,
+                       COALESCE(SUM(tl.in_bytes + tl.out_bytes) FILTER (WHERE tl.date >= date_trunc('hour', ${at(t.hour)}::timestamp)), 0)::text AS h,
+                       COALESCE(SUM(tl.in_bytes + tl.out_bytes) FILTER (WHERE tl.date >= ${at(t.day)}), 0)::text AS d,
+                       COALESCE(SUM(tl.in_bytes + tl.out_bytes) FILTER (WHERE tl.date >= ${at(t.week)}), 0)::text AS w,
+                       COALESCE(SUM(tl.in_bytes + tl.out_bytes), 0)::text AS m
+                FROM traffic_logs tl
+                JOIN user_packages up ON up.id = tl.user_package_id
+                WHERE tl.date >= ${monthAgo}
+                GROUP BY 1`,
+            this.prisma.user.count(),
+        ]);
 
         const zerosNum = () => ({ hour: 0, day: 0, week: 0, month: 0 });
         const zerosBig = () => ({ hour: 0n, day: 0n, week: 0n, month: 0n });
@@ -171,24 +209,17 @@ export class AdminService {
         };
 
         const proxy = { ...zerosNum(), resident: zerosNum(), premium: zerosNum(), premiumResidential: zerosNum(), mobile: zerosNum(), mobileGb: zerosNum(), ipv6: zerosNum(), ispUsa: zerosNum(), ispEu: zerosNum(), residentialLite: zerosNum() };
-        for (const p of allProxy) {
-            const ts = new Date(p.createdAt).getTime();
-            const key = mapType((p as { type?: string }).type);
-            if (ts >= t.hour) {
-                proxy.hour++;
-                if (key) (proxy as any)[key].hour++;
-            }
-            if (ts >= t.day) {
-                proxy.day++;
-                if (key) (proxy as any)[key].day++;
-            }
-            if (ts >= t.week) {
-                proxy.week++;
-                if (key) (proxy as any)[key].week++;
-            }
-            if (ts >= t.month) {
-                proxy.month++;
-                if (key) (proxy as any)[key].month++;
+        for (const r of proxyRows) {
+            const key = mapType(r.t);
+            proxy.hour += Number(r.h);
+            proxy.day += Number(r.d);
+            proxy.week += Number(r.w);
+            proxy.month += Number(r.m);
+            if (key) {
+                (proxy as any)[key].hour += Number(r.h);
+                (proxy as any)[key].day += Number(r.d);
+                (proxy as any)[key].week += Number(r.w);
+                (proxy as any)[key].month += Number(r.m);
             }
         }
 
@@ -237,61 +268,23 @@ export class AdminService {
         const bytesIspEu = zerosBig();
         const bytesResidentialLite = zerosBig();
 
-        for (const log of usageLogs) {
-            const ts = new Date(log.createdAt).getTime();
-            const key = mapType((log?.metadata as { type?: string })?.type);
-
+        const byKey: Record<string, { hour: bigint; day: bigint; week: bigint; month: bigint }> = {
+            resident: bytesResident,
+            premium: bytesPremium,
+            premiumResidential: bytesPremiumResidential,
+            mobileGb: bytesMobileGb,
+            ipv6: bytesIpv6,
+            ispUsa: bytesIspUsa,
+            ispEu: bytesIspEu,
+            residentialLite: bytesResidentialLite,
+        };
+        for (const r of usageRows) {
+            const key = mapType(r.t);
             if (key === "mobile") continue;
-
-            let used = 0n;
-            try {
-                const raw = ((log?.metadata as { used?: string | number })?.used ?? "0").toString();
-                used = BigInt(raw);
-            } catch {}
-
-            if (ts >= t.hour) {
-                bytesAll.hour += used;
-                if (key === "resident") bytesResident.hour += used;
-                else if (key === "premium") bytesPremium.hour += used;
-                else if (key === "premiumResidential") bytesPremiumResidential.hour += used;
-                else if (key === "mobileGb") bytesMobileGb.hour += used;
-                else if (key === "ipv6") bytesIpv6.hour += used;
-                else if (key === "ispUsa") bytesIspUsa.hour += used;
-                else if (key === "ispEu") bytesIspEu.hour += used;
-                else if (key === "residentialLite") bytesResidentialLite.hour += used;
-            }
-            if (ts >= t.day) {
-                bytesAll.day += used;
-                if (key === "resident") bytesResident.day += used;
-                else if (key === "premium") bytesPremium.day += used;
-                else if (key === "premiumResidential") bytesPremiumResidential.day += used;
-                else if (key === "mobileGb") bytesMobileGb.day += used;
-                else if (key === "ipv6") bytesIpv6.day += used;
-                else if (key === "ispUsa") bytesIspUsa.day += used;
-                else if (key === "ispEu") bytesIspEu.day += used;
-                else if (key === "residentialLite") bytesResidentialLite.day += used;
-            }
-            if (ts >= t.week) {
-                bytesAll.week += used;
-                if (key === "resident") bytesResident.week += used;
-                else if (key === "premium") bytesPremium.week += used;
-                else if (key === "premiumResidential") bytesPremiumResidential.week += used;
-                else if (key === "mobileGb") bytesMobileGb.week += used;
-                else if (key === "ipv6") bytesIpv6.week += used;
-                else if (key === "ispUsa") bytesIspUsa.week += used;
-                else if (key === "ispEu") bytesIspEu.week += used;
-                else if (key === "residentialLite") bytesResidentialLite.week += used;
-            }
-            if (ts >= t.month) {
-                bytesAll.month += used;
-                if (key === "resident") bytesResident.month += used;
-                else if (key === "premium") bytesPremium.month += used;
-                else if (key === "premiumResidential") bytesPremiumResidential.month += used;
-                else if (key === "mobileGb") bytesMobileGb.month += used;
-                else if (key === "ipv6") bytesIpv6.month += used;
-                else if (key === "ispUsa") bytesIspUsa.month += used;
-                else if (key === "ispEu") bytesIspEu.month += used;
-                else if (key === "residentialLite") bytesResidentialLite.month += used;
+            const v = { hour: BigInt(r.h), day: BigInt(r.d), week: BigInt(r.w), month: BigInt(r.m) };
+            for (const k of ["hour", "day", "week", "month"] as const) {
+                bytesAll[k] += v[k];
+                if (key && byKey[key]) byKey[key][k] += v[k];
             }
         }
 
@@ -364,6 +357,10 @@ export class AdminService {
 
     /** Данные для графиков: оборот, новые пользователи, трафик по дням/типам, активность, посещения в месяц (Cloudflare) */
     async getChartsStats() {
+        return this.cached("charts", 120_000, () => this.computeChartsStats());
+    }
+
+    private async computeChartsStats() {
         const now = new Date();
         const msDay = 86_400_000;
         const msWeek = 604_800_000;
@@ -422,22 +419,42 @@ export class AdminService {
         const MONTH_BUCKET_SQL = `to_char(date_trunc('month', "createdAt"), 'YYYY-MM-DD')`;
         const HOUR_BUCKET_SQL = `to_char(date_trunc('hour', "createdAt"), 'YYYY-MM-DD"T"HH24')`;
 
+        // Расход — из почасовых traffic_logs (тысячи строк), а не из USAGE-логов (миллионы).
         const usageBucketQuery = (bucketSql: string) =>
             this.prisma.$queryRaw<Array<{ b: string; t: string | null; used: number }>>`
-                SELECT ${Prisma.raw(bucketSql)} AS b,
-                       metadata->>'type' AS t,
-                       SUM(CASE WHEN metadata->>'used' ~ '^\\d+$' THEN (metadata->>'used')::numeric ELSE 0 END)::float8 AS used
-                FROM logs
-                WHERE type = 'USAGE' AND "createdAt" >= ${monthAgo}
+                SELECT ${Prisma.raw(bucketSql.replace(/"createdAt"/g, "tl.date"))} AS b,
+                       up.type::text AS t,
+                       SUM(tl.in_bytes + tl.out_bytes)::float8 AS used
+                FROM traffic_logs tl
+                JOIN user_packages up ON up.id = tl.user_package_id
+                WHERE tl.date >= ${monthAgo}
                 GROUP BY 1, 2`;
 
+        // Активные: у кого был трафик (traffic_logs) или действие на сайте (логи без
+        // USAGE/TRAFFIC — их на порядки меньше; индекс logs(type, createdAt)).
         const activeBucketQuery = (bucketSql: string, since: Date) =>
             this.prisma.$queryRaw<Array<{ b: string; count: number }>>`
-                SELECT ${Prisma.raw(bucketSql)} AS b,
-                       COUNT(DISTINCT "userId")::int AS count
-                FROM logs
-                WHERE "createdAt" >= ${since}
+                SELECT ${Prisma.raw(bucketSql.replace(/"createdAt"/g, "x.ts"))} AS b,
+                       COUNT(DISTINCT x.uid)::int AS count
+                FROM (
+                    SELECT up.user_id AS uid, tl.date AS ts
+                    FROM traffic_logs tl JOIN user_packages up ON up.id = tl.user_package_id
+                    WHERE tl.date >= ${since}
+                    UNION ALL
+                    SELECT "userId" AS uid, "createdAt" AS ts
+                    FROM logs
+                    WHERE type IN ('REPLENISH', 'SYSTEM', 'USER_ACTION', 'API') AND "createdAt" >= ${since} AND "userId" IS NOT NULL
+                ) x
                 GROUP BY 1`;
+
+        const proxyBucketQuery = (bucketSql: string, since: Date) =>
+            this.prisma.$queryRaw<Array<{ b: string; t: string; c: number }>>`
+                SELECT ${Prisma.raw(bucketSql.replace(/"createdAt"/g, "created_at"))} AS b,
+                       type::text AS t,
+                       COUNT(*)::int AS c
+                FROM proxies
+                WHERE created_at >= ${since}
+                GROUP BY 1, 2`;
 
         const [replenishLogs, allUsers, usageDay, usageWeek, usageMonth, activeHourRows, activeDayRows, activeWeekRows, activeMonthRows, proxies24h, proxies24d, proxies12w, proxies12m, proxyStats] = await Promise.all([
             this.logger.getLogs({
@@ -454,22 +471,10 @@ export class AdminService {
             activeBucketQuery(DAY_BUCKET_SQL, day24Ago),
             activeBucketQuery(WEEK_BUCKET_SQL, new Date(now.getTime() - 12 * msWeek)),
             activeBucketQuery(MONTH_BUCKET_SQL, monthAgo),
-            this.prisma.proxy.findMany({
-                where: { createdAt: { gte: hour24Ago } },
-                select: { createdAt: true, type: true },
-            }),
-            this.prisma.proxy.findMany({
-                where: { createdAt: { gte: day24Ago } },
-                select: { createdAt: true, type: true },
-            }),
-            this.prisma.proxy.findMany({
-                where: { createdAt: { gte: new Date(now.getTime() - 12 * msWeek) } },
-                select: { createdAt: true, type: true },
-            }),
-            this.prisma.proxy.findMany({
-                where: { createdAt: { gte: monthAgo } },
-                select: { createdAt: true, type: true },
-            }),
+            proxyBucketQuery(HOUR_BUCKET_SQL, hour24Ago),
+            proxyBucketQuery(DAY_BUCKET_SQL, day24Ago),
+            proxyBucketQuery(WEEK_BUCKET_SQL, new Date(now.getTime() - 12 * msWeek)),
+            proxyBucketQuery(MONTH_BUCKET_SQL, monthAgo),
             this.getStats(),
         ]);
 
@@ -541,38 +546,20 @@ export class AdminService {
         };
         const emptyProxyBucket = () => ({ count: 0, resident: 0, premium: 0, premiumResidential: 0, mobile: 0, mobileGb: 0, ipv6: 0, ispUsa: 0, ispEu: 0, residentialLite: 0 });
         type ProxyBucket = ReturnType<typeof emptyProxyBucket>;
-        const proxyByHour: Record<string, ProxyBucket> = {};
-        for (const p of proxies24h) {
-            const key = hourStart(new Date(p.createdAt));
-            if (!proxyByHour[key]) proxyByHour[key] = emptyProxyBucket();
-            proxyByHour[key].count += 1;
-            const tk = proxyTypeKey((p as { type: string }).type);
-            if (tk) (proxyByHour[key] as any)[tk] += 1;
-        }
-        const proxyByDay: Record<string, ProxyBucket> = {};
-        for (const p of proxies24d) {
-            const key = dayStart(new Date(p.createdAt));
-            if (!proxyByDay[key]) proxyByDay[key] = emptyProxyBucket();
-            proxyByDay[key].count += 1;
-            const tk = proxyTypeKey((p as { type: string }).type);
-            if (tk) (proxyByDay[key] as any)[tk] += 1;
-        }
-        const proxyByWeek: Record<string, ProxyBucket> = {};
-        for (const p of proxies12w) {
-            const key = weekStart(new Date(p.createdAt));
-            if (!proxyByWeek[key]) proxyByWeek[key] = emptyProxyBucket();
-            proxyByWeek[key].count += 1;
-            const tk = proxyTypeKey((p as { type: string }).type);
-            if (tk) (proxyByWeek[key] as any)[tk] += 1;
-        }
-        const proxyByMonth: Record<string, ProxyBucket> = {};
-        for (const p of proxies12m) {
-            const key = monthStart(new Date(p.createdAt));
-            if (!proxyByMonth[key]) proxyByMonth[key] = emptyProxyBucket();
-            proxyByMonth[key].count += 1;
-            const tk = proxyTypeKey((p as { type: string }).type);
-            if (tk) (proxyByMonth[key] as any)[tk] += 1;
-        }
+        const toProxyBuckets = (rows: Array<{ b: string; t: string; c: number }>) => {
+            const out: Record<string, ProxyBucket> = {};
+            for (const r of rows) {
+                if (!out[r.b]) out[r.b] = emptyProxyBucket();
+                out[r.b].count += Number(r.c);
+                const tk = proxyTypeKey(r.t);
+                if (tk) (out[r.b] as any)[tk] += Number(r.c);
+            }
+            return out;
+        };
+        const proxyByHour = toProxyBuckets(proxies24h);
+        const proxyByDay = toProxyBuckets(proxies24d);
+        const proxyByWeek = toProxyBuckets(proxies12w);
+        const proxyByMonth = toProxyBuckets(proxies12m);
 
         const sortKeys = (obj: Record<string, unknown>) => Object.keys(obj).sort();
         const revenueDay = sortKeys(revenueByDay).slice(-24).map((date) => ({ date, sum: revenueByDay[date].sum, count: revenueByDay[date].count }));

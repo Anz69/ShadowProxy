@@ -74,6 +74,7 @@ model Proxy {
 	@@unique([serverHost, userLogin])
 	@@index([serverHost, userPort])
 	@@index([userId])
+	@@index([createdAt])
 	@@index([serverHost])
 	@@index([userPackageId])
 	@@index([lastActivityAt])
