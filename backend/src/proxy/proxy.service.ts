@@ -31,6 +31,7 @@ import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { MOBILE_GB_ALLOWED_ISO2_LOWER, isMobileGbCountryAllowed } from "../shared/constants/mobile-gb-allowed-countries";
 import { RESIDENT_FALLBACK_ISO2 } from "../shared/constants/resident-fallback-countries";
+import { probeUpstreamTunnel, tunnelTargetFromUrl } from "../shared/utils/upstream-probe";
 import { reconcileProxyEmpireUsage } from "./utils/proxy-empire-usage";
 
 @Injectable()
@@ -1120,14 +1121,27 @@ export class ProxyService implements OnModuleInit {
      * Подтверждает, что цепочка до внешки работает (не только открыт TCP-порт).
      * TLS до целевого HOST не валидируется — цель проверки только работоспособность туннеля, не доверие к сертификату сайта.
      */
-    /** Кэш проверки «есть ли у провайдера страна»: ключ `${type}:${country}`. */
-    private readonly upstreamCountryCache = new Map<string, { ok: boolean; ts: number }>();
+    /**
+     * Кэш проверки апстрима: ключ `${type}:${country}`.
+     * reason:
+     *  - ok    — страна отдаётся апстримом;
+     *  - pool  — у провайдера нет пула для этой страны (Flash 502/отказ CONNECT);
+     *  - down  — апстрим не принял НАШ аккаунт (407/401 auth, ошибка базы логов).
+     */
+    private readonly upstreamCountryCache = new Map<string, { ok: boolean; reason: "ok" | "pool" | "down"; ts: number }>();
+    /** Не флудить админов при долгой аварии апстрима: не чаще раза в час на тип. */
+    private readonly upstreamDownNotifiedAt = new Map<string, number>();
 
     /**
      * Residential Lite / ISP предлагают широкий список стран, но у Flash не для каждой
      * есть пул (Швейцария у Lite — нет). Перед выдачей пробуем апстрим напрямую: если
      * CONNECT не проходит, не плодим мёртвые прокси, а говорим пользователю выбрать
      * другую страну. Трафик при этом не списывается. Результат кэшируется.
+     *
+     * Различаем «нет пула у страны» (Flash отвечает 502/503 или рвёт CONNECT) и
+     * «авария аккаунта у провайдера» (407/401 на авторизацию туннеля). Второе —
+     * не вина выбранной страны: пользователю сообщаем о временной недоступности
+     * провайдера, а админам кладём уведомление, иначе Lite молча «лежит» для всех.
      */
     public async assertUpstreamCountryAvailable(
         type: string,
@@ -1139,27 +1153,104 @@ export class ProxyService implements OnModuleInit {
         const now = Date.now();
         if (cached && now - cached.ts < (cached.ok ? 15 * 60_000 : 3 * 60_000)) {
             if (cached.ok) return;
+            if (cached.reason === "down") {
+                await this.rejectProviderDown(type, key, upstream, cached.reason);
+            }
             throw new BadRequestException("errors.country_unavailable_at_provider");
         }
         const proxyUrl = `http://${encodeURIComponent(upstream.username)}:${encodeURIComponent(upstream.password)}@${upstream.host}:${upstream.port}`;
-        const agent = new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
         let ok = false;
-        for (let i = 0; i < 2 && !ok; i++) {
+        let authRejected = false;
+        let lastFailure = "";
+        const attempts = 2;
+        for (let i = 0; i < attempts && !ok; i++) {
+            // Агент создаём на каждую попытку: после разрыва CONNECT переиспользованный
+            // агент с мёртвым сокетом даёт «Proxy connection ended before receiving
+            // CONNECT response» вместо настоящего ответа провайдера.
+            const agent = new HttpsProxyAgent(proxyUrl, { rejectUnauthorized: false });
             try {
                 const res = await axios.get(this.getProxyHealthVerifyUrl(), {
                     httpsAgent: agent, proxy: false, timeout: 12000, validateStatus: () => true, responseType: "text",
                     headers: { "User-Agent": "ShadowProxy-CountryProbe/1.0" },
                 });
                 ok = res.status === 200;
-            } catch {
-                ok = false;
+                if (!ok) lastFailure = `HTTP ${res.status}`;
+                // 407 Proxy Authentication Required прилетает как тело апстрима —
+                // признак того, что наш аккаунт у провайдера не авторизован.
+                if (!ok && /407|proxy authentication required/i.test(String(res.data ?? ""))) authRejected = true;
+            } catch (err: unknown) {
+                lastFailure = err instanceof Error ? err.message : String(err);
+                authRejected = authRejected || /407|401|proxy authentication/i.test(lastFailure);
+            } finally {
+                (agent as unknown as { destroy?: () => void }).destroy?.();
             }
         }
-        this.upstreamCountryCache.set(key, { ok, ts: now });
+
+        // Flash держит на том же host:port и SOCKS5, причём HTTP CONNECT у него
+        // периодически отвечает 407 или висит до таймаута, пока SOCKS5 с теми же
+        // кредами поднимает туннель. Прежде чем объявлять страну недоступной,
+        // проверяем туннель SOCKS5 — иначе генерация отклонялась при живом аккаунте.
+        let tunnelProtocol: "http" | "socks5" | null = ok ? "http" : null;
         if (!ok) {
-            await this.logger.log("SYSTEM", `Провайдер не отдал прокси для ${key} (${upstream.host}:${upstream.port}) — выдача отклонена без списания`);
-            throw new BadRequestException("errors.country_unavailable_at_provider");
+            const probe = await probeUpstreamTunnel(upstream, tunnelTargetFromUrl(this.getProxyHealthVerifyUrl()));
+            if (probe.ok) {
+                ok = true;
+                tunnelProtocol = probe.protocol;
+                authRejected = false;
+            } else {
+                lastFailure = probe.error ?? lastFailure;
+                authRejected = authRejected || probe.authRejected;
+            }
         }
+
+        const reason: "ok" | "pool" | "down" = ok ? "ok" : authRejected ? "down" : "pool";
+        this.upstreamCountryCache.set(key, { ok, reason, ts: now });
+        if (ok) {
+            if (tunnelProtocol === "socks5") {
+                await this.logger.log("SYSTEM", `Апстрим ${upstream.host}:${upstream.port} поднял туннель только по SOCKS5 для ${key} — HTTP CONNECT у провайдера не отвечает`);
+            }
+            return;
+        }
+
+        // 407/401 в ответе апстрима на КОРРЕКТНЫЙ формат строки = проблема аккаунта
+        // провайдера (нулевой баланс / приостановка), а не страны.
+        if (reason === "down") {
+            await this.rejectProviderDown(type, key, upstream, reason);
+        }
+        await this.logger.log("SYSTEM", `Провайдер не отдал прокси для ${key} (${upstream.host}:${upstream.port}) — выдача отклонена без списания${lastFailure ? `; последняя ошибка: ${lastFailure.slice(0, 120)}` : ""}`);
+        throw new BadRequestException("errors.country_unavailable_at_provider");
+    }
+
+    /**
+     * Апстрим отказывает в авторизации туннеля для нашего аккаунта: не скатываемся
+     * в «страна недоступна» (пользователь меняет страны, а Lite так и лежит), а
+     * сообщаем о временной недоступности провайдера и один раз в час будим админов.
+     */
+    private async rejectProviderDown(
+        type: string,
+        key: string,
+        upstream: { host: string; port: number },
+        reason: string,
+    ): Promise<never> {
+        const notifyType = `provider_down_${type.toLowerCase()}`;
+        const last = this.upstreamDownNotifiedAt.get(notifyType) ?? 0;
+        if (Date.now() - last > 60 * 60_000) {
+            this.upstreamDownNotifiedAt.set(notifyType, Date.now());
+            try {
+                const admins = await this.prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+                const title = `Провайдер отказывает в доступе (${type})`;
+                const body = `${upstream.host}:${upstream.port} не авторизует наш аккаунт на ${key}. Код выдачи в порядке — проверьте баланс/статус аккаунта провайдера (${reason}). Генерация ${type} не работает до восстановления.`;
+                await this.logger.error(`⚠️ ${title}: ${key} → отказ авторизации на ${upstream.host}:${upstream.port}`);
+                for (const admin of admins) {
+                    await this.prisma.notification.create({
+                        data: { userId: admin.id, type: notifyType as never, title, body, link: "/admin/stats" },
+                    });
+                }
+            } catch (e: unknown) {
+                await this.logger.error(`Провайдер ${type}: уведомление админам не отправлено: ${e instanceof Error ? e.message : String(e)}`);
+            }
+        }
+        throw new ServiceUnavailableException("errors.provider_temporarily_unavailable");
     }
 
     public async verifyIssuedProxyWorks(

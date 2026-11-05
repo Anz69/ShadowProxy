@@ -59,5 +59,7 @@
     "proxy_type_unavailable": "Этот тип прокси временно недоступен",
     "support_file_type": "Недопустимый тип файла. Разрешены: PNG, JPG, WebP, MP4, MOV, WebM",
     "support_empty_message": "Сообщение пустое: добавьте текст или файл",
-    "support_ticket_not_found": "Обращение не найдено"
+    "support_ticket_not_found": "Обращение не найдено",
+    "country_unavailable_at_provider": "У провайдера сейчас нет прокси для выбранной страны. Выберите другую страну — трафик не списан.",
+    "provider_temporarily_unavailable": "Провайдер прокси временно отказывает в авторизации. Трафик не списан — попробуйте позже, мы уже знаем о проблеме."
 }

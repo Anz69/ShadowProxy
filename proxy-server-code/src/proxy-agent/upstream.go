@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sirupsen/logrus"
 )
 
 // --- DNS-кэш апстрима (ТЗ п.7.2) -------------------------------------------
@@ -76,8 +77,46 @@ const (
 	upstreamDirectDialTimeo = 30 * time.Second
 )
 
-// ConnectUpstream connects to provider HTTP proxy and establishes CONNECT tunnel to target.
+
+
+// Протокол апстрима, который сработал последним, по ключу host:port. FlashProxy
+// отдаёт и HTTP CONNECT, и SOCKS5 на одном порту, но HTTP периодически отвечает
+// 407 или висит до таймаута. Запоминаем живой протокол, чтобы не платить 9 секунд
+// таймаута на каждом новом соединении.
+var (
+	upstreamProtoMu sync.Mutex
+	upstreamProto   = map[string]string{}
+)
+
+func upstreamProtoKey(host string, port int) string {
+	return net.JoinHostPort(host, strconv.Itoa(port))
+}
+
+func preferredUpstreamProto(host string, port int) string {
+	upstreamProtoMu.Lock()
+	defer upstreamProtoMu.Unlock()
+	return upstreamProto[upstreamProtoKey(host, port)]
+}
+
+func rememberUpstreamProto(host string, port int, proto string) {
+	k := upstreamProtoKey(host, port)
+	upstreamProtoMu.Lock()
+	changed := upstreamProto[k] != proto
+	upstreamProto[k] = proto
+	upstreamProtoMu.Unlock()
+	if changed {
+		logrus.Infof("Upstream %s: рабочий протокол — %s", k, proto)
+	}
+}
+
+// ConnectUpstream поднимает туннель до target через апстрим-провайдера.
 // If UpstreamHost is empty, connects directly to target (debug/direct mode).
+//
+// Протокол апстрима не задан в БД: FlashProxy держит на одном и том же порту и
+// HTTP CONNECT, и SOCKS5, причём HTTP периодически отвечает 407 или висит до
+// таймаута, пока SOCKS5 с теми же кредами работает. Сначала пробуем протокол,
+// который уже сработал для этого апстрима, затем второй; при неудаче обоих —
+// ещё круг. Живой протокол подхватывается сам, без изменения данных прокси.
 func ConnectUpstream(cfg *LoginConfig, targetHost string, targetPort int) (net.Conn, error) {
 	// Direct mode: no upstream proxy, connect straight to target (без ретраев/CONNECT).
 	if cfg.UpstreamHost == "" || cfg.UpstreamPort == 0 {
@@ -90,15 +129,93 @@ func ConnectUpstream(cfg *LoginConfig, targetHost string, targetPort int) (net.C
 		return conn, nil
 	}
 
-	var lastErr error
-	for attempt := 0; attempt < upstreamMaxAttempts; attempt++ {
-		conn, err := dialUpstreamOnce(cfg, targetHost, targetPort)
-		if err == nil {
+	// Протокол ещё не известен: HTTP CONNECT у мёртвого апстрима висит до таймаута,
+	// поэтому при первом коннекте запускаем оба протокола параллельно и берём тот,
+	// что поднял туннель первым. Иначе первый клиент после старта агента ждал бы
+	// полный таймаут HTTP, прежде чем уйти на SOCKS5.
+	known := preferredUpstreamProto(cfg.UpstreamHost, cfg.UpstreamPort)
+	if known == "" {
+		if conn, proto, err := raceUpstreamProtocols(cfg, targetHost, targetPort); err == nil {
+			rememberUpstreamProto(cfg.UpstreamHost, cfg.UpstreamPort, proto)
 			return conn, nil
 		}
-		lastErr = err
+	}
+
+	order := []string{"http", "socks5"}
+	if preferredUpstreamProto(cfg.UpstreamHost, cfg.UpstreamPort) == "socks5" {
+		order = []string{"socks5", "http"}
+	}
+
+	var lastErr error
+	attempt := 0
+	for round := 0; round < 2 && attempt < upstreamMaxAttempts; round++ {
+		for _, proto := range order {
+			if attempt >= upstreamMaxAttempts {
+				break
+			}
+			attempt++
+			var (
+				conn net.Conn
+				err  error
+			)
+			if proto == "socks5" {
+				conn, err = dialUpstreamSocks5(cfg, targetHost, targetPort)
+			} else {
+				conn, err = dialUpstreamOnce(cfg, targetHost, targetPort)
+			}
+			if err == nil {
+				rememberUpstreamProto(cfg.UpstreamHost, cfg.UpstreamPort, proto)
+				return conn, nil
+			}
+			lastErr = err
+		}
 	}
 	return nil, lastErr
+}
+
+// raceUpstreamProtocols поднимает HTTP CONNECT и SOCKS5 одновременно и возвращает
+// первое успешное соединение; проигравший (и все ошибки) закрываются.
+func raceUpstreamProtocols(cfg *LoginConfig, targetHost string, targetPort int) (net.Conn, string, error) {
+	type result struct {
+		conn  net.Conn
+		proto string
+		err   error
+	}
+	results := make(chan result, 2)
+	dialers := []struct {
+		proto string
+		dial  func(*LoginConfig, string, int) (net.Conn, error)
+	}{
+		{"http", dialUpstreamOnce},
+		{"socks5", dialUpstreamSocks5},
+	}
+	for _, d := range dialers {
+		go func(proto string, dial func(*LoginConfig, string, int) (net.Conn, error)) {
+			conn, err := dial(cfg, targetHost, targetPort)
+			results <- result{conn: conn, proto: proto, err: err}
+		}(d.proto, d.dial)
+	}
+
+	var lastErr error
+	for i := 0; i < len(dialers); i++ {
+		r := <-results
+		if r.err == nil {
+			// Второй результат дочитаем в фоне и закроем его сокет, чтобы не течь.
+			go func(remaining int) {
+				for j := 0; j < remaining; j++ {
+					if extra := <-results; extra.conn != nil {
+						extra.conn.Close()
+					}
+				}
+			}(len(dialers) - i - 1)
+			return r.conn, r.proto, nil
+		}
+		lastErr = r.err
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("оба протокола апстрима недоступны")
+	}
+	return nil, "", lastErr
 }
 
 // dialUpstreamOnce — одна попытка: dial + CONNECT-хендшейк с дедлайном. При успехе
