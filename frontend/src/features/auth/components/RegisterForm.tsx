@@ -13,6 +13,7 @@ import {
 	type RegisterDto,
 	registerSchema
 } from "@/features/auth/schemas/register.schema"
+import { appendUtm, readUtm } from "@/features/marketing/utils/utm"
 import { getCookie } from "@/shared/utils/getCookie"
 import { getLocalizedPath } from "@/shared/utils/getLocalizedPath"
 import { getLocaleFromPath, addLocaleToPath } from "@/shared/utils/getLocaleFromPath"
@@ -81,7 +82,8 @@ const RegisterForm: FC<RegisterFormProps> = ({ embedded, onSwitchMode }) => {
 			{
 				dto: {
 					...dto,
-					referrerId: referrerId || undefined
+					referrerId: referrerId || undefined,
+					...readUtm()
 				},
 				recaptcha: recaptchaValue ?? undefined
 			},
@@ -121,6 +123,7 @@ const RegisterForm: FC<RegisterFormProps> = ({ embedded, onSwitchMode }) => {
 						if (referrerId) {
 							url.searchParams.set("referrer", referrerId)
 						}
+						appendUtm(url)
 						window.location.replace(url.toString())
 					}}
 				>

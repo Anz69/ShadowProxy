@@ -55,6 +55,12 @@ model User {
   proxyEmpireResiUsedSnapshot   String @default("0") @map("proxyempire_resi_used_snapshot")
   proxyEmpireMobileUsedSnapshot String @default("0") @map("proxyempire_mobile_used_snapshot")
 
+  utmSource     String?            @map("utm_source")
+  utmMedium     String?            @map("utm_medium")
+  utmCampaign   String?            @map("utm_campaign")
+  utmCampaignId String?            @map("utm_campaign_id")
+  campaign      MarketingCampaign? @relation(fields: [utmCampaignId], references: [id], onDelete: SetNull)
+
   trialDiscountAvailable  Boolean @default(false) @map("trial_discount_available")
   reviewDiscountAvailable Boolean @default(false) @map("review_discount_available")
   reviewDiscountGranted   Boolean @default(false) @map("review_discount_granted")
@@ -77,5 +83,6 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([createdAt])
+  @@index([utmCampaignId])
   @@map("users")
 }

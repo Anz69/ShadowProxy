@@ -10,7 +10,10 @@ export const registerSchema = z.object({
 	passwordRepeat: z.string().min(6, {
 		error: "validation.passwordMinLength"
 	}),
-	referrerId: z.string().optional()
+	referrerId: z.string().optional(),
+	utmSource: z.string().optional(),
+	utmMedium: z.string().optional(),
+	utmCampaign: z.string().optional()
 }).refine(data => data.password === data.passwordRepeat, {
 	error: "validation.passwordsMismatch",
 	path: ["passwordRepeat"]

@@ -33,5 +33,6 @@ model Payment {
 
   referralReward ReferralReward?
 
+  @@index([userId])
   @@map("payments")
 }

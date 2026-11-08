@@ -14,6 +14,7 @@ import { LoggerService } from "../logger/logger.service";
 import { ConfigService } from "@nestjs/config";
 import { createHash, createHmac } from "crypto";
 import { TelegramAuthDto } from "./dtos/telegram-auth.dto";
+import { UtmAttributionService, type UtmTouch } from "../marketing/utm-attribution.service";
 
 @Injectable()
 export class AuthService {
@@ -26,6 +27,7 @@ export class AuthService {
         private readonly tokenService: TokenService,
         private readonly configService: ConfigService,
         private readonly logger: LoggerService,
+        private readonly utmAttribution: UtmAttributionService,
     ) {}
 
     async register(dto: RegisterDto, ip: string) {
@@ -35,7 +37,7 @@ export class AuthService {
             throw new ConflictException("errors.email_already_exists");
         }
 
-        const { passwordRepeat, referrerId, ...userDto } = dto;
+        const { passwordRepeat, referrerId, utmSource, utmMedium, utmCampaign, ...userDto } = dto;
         const region = await this.determineRegion(ip);
 
         if (referrerId) {
@@ -50,6 +52,7 @@ export class AuthService {
             authMethod: AuthMethod.CREDENTIALS,
             region,
             referrerId: referrerId || undefined,
+            ...(await this.utmAttribution.resolve({ utmSource, utmMedium, utmCampaign })),
         } as any);
 
         await this.emailConfirmationService.sendVerificationEmail(user);
@@ -101,7 +104,7 @@ export class AuthService {
         return this.saveSession(req, user);
     }
 
-    async extractProfileFromCodeWithVerifier(req: Request, provider: string, code: string, codeVerifier: string, referrerId?: string) {
+    async extractProfileFromCodeWithVerifier(req: Request, provider: string, code: string, codeVerifier: string, referrerId?: string, utm?: UtmTouch) {
         const providerInstance = this.providerService.findByService(provider);
         if (!providerInstance) throw new BadRequestException("errors.oauth_error");
         const profile = await providerInstance.findUserByCode(req, code, codeVerifier);
@@ -129,6 +132,7 @@ export class AuthService {
                 emailVerified: true,
                 region: await this.determineRegion((req as any).ip),
                 referrerId: referrerId || undefined,
+                ...(await this.utmAttribution.resolve(utm)),
             } as any));
         if (!account) {
             await this.accountService.create({
@@ -157,7 +161,8 @@ export class AuthService {
             throw new BadRequestException("errors.telegram_bot_not_configured");
         }
 
-        const { hash, ...data } = dto;
+        // referrerId и utm* добавляет наш фронт — в подписи Telegram их нет.
+        const { hash, referrerId, utmSource, utmMedium, utmCampaign, ...data } = dto;
         
         // Filter out undefined/null values and sort keys
         const filteredData: Record<string, string | number> = {};
@@ -217,7 +222,8 @@ export class AuthService {
                 emailVerified: true,
                 region: await this.determineRegion((req as any).ip),
                 tgLogin: dto.username || `${dto.first_name}${dto.last_name ? ` ${dto.last_name}` : ""}`,
-                referrerId: dto.referrerId || undefined,
+                referrerId: referrerId || undefined,
+                ...(await this.utmAttribution.resolve({ utmSource, utmMedium, utmCampaign })),
             } as any));
 
         if (!account) {

@@ -10,6 +10,7 @@ import { Toaster } from "react-hot-toast"
 import ScaleProvider from "./ScaleProvider"
 import AnimProvider from "@/shared/anim/AnimProvider"
 import PageLoader from "@/shared/components/widgets/PageLoader"
+import UtmCapture from "@/features/marketing/components/UtmCapture"
 import { getLocale } from "@/shared/server/getLocale"
 
 
@@ -72,6 +73,7 @@ export default async function RootLayout({
 					}}
 				/>
 				<PageLoader />
+				<UtmCapture />
 				<ScaleProvider>
 					<TanstackQueryProvider>
 						<Modal />

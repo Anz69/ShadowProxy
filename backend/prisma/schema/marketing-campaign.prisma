@@ -1,0 +1,50 @@
+/// Рекламная кампания с уникальной UTM-меткой. Пользователь привязывается к ней
+/// при регистрации по utm_campaign = slug; дальше вся статистика (триалы, платежи,
+/// рефералы) считается по users.utm_campaign_id.
+model MarketingCampaign {
+  id String @id @default(uuid(4))
+
+  name      String
+  source    String
+  utmSource String @map("utm_source")
+  slug      String @unique
+
+  users    User[]
+  expenses MarketingCampaignExpense[]
+  notes    MarketingCampaignNote[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("marketing_campaigns")
+}
+
+model MarketingCampaignExpense {
+  id String @id @default(uuid(4))
+
+  campaign   MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String            @map("campaign_id")
+
+  amount  Decimal  @db.Decimal(65, 30)
+  comment String?
+  spentAt DateTime @map("spent_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([campaignId, spentAt])
+  @@map("marketing_campaign_expenses")
+}
+
+model MarketingCampaignNote {
+  id String @id @default(uuid(4))
+
+  campaign   MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String            @map("campaign_id")
+
+  text String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([campaignId, createdAt])
+  @@map("marketing_campaign_notes")
+}

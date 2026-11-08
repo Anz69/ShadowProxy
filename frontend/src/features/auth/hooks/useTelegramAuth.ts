@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
+import { readUtm } from "@/features/marketing/utils/utm"
 import { getCookie } from "@/shared/utils/getCookie"
 import { getLocaleFromPath } from "@/shared/utils/getLocaleFromPath"
 import { getLocalizedPath } from "@/shared/utils/getLocalizedPath"
@@ -48,7 +49,8 @@ export function useTelegramAuth() {
 				credentials: "include",
 				body: JSON.stringify({
 					...userData,
-					referrerId: referrerId || undefined
+					referrerId: referrerId || undefined,
+					...readUtm()
 				})
 			})
 				.then(async (res) => {

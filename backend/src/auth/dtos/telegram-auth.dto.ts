@@ -28,5 +28,17 @@ export class TelegramAuthDto {
     @IsOptional()
     @IsString()
     referrerId?: string;
+
+    @IsOptional()
+    @IsString()
+    utmSource?: string;
+
+    @IsOptional()
+    @IsString()
+    utmMedium?: string;
+
+    @IsOptional()
+    @IsString()
+    utmCampaign?: string;
 }
 

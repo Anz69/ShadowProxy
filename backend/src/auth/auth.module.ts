@@ -17,6 +17,7 @@ import { UserModule } from "../user/user.module";
 import { AccountModule } from "../account/account.module";
 import { LoggerModule } from "../logger/logger.module";
 import { TelegramModule } from "../telegram/telegram.module";
+import { UtmAttributionService } from "../marketing/utm-attribution.service";
 
 @Module({
     imports: [
@@ -51,7 +52,7 @@ import { TelegramModule } from "../telegram/telegram.module";
         forwardRef(() => EmailConfirmationModule),
     ],
     controllers: [AuthController],
-    providers: [AuthService, AccountService, MailingService],
+    providers: [AuthService, AccountService, MailingService, UtmAttributionService],
     exports: [AuthService],
 })
 export class AuthModule {}

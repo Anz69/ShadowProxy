@@ -15,6 +15,7 @@ import { TelegramService } from "../telegram/telegram.service";
 import { Authorization } from "./decorators/auth.decorator";
 import { User } from "./decorators/user.decorator";
 import type { User as UserEntity } from "@prisma/client";
+import { UtmAttributionService } from "../marketing/utm-attribution.service";
 
 @Controller("auth")
 export class AuthController {
@@ -23,6 +24,7 @@ export class AuthController {
         private readonly providerService: ProviderService,
         private readonly configService: ConfigService,
         private readonly telegramService: TelegramService,
+        private readonly utmAttribution: UtmAttributionService,
     ) {}
 
     @Recaptcha()
@@ -42,7 +44,15 @@ export class AuthController {
     @Get("/oauth/connect/:provider")
     @UseGuards(AuthProviderGuard)
     @HttpCode(HttpStatus.OK)
-    connect(@Param("provider") provider: string, @Query("referrer") referrer: string | undefined, @Req() req: Request, @Res() res: Response) {
+    connect(
+        @Param("provider") provider: string,
+        @Query("referrer") referrer: string | undefined,
+        @Query("utm_source") utmSource: string | undefined,
+        @Query("utm_medium") utmMedium: string | undefined,
+        @Query("utm_campaign") utmCampaign: string | undefined,
+        @Req() req: Request,
+        @Res() res: Response,
+    ) {
         const providerInstance = this.providerService.findByService(provider);
         const codeVerifier = randomBytes(32).toString("base64url");
         const codeChallenge = createHash("sha256").update(codeVerifier).digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -74,6 +84,16 @@ export class AuthController {
                 path: cookiePath,
             });
         }
+        const utm = this.utmAttribution.normalize({ utmSource, utmMedium, utmCampaign });
+        if (utm) {
+            res.cookie(`oauth_${provider}_utm`, JSON.stringify(utm), {
+                httpOnly: true,
+                sameSite: "lax",
+                secure,
+                maxAge: 10 * 60 * 1000,
+                path: cookiePath,
+            });
+        }
 
         const url = providerInstance?.getAuthUrl(req, codeChallenge, state);
         return res.redirect(url || "");
@@ -95,6 +115,7 @@ export class AuthController {
         const cv = this.getCookie(req, `oauth_${provider}_cv`);
         const st = this.getCookie(req, `oauth_${provider}_state`);
         const referrer = this.getCookie(req, `oauth_${provider}_referrer`);
+        const utm = this.utmAttribution.parseCookie(this.getCookie(req, `oauth_${provider}_utm`));
         const isLinkFlow = this.getCookie(req, `oauth_${provider}_link`) === "1";
         const sessionUserId = (req as Request & { session?: { userId?: string } }).session?.userId;
 
@@ -102,6 +123,7 @@ export class AuthController {
             res.clearCookie(`oauth_${provider}_cv`, { path: cookiePath });
             res.clearCookie(`oauth_${provider}_state`, { path: cookiePath });
             res.clearCookie(`oauth_${provider}_referrer`, { path: cookiePath });
+            res.clearCookie(`oauth_${provider}_utm`, { path: cookiePath });
             res.clearCookie(`oauth_${provider}_link`, { path: cookiePath });
         };
 
@@ -129,7 +151,7 @@ export class AuthController {
             }
         }
 
-        await this.authService.extractProfileFromCodeWithVerifier(req, provider, code, cv, referrer);
+        await this.authService.extractProfileFromCodeWithVerifier(req, provider, code, cv, referrer, utm);
         clear();
         return res.redirect(`${host}/dashboard`);
     }

@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form"
 
 import { useLogin } from "@/features/auth/hooks/useLogin"
 import { useTelegramAuth } from "@/features/auth/hooks/useTelegramAuth"
+import { appendUtm } from "@/features/marketing/utils/utm"
 import {
 	type LoginDto,
 	loginSchema
@@ -125,9 +126,8 @@ const LoginForm: FC<LoginFormProps> = ({ embedded, onSwitchMode }) => {
 					type="button"
 					className="inline-flex h-[52px] w-full items-center justify-center gap-3 rounded-[14px] border border-white/10 bg-white/[0.04] text-[15px] font-medium text-white transition hover:border-white/20 hover:bg-white/[0.07] light:border-[#e2e4ea] light:bg-[#f7f8fb] light:text-[#0e1019] light:hover:border-[#d8dde6] light:hover:bg-[#eef1f6]"
 					onClick={() => {
-						window.location.replace(
-							`${process.env.NEXT_PUBLIC_BACKEND_URI}/auth/oauth/connect/google`
-						)
+						const url = appendUtm(new URL(`${process.env.NEXT_PUBLIC_BACKEND_URI}/auth/oauth/connect/google`))
+						window.location.replace(url.toString())
 					}}
 				>
 					<img
