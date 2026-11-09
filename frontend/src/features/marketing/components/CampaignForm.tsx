@@ -10,6 +10,7 @@ import Footnote from "@/shared/components/ui/Footnote"
 import Input from "@/shared/components/ui/Input"
 import Loader from "@/shared/components/ui/Loader/Loader"
 import { useModalStore } from "@/shared/components/ui/Modal/store/modal.store"
+import Select from "@/shared/components/ui/Select"
 
 import { marketingService } from "../services/marketing.service"
 import type { Campaign } from "../types/marketing.types"
@@ -93,10 +94,12 @@ const CampaignForm: FC<{ campaign?: Campaign }> = ({ campaign }) => {
 
 			<div className="flex w-full flex-col gap-1">
 				<span className="text-body/50 text-base font-medium">Источник рекламы</span>
-				<select value={sourceChoice} onChange={e => setSourceChoice(e.target.value)} className={fieldCls}>
-					{CAMPAIGN_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-					<option value={OTHER}>Другой источник…</option>
-				</select>
+				<Select value={sourceChoice} onChange={setSourceChoice} className="!w-full" ariaLabel="Источник рекламы">
+					{CAMPAIGN_SOURCES.map(s => (
+						<Select.Option key={s} value={s}>{s}</Select.Option>
+					))}
+					<Select.Option value={OTHER}>Другой источник…</Select.Option>
+				</Select>
 				{sourceChoice === OTHER && (
 					<Input required maxLength={60} placeholder="Название источника" value={customSource} onChange={e => setCustomSource(e.target.value)} className="mt-2" />
 				)}
