@@ -125,7 +125,7 @@ const Select: FC<SelectProps> & { Option: FC<OptionProps> } = ({
 					ref={menuRef}
 					role="listbox"
 					style={menuStyle}
-					className={`border-body/25 bg-card/95 z-[100] overflow-y-auto rounded-xl border-2 p-1 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl ${menuClassName}`}
+					className={`border-body/25 bg-card/95 z-[1000] overflow-y-auto rounded-xl border-2 p-1 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl ${menuClassName}`}
 				>
 					{options.map(opt => (
 						<button
