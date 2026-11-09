@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, ChevronDown } from "lucide-react"
-import { type FC, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
+import { Children, type FC, isValidElement, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
 type SelectProps = {
@@ -41,9 +41,12 @@ const Select: FC<SelectProps> & { Option: FC<OptionProps> } = ({
 	const buttonRef = useRef<HTMLButtonElement>(null)
 	const listboxId = useId()
 
-	const options = (Array.isArray(children) ? children : [children]).filter(
-		Boolean
-	) as React.ReactElement<OptionProps>[]
+	// Children.toArray рекурсивно разворачивает вложенные массивы и отбрасывает
+	// null/boolean — иначе `{arr.map(...)}<Option/>` даёт массив внутри массива
+	// и обращение к opt.props падает на клиенте (TypeError: undefined is not an object).
+	const options = Children.toArray(children).filter(
+		child => isValidElement(child) && (child.props as OptionProps).value !== undefined
+	) as unknown as React.ReactElement<OptionProps>[]
 
 	const selected = options.find(opt => opt.props.value === value)
 
