@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { generateRandomString } from "../../../shared/utils/generate-random-string";
 
 /**
  * Residential Lite (SPRINT-3, ТЗ п.4) — продажа по ГБ, через наш гейтвей. Страны — любые
@@ -8,7 +7,12 @@ import { generateRandomString } from "../../../shared/utils/generate-random-stri
  *
  * Формат upstream-строки (в proxy_username на гейтвей):
  *   BY_REQUEST: {FLASH_RESIDENTIAL_LITE_USERNAME}-country-{ГЕО}
- *   BY_TIME:    {FLASH_RESIDENTIAL_LITE_USERNAME}-country-{ГЕО}-time-{МИН}-session-{SESSION_ID}
+ *
+ * Ротация: по официальной доке FlashProxy Residential Lite — rotating-only
+ * (docs/products/residential-lite, docs/sessions: «no sticky sessions»). Параметры
+ * -time-/-session- Lite не поддерживает — раньше мы их подставляли и получали 407
+ * от апстрима. Поэтому rotationTime здесь намеренно игнорируется: прокси всегда
+ * ротирует по запросу, как у провайдера.
  */
 @Injectable()
 export class ResidentialLiteProvider {
@@ -28,20 +32,19 @@ export class ResidentialLiteProvider {
         }
     }
 
-    /** @param location ISO-2 любой страны. */
+    /**
+     * @param location ISO-2 любой страны.
+     * @param rotationTime игнорируется: FlashProxy Residential Lite — rotating-only,
+     *        sticky-параметры (-time-/-session-) апстрим отклоняет с 407.
+     */
     createProxy(location: string | undefined, rotationTime?: number) {
+        void rotationTime;
         const code = (location ?? "").trim().toUpperCase();
         if (!/^[A-Z]{2}$/.test(code)) {
             throw new BadRequestException("location обязателен (ISO-2) для Residential Lite");
         }
 
-        let username = `${this.user}-country-${code}`;
-        if (rotationTime !== undefined && rotationTime !== null) {
-            if (rotationTime < 1 || rotationTime > 1440) {
-                throw new BadRequestException("validation.rotation_max_1440");
-            }
-            username += `-time-${rotationTime}-session-${generateRandomString(8)}`;
-        }
+        const username = `${this.user}-country-${code}`;
 
         return { host: this.host, port: this.portHttp, username, password: this.pass };
     }

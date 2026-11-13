@@ -407,17 +407,20 @@ const ProxyGenerator: FC<ProxyGeneratorProps> = ({ packageId, packageType }) => 
 							>
 								{T("package.proxyGenerator.onRequest")}
 							</button>
-							<button
-								type="button"
-								onClick={() => setRotation("time")}
-								className={`rounded-[9px] px-4 py-2 text-sm font-medium min-w-[100px] cursor-pointer transition-colors ${
-									rotation === "time"
-										? "bg-gradient-to-b from-[#4f8dff] to-[#2f6bff] text-white shadow-[0_8px_24px_-12px_rgba(59,130,246,0.8)]"
-										: "text-white/70 hover:text-white hover:bg-white/[0.06] light:text-[#5b6472] light:hover:text-[#0e1019] light:hover:bg-[#eef1f6]"
-								}`}
-							>
-								{T("package.proxyGenerator.byTime")}
-							</button>
+							{/* Residential Lite у Flash — rotating-only (нет sticky): по времени не предлагаем */}
+							{!isLite && (
+								<button
+									type="button"
+									onClick={() => setRotation("time")}
+									className={`rounded-[9px] px-4 py-2 text-sm font-medium min-w-[100px] cursor-pointer transition-colors ${
+										rotation === "time"
+											? "bg-gradient-to-b from-[#4f8dff] to-[#2f6bff] text-white shadow-[0_8px_24px_-12px_rgba(59,130,246,0.8)]"
+											: "text-white/70 hover:text-white hover:bg-white/[0.06] light:text-[#5b6472] light:hover:text-[#0e1019] light:hover:bg-[#eef1f6]"
+									}`}
+								>
+									{T("package.proxyGenerator.byTime")}
+								</button>
+							)}
 						</div>
 						
 						{/* ISP_USA — страна фиксирована (США), показываем статичный чип */}

@@ -48,7 +48,7 @@ describe("Flash proxy providers", () => {
         expect(() => provider.createProxy(0)).toThrow(BadRequestException);
     });
 
-    it("Residential Lite accepts ISO-2 countries and validates rotation", () => {
+    it("Residential Lite accepts ISO-2 countries and is rotating-only", () => {
         const provider = new ResidentialLiteProvider(config);
         expect(provider.createProxy("es")).toEqual({
             host: "lite.flashproxy.io",
@@ -56,7 +56,9 @@ describe("Flash proxy providers", () => {
             username: "lite-user-country-ES",
             password: "lite-pass",
         });
+        // FlashProxy Residential Lite — rotating-only: sticky-параметры не подставляем,
+        // иначе апстрим отвечает 407. rotationTime игнорируется.
+        expect(provider.createProxy("ES", 30).username).toBe("lite-user-country-ES");
         expect(() => provider.createProxy("ESP")).toThrow(BadRequestException);
-        expect(() => provider.createProxy("ES", 1441)).toThrow(BadRequestException);
     });
 });
