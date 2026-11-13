@@ -57,7 +57,7 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 						className={`glass-tile ${merchant === "XROCKET" ? "is-active" : ""} flex h-[46px] w-full flex-row items-center justify-center gap-2 rounded-xl p-3`}
 					>
 						<Image
-							src="/xrocket.svg"
+							src="/xrocket.svg?v=2"
 							alt="xRocket"
 							width={24}
 							height={24}
@@ -112,7 +112,7 @@ const MerchantSelector = ({ merchant, setMerchant, locale = "ru", isModal = fals
 					className={`glass-tile ${merchant === "XROCKET" ? "is-active" : ""} flex h-[46px] w-full flex-row items-center justify-between rounded-xl p-3`}
 				>
 					<Image
-						src="/xrocket.svg"
+						src="/xrocket.svg?v=2"
 						alt="xRocket"
 						width={24}
 						height={24}

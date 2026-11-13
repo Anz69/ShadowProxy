@@ -162,7 +162,7 @@ const PaymentModal: FC<PaymentModalProps> = ({
 		[
 			{ key: "CRYPTO_BOT", label: "CryptoBot", icon: "/crypto_bot.svg" },
 			{ key: "HELEKET", label: "Heleket", icon: "/heleket.svg" },
-			{ key: "XROCKET", label: "xRocket", icon: "/xrocket.svg" }
+			{ key: "XROCKET", label: "xRocket", icon: "/xrocket.svg?v=2" }
 		] as MerchantOption[]
 	).filter(o => isMerchantEnabled(o.key))
 	const merchantAssets = assetsForMerchant(merchant)
