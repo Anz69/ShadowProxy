@@ -4,19 +4,33 @@ import { defaultLocale, supportedLocales } from "@/shared/utils/i18n"
 
 const BACKEND_URI = process.env.NEXT_PUBLIC_BACKEND_URI
 
-/** Only way we consider session valid: backend /users/me returns 2xx. Never trust cookie presence alone. */
-async function isSessionValid(sessionValue: string | undefined): Promise<boolean> {
-	if (!sessionValue?.trim() || !BACKEND_URI?.trim()) {
-		return false
-	}
+const SESSION_CHECK_TIMEOUT_MS = 5000
+
+type SessionState = "valid" | "invalid" | "unknown"
+
+/**
+ * Проверка сессии через backend /users/me.
+ * "invalid" — только когда backend ответил 401/403 (сессия точно мертва).
+ * "unknown" — сеть/таймаут/5xx: выкидывать пользователя на логин нельзя,
+ * иначе любой временный сбой backend «сбрасывает авторизацию».
+ */
+async function checkSession(sessionValue: string | undefined): Promise<{ state: SessionState; user?: { role?: string } }> {
+	if (!sessionValue?.trim()) return { state: "invalid" }
+	if (!BACKEND_URI?.trim()) return { state: "unknown" }
 	try {
 		const res = await fetch(`${BACKEND_URI.replace(/\/$/, "")}/users/me`, {
 			headers: { Cookie: `session=${sessionValue}` },
-			cache: "no-store"
+			cache: "no-store",
+			signal: AbortSignal.timeout(SESSION_CHECK_TIMEOUT_MS)
 		})
-		return res.ok
+		if (res.ok) {
+			const user = (await res.json().catch(() => undefined)) as { role?: string } | undefined
+			return { state: "valid", user }
+		}
+		if (res.status === 401 || res.status === 403) return { state: "invalid" }
+		return { state: "unknown" }
 	} catch {
-		return false
+		return { state: "unknown" }
 	}
 }
 
@@ -62,8 +76,8 @@ export default async function middleware(request: NextRequest) {
 
 	// Handle auth routes — redirect to dashboard ONLY if backend says session is valid
 	if (pathWithoutLocale.startsWith("/auth")) {
-		const valid = await isSessionValid(sessionValue)
-		if (valid) {
+		const { state } = await checkSession(sessionValue)
+		if (state === "valid") {
 			const redirectPath = addLocaleToPath("/dashboard", locale)
 			return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
 		}
@@ -82,47 +96,35 @@ export default async function middleware(request: NextRequest) {
 
 	// Handle admin routes — require valid session and ADMIN role
 	if (pathWithoutLocale.startsWith("/admin")) {
-		if (!sessionValue?.trim()) {
+		const { state, user } = await checkSession(sessionValue)
+		if (state === "invalid") {
 			const redirectPath = addLocaleToPath("/auth/login", locale)
 			return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
 		}
-		const valid = await isSessionValid(sessionValue)
-		if (!valid) {
-			const redirectPath = addLocaleToPath("/auth/login", locale)
-			return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
-		}
-		try {
-			const res = await fetch(`${BACKEND_URI!.replace(/\/$/, "")}/users/me`, {
-				headers: { Cookie: `session=${sessionValue}` },
-				cache: "no-store"
-			})
-			if (!res.ok) {
-				const redirectPath = addLocaleToPath("/auth/login", locale)
-				return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
-			}
-			const data = await res.json()
-			if (data.role === "SUPPORT") {
+		// state === "unknown" (backend недоступен/5xx) — пропускаем, страница сама
+		// покажет ошибку данных; редирект на логин по временному сбою недопустим.
+		if (state === "valid") {
+			if (user?.role === "SUPPORT") {
 				// Поддержке доступен только раздел /admin/support.
 				if (!pathWithoutLocale.startsWith("/admin/support")) {
 					const redirectPath = addLocaleToPath("/admin/support", locale)
 					return NextResponse.redirect(new URL(redirectPath, redirectOrigin))
 				}
-			} else if (data.role !== "ADMIN") {
+			} else if (user?.role !== "ADMIN") {
 				const redirectPath = addLocaleToPath("/dashboard", locale)
 				return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
 			}
-		} catch {
-			const redirectPath = addLocaleToPath("/auth/login", locale)
-			return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
 		}
 	}
 
-	// Handle protected routes — allow only with valid session from backend
+	// Handle protected routes — kick to login only on a definitive 401 from backend.
+	// A transient backend error must not log the user out: the session cookie is
+	// still valid, and the next successful check would just bring them back.
 	// u-api, terms and privacy can be accessed without authentication.
 	const publicPaths = ["/", "/u-api", "/terms", "/privacy"]
-	if (!pathWithoutLocale.startsWith("/auth") && !publicPaths.includes(pathWithoutLocale)) {
-		const valid = await isSessionValid(sessionValue)
-		if (!valid) {
+	if (!pathWithoutLocale.startsWith("/auth") && !pathWithoutLocale.startsWith("/admin") && !publicPaths.includes(pathWithoutLocale)) {
+		const { state } = await checkSession(sessionValue)
+		if (state === "invalid") {
 			const redirectPath = addLocaleToPath("/auth/login", locale)
 			return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))
 		}
