@@ -39,7 +39,13 @@ export class NodeService implements OnModuleInit {
         // Синхронизируем активные порты со всеми подключенными серверами при старте
         setTimeout(async () => {
             console.log('[PORT SYNC] Инициация синхронизации активных портов при запуске backend...');
-            await this.syncActivePortsWithServers();
+            // try/catch обязателен: необработанная ошибка в таймере убивает весь
+            // процесс Node (uncaughtException) и уводит backend в crash-loop.
+            try {
+                await this.syncActivePortsWithServers();
+            } catch (error: any) {
+                console.error('[PORT SYNC] Синхронизация при запуске не удалась:', error?.message || error);
+            }
         }, 5000); // Ждем 5 секунд после старта, чтобы все сервисы инициализировались
     }
 
@@ -345,18 +351,64 @@ export class NodeService implements OnModuleInit {
         // фильтровать по недавней активности, простаивавший >24ч прокси не регистрируется
         // и получает 403 навсегда (catch-22: активности нет, потому что не в реестре).
         // Регистрируем по факту ACTIVE, а не по свежести трафика.
-        const activePorts = await this.prisma.proxy.findMany({
-            where: {
-                status: 'ACTIVE',
-                serverHost: { not: null },
-                userPort: { not: null },
-                userLogin: { not: null },
-                userPassword: { not: null },
-            } as any,
-            include: { user: { select: BALANCE_FIELDS_SELECT } },
-        });
+        //
+        // Читаем пачками: единый findMany по сотням тысяч строк не влезает в один
+        // napi-string (V8 string limit ~512 МБ) — Prisma падал с «Failed to convert
+        // rust String into napi string» и уносил весь процесс в crash-loop.
+        const where = {
+            status: 'ACTIVE',
+            serverHost: { not: null },
+            userPort: { not: null },
+            userLogin: { not: null },
+            userPassword: { not: null },
+        } as any;
 
-        if (activePorts.length === 0) {
+        // Группируем активные прокси по серверам сразу, не держим весь массив
+        const portsByServer: Record<string, any[]> = {};
+        let total = 0;
+        let cursor: string | undefined;
+        const BATCH = 5000;
+
+        for (;;) {
+            const batch: any[] = await this.prisma.proxy.findMany({
+                where,
+                include: { user: { select: BALANCE_FIELDS_SELECT } },
+                orderBy: { id: 'asc' },
+                take: BATCH,
+                ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+            });
+            if (batch.length === 0) break;
+
+            for (const proxy of batch) {
+                const serverHost = proxy.serverHost!;
+                if (!portsByServer[serverHost]) {
+                    portsByServer[serverHost] = [];
+                }
+                // Если прокси suspended - блокируем трафик (не добавляем в синхронизацию)
+                if (proxy.status === 'SUSPENDED') {
+                    console.log(`[PORT SYNC] Прокси ${proxy.id}: статус suspended, блокируем трафик`);
+                    continue;
+                }
+
+                portsByServer[serverHost].push({
+                    port: proxy.userPort!,
+                    user_id: proxy.userId!,
+                    login: proxy.userLogin!,
+                    password: proxy.userPassword!,
+                    proxy_host: proxy.host,
+                    proxy_port: proxy.port,
+                    proxy_username: proxy.username,
+                    proxy_password: proxy.password,
+                    ...bytesLimitForAgent((proxy as any).user, proxy.type),
+                });
+            }
+
+            total += batch.length;
+            cursor = batch[batch.length - 1].id;
+            if (batch.length < BATCH) break;
+        }
+
+        if (total === 0) {
             console.log('[PORT SYNC] Нет активных портов - выполняем полную очистку');
 
             // Очищаем все серверы - отправляем пустые списки
@@ -389,34 +441,7 @@ export class NodeService implements OnModuleInit {
             return;
         }
 
-        console.log(`[PORT SYNC] Синхронизация ${activePorts.length} активных портов со всеми серверами`);
-
-        // Группируем активные прокси по серверам
-        const portsByServer: Record<string, any[]> = {};
-        for (const proxy of activePorts) {
-            const serverHost = proxy.serverHost!;
-            if (!portsByServer[serverHost]) {
-                portsByServer[serverHost] = [];
-            }
-            // Если прокси suspended - блокируем трафик (не добавляем в синхронизацию)
-            if (proxy.status === 'SUSPENDED') {
-                console.log(`[PORT SYNC] Прокси ${proxy.id}: статус suspended, блокируем трафик`);
-                continue;
-            }
-
-            portsByServer[serverHost].push({
-                port: proxy.userPort!,
-                user_id: proxy.userId!,
-                login: proxy.userLogin!,
-                password: proxy.userPassword!,
-                proxy_host: proxy.host,
-                proxy_port: proxy.port,
-                proxy_username: proxy.username,
-                proxy_password: proxy.password,
-                ...bytesLimitForAgent((proxy as any).user, proxy.type),
-            });
-
-        }
+        console.log(`[PORT SYNC] Синхронизация ${total} активных портов со всеми серверами`);
 
         // Отправляем синхронизацию на каждый сервер (без параллельных запросов)
         for (const [serverHost, portNumbers] of Object.entries(portsByServer)) {
