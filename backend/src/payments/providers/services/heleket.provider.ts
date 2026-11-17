@@ -13,7 +13,7 @@ export class HeleketProvider {
 
     constructor(private readonly configService: ConfigService) {
         this.heleketApi = axios.create({
-            baseURL: "https://api.heleket.com/v1",
+            baseURL: "https://api.heleket.hk/v1",
             headers: {
                 merchant: configService.getOrThrow<string>("HELEKET_MERCHANT"),
             },
