@@ -39,5 +39,6 @@
     "NOT_OBJECT": "Поле \"$t(validation.{property})\" должно быть объектом",
     "family": "Семейство IP",
     "periodDays": "Срок аренды",
-    "UNKNOWN_IP_FAMILY": "Неизвестное семейство IP (ожидается IPV4 или IPV6)"
+    "UNKNOWN_IP_FAMILY": "Неизвестное семейство IP (ожидается IPV4 или IPV6)",
+    "INVALID_VALUE": "Некорректное значение"
 }

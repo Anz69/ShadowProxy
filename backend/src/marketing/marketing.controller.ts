@@ -10,49 +10,49 @@ export class MarketingController {
     constructor(private readonly marketingService: MarketingService) {}
 
     @Get()
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     list() {
         return this.marketingService.list();
     }
 
     @Post()
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     create(@Body() dto: CreateCampaignDto, @User("id") adminId: string) {
         return this.marketingService.create(dto, adminId);
     }
 
     @Get(":id")
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     detail(@Param("id") id: string, @Query() query: CampaignStatsQueryDto) {
         return this.marketingService.detail(id, query);
     }
 
     @Patch(":id")
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     update(@Param("id") id: string, @Body() dto: UpdateCampaignDto, @User("id") adminId: string) {
         return this.marketingService.update(id, dto, adminId);
     }
 
     @Post(":id/expenses")
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     addExpense(@Param("id") id: string, @Body() dto: AddExpenseDto, @User("id") adminId: string) {
         return this.marketingService.addExpense(id, dto, adminId);
     }
 
     @Delete(":id/expenses/:expenseId")
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     removeExpense(@Param("id") id: string, @Param("expenseId") expenseId: string, @User("id") adminId: string) {
         return this.marketingService.removeExpense(id, expenseId, adminId);
     }
 
     @Post(":id/notes")
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     addNote(@Param("id") id: string, @Body() dto: AddNoteDto, @User("id") adminId: string) {
         return this.marketingService.addNote(id, dto, adminId);
     }
 
     @Delete(":id/notes/:noteId")
-    @Authorization(UserRole.ADMIN)
+    @Authorization(UserRole.ADMIN, UserRole.SMM)
     removeNote(@Param("id") id: string, @Param("noteId") noteId: string, @User("id") adminId: string) {
         return this.marketingService.removeNote(id, noteId, adminId);
     }

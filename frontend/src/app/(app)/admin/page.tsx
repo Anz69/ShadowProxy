@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 export default async function Page() {
 	const user = await getUser()
-	// Поддержке доступен только раздел тикетов.
-	return redirect(user?.role === "SUPPORT" ? "/admin/support" : "/admin/users")
+	// Поддержке доступен только раздел тикетов, SMM — только маркетинг.
+	const target = user?.role === "SUPPORT" ? "/admin/support" : user?.role === "SMM" ? "/admin/marketing" : "/admin/users"
+	return redirect(target)
 }

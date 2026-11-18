@@ -5,15 +5,23 @@ import { Headset, Trash2, UserPlus } from "lucide-react"
 import { type FC, useState } from "react"
 import toast from "react-hot-toast"
 
-import { adminService } from "@/features/admin/serices/admin.service"
+import { adminService, type SupportAccount } from "@/features/admin/serices/admin.service"
 
 import Card from "@/shared/components/ui/Card"
 
-/** Аккаунты поддержки (роль SUPPORT): видят админку только с разделом «Поддержка». */
+type StaffRole = "SUPPORT" | "SMM"
+
+const ROLE_LABEL: Record<StaffRole, string> = {
+	SUPPORT: "Поддержка",
+	SMM: "SMM"
+}
+
+/** Аккаунты сотрудников: поддержка видит только «Поддержку», SMM — только «Маркетинг / UTM». */
 const SupportAccounts: FC = () => {
 	const queryClient = useQueryClient()
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
+	const [role, setRole] = useState<StaffRole>("SUPPORT")
 
 	const accounts = useQuery({
 		queryKey: ["admin-support-accounts"],
@@ -22,9 +30,9 @@ const SupportAccounts: FC = () => {
 	const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-support-accounts"] })
 
 	const create = useMutation({
-		mutationFn: () => adminService.createSupportAccount({ email: email.trim(), password }),
+		mutationFn: () => adminService.createSupportAccount({ email: email.trim(), password, role }),
 		onSuccess: () => {
-			toast.success("Аккаунт поддержки создан")
+			toast.success("Аккаунт сотрудника создан")
 			setEmail("")
 			setPassword("")
 			invalidate()
@@ -34,7 +42,7 @@ const SupportAccounts: FC = () => {
 	const revoke = useMutation({
 		mutationFn: (id: string) => adminService.revokeSupportAccount(id),
 		onSuccess: () => {
-			toast.success("Доступ поддержки снят")
+			toast.success("Доступ сотрудника снят")
 			invalidate()
 		},
 		onError: (e: Error) => toast.error(e.message)
@@ -51,20 +59,26 @@ const SupportAccounts: FC = () => {
 					<Headset className="h-5 w-5" aria-hidden="true" />
 				</span>
 				<div>
-					<p className="text-[15px] font-medium text-white">Аккаунты поддержки</p>
-					<p className="text-xs text-white/45">Вход по почте и паролю; в админке доступен только раздел «Поддержка».</p>
+					<p className="text-[15px] font-medium text-white">Аккаунты сотрудников</p>
+					<p className="text-xs text-white/45">
+						Вход по почте и паролю. Поддержка видит только раздел «Поддержка», SMM — только «Маркетинг / UTM».
+					</p>
 				</div>
 			</div>
 
 			<form
-				className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]"
+				className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto_auto]"
 				onSubmit={e => {
 					e.preventDefault()
 					if (canSubmit) create.mutate()
 				}}
 			>
-				<input className={inputCls} type="email" placeholder="support@shadowproxy.io" value={email} onChange={e => setEmail(e.target.value)} autoComplete="off" />
+				<input className={inputCls} type="email" placeholder="staff@shadowproxy.io" value={email} onChange={e => setEmail(e.target.value)} autoComplete="off" />
 				<input className={inputCls} type="password" placeholder="Пароль, минимум 8 символов" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
+				<select className={`${inputCls} cursor-pointer`} value={role} onChange={e => setRole(e.target.value as StaffRole)}>
+					<option value="SUPPORT">Поддержка</option>
+					<option value="SMM">SMM (маркетинг)</option>
+				</select>
 				<button
 					type="submit"
 					disabled={!canSubmit}
@@ -77,17 +91,19 @@ const SupportAccounts: FC = () => {
 
 			<ul className="mt-4 flex flex-col divide-y divide-white/[0.06]">
 				{accounts.isLoading && <li className="py-2 text-sm text-white/45">Загрузка…</li>}
-				{accounts.data?.length === 0 && <li className="py-2 text-sm text-white/45">Пока нет аккаунтов поддержки.</li>}
-				{accounts.data?.map(acc => (
+				{accounts.data?.length === 0 && <li className="py-2 text-sm text-white/45">Пока нет аккаунтов сотрудников.</li>}
+				{accounts.data?.map((acc: SupportAccount) => (
 					<li key={acc.id} className="flex items-center justify-between gap-3 py-2.5">
 						<div className="min-w-0">
 							<p className="truncate text-sm text-white">{acc.email}</p>
-							<p className="text-xs text-white/40">{new Date(acc.createdAt).toLocaleDateString("ru-RU")}</p>
+							<p className="text-xs text-white/40">
+								{ROLE_LABEL[(acc.role as StaffRole)] ?? acc.role} · {new Date(acc.createdAt).toLocaleDateString("ru-RU")}
+							</p>
 						</div>
 						<button
 							type="button"
 							onClick={() => {
-								if (window.confirm(`Снять доступ поддержки с ${acc.email}?`)) revoke.mutate(acc.id)
+								if (window.confirm(`Снять доступ сотрудника с ${acc.email}?`)) revoke.mutate(acc.id)
 							}}
 							disabled={revoke.isPending}
 							className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/10 px-3 py-1.5 text-xs font-semibold text-white/70 transition-colors hover:border-[#ff5c5c]/50 hover:text-[#ff7b7b] disabled:opacity-50"

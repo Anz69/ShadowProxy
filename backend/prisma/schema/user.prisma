@@ -2,6 +2,7 @@ enum UserRole {
   USER
   ADMIN
   SUPPORT
+  SMM
   BANNED
 }
 

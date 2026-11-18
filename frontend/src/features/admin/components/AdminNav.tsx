@@ -33,13 +33,20 @@ const NAV = [
  */
 const AdminNav: FC<{ active?: string }> = ({ active }) => {
 	const pathname = usePathname()
-	// Роль SUPPORT видит только раздел поддержки (бэкенд и middleware это тоже гарантируют).
+	// Роль SUPPORT видит только раздел поддержки, SMM — только маркетинг
+	// (бэкенд и middleware это тоже гарантируют).
 	const { data: me } = useCurrentSessionUser()
-	const items = me?.role === "SUPPORT" ? NAV.filter(i => i.href === "/admin/support") : NAV
+	const items =
+		me?.role === "SUPPORT"
+			? NAV.filter(i => i.href === "/admin/support")
+			: me?.role === "SMM"
+				? NAV.filter(i => i.href === "/admin/marketing")
+				: NAV
 
 	const { data: supportUnread = 0 } = useQuery({
 		queryKey: ["admin-support-unread"],
 		queryFn: () => adminSupportService.unreadCount(),
+		enabled: me?.role !== "SMM",
 		refetchInterval: 30_000
 	})
 

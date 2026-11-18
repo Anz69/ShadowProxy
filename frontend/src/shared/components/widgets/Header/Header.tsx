@@ -97,11 +97,12 @@ const Header: FC<HeaderProps> = ({ user, locale: localeProp }) => {
 	// (styles live in globals.css); no per-route header variant.
 	const adminLabel = T("header.nav.admin")
 	// Роль могла прийти либо с SSR, либо после клиентской перепроверки. Достаточно
-	// любого подтверждённого ADMIN/SUPPORT; кнопку показываем и внутри самой админки.
-	const isAdminRole = (r?: string | null) => r === UserRole.Admin || r === UserRole.Support
+	// любого подтверждённого ADMIN/SUPPORT/SMM; кнопку показываем и внутри самой админки.
+	const isAdminRole = (r?: string | null) => r === UserRole.Admin || r === UserRole.Support || r === UserRole.Smm
 	const shouldShowAdminButton = isAdminRole(user?.role) || isAdminRole(sessionUser?.role)
-	const isSupportOnly = !(user?.role === UserRole.Admin || sessionUser?.role === UserRole.Admin)
-	const adminLink = getLocalizedLink(isSupportOnly ? "/admin/support" : "/admin")
+	const staffRole = [user?.role, sessionUser?.role].find(isAdminRole)
+	const adminHome = staffRole === UserRole.Support ? "/admin/support" : staffRole === UserRole.Smm ? "/admin/marketing" : "/admin"
+	const adminLink = getLocalizedLink(adminHome)
 
 	// Пункт навигации: стеклянная пилюля, активный = синяя подсветка по роуту.
 	const navCls = (route: string) => {

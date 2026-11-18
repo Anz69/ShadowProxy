@@ -110,6 +110,12 @@ export default async function middleware(request: NextRequest) {
 					const redirectPath = addLocaleToPath("/admin/support", locale)
 					return NextResponse.redirect(new URL(redirectPath, redirectOrigin))
 				}
+			} else if (user?.role === "SMM") {
+				// SMM доступен только раздел /admin/marketing.
+				if (!pathWithoutLocale.startsWith("/admin/marketing")) {
+					const redirectPath = addLocaleToPath("/admin/marketing", locale)
+					return NextResponse.redirect(new URL(redirectPath, redirectOrigin))
+				}
 			} else if (user?.role !== "ADMIN") {
 				const redirectPath = addLocaleToPath("/dashboard", locale)
 				return NextResponse.redirect(new URL(redirectPath + search, redirectOrigin))

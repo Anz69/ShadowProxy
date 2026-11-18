@@ -20,7 +20,7 @@ export default async function AdminStaffPage() {
 					<p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#6aa5ff]">Доступы</p>
 					<h1 className="font-[TalosDisplay] text-4xl font-semibold text-white md:text-5xl">Сотрудники</h1>
 					<p className="mt-2 max-w-2xl text-sm text-white/50">
-						Аккаунты поддержки входят по почте и паролю и видят в админке только раздел «Поддержка».
+						Аккаунты сотрудников входят по почте и паролю: поддержка видит в админке только раздел «Поддержка», SMM — только «Маркетинг / UTM».
 					</p>
 				</div>
 				<AdminNav active="/admin/staff" />

@@ -24,7 +24,7 @@ export type MangoBalanceInfo = {
 	ms: number
 }
 
-export type SupportAccount = { id: string; email: string; createdAt: string }
+export type SupportAccount = { id: string; email: string; role: "SUPPORT" | "SMM"; createdAt: string }
 
 class AdminService {
 	private readonly api: AxiosInstance
@@ -54,7 +54,7 @@ class AdminService {
 		}
 	}
 
-	async createSupportAccount(dto: { email: string; password: string }) {
+	async createSupportAccount(dto: { email: string; password: string; role?: "SUPPORT" | "SMM" }) {
 		try {
 			const res = await this.api.post<SupportAccount>("/support-accounts", dto)
 			return res.data

@@ -25,15 +25,15 @@ export class AdminController {
         private readonly logger: LoggerService,
     ) {}
 
-    // ───────── Аккаунты поддержки (роль SUPPORT: админка только с разделом «Поддержка») ─────────
+    // ───────── Аккаунты сотрудников (SUPPORT: только «Поддержка», SMM: только «Маркетинг / UTM») ─────────
 
     @Get("/support-accounts")
     @Authorization(UserRole.ADMIN)
     @HttpCode(HttpStatus.OK)
     async getSupportAccounts() {
         return this.userService.findMany({
-            where: { role: UserRole.SUPPORT },
-            select: { id: true, email: true, createdAt: true },
+            where: { role: { in: [UserRole.SUPPORT, UserRole.SMM] } },
+            select: { id: true, email: true, role: true, createdAt: true },
             orderBy: { createdAt: "desc" },
         });
     }
@@ -44,27 +44,28 @@ export class AdminController {
     async createSupportAccount(@Body() dto: CreateSupportAccountDto, @User("id") adminId: string) {
         const email = dto.email.trim().toLowerCase();
         if (await this.userService.findByEmail(email)) throw new ConflictException("errors.email_already_exists");
+        const role = dto.role === "SMM" ? UserRole.SMM : UserRole.SUPPORT;
         const user = await this.userService.create({
             email,
             password: dto.password,
             authMethod: "CREDENTIALS",
-            role: UserRole.SUPPORT,
+            role,
             emailVerified: true,
             region: "EUROPE",
         });
-        await this.logger.log("SYSTEM", `Админ ${adminId} создал аккаунт поддержки ${email}`, adminId);
-        return { id: user.id, email: user.email, createdAt: user.createdAt };
+        await this.logger.log("SYSTEM", `Админ ${adminId} создал аккаунт сотрудника ${email} (роль ${role})`, adminId);
+        return { id: user.id, email: user.email, role: user.role, createdAt: user.createdAt };
     }
 
-    /** Снимает роль поддержки (аккаунт остаётся обычным пользователем, история не теряется). */
+    /** Снимает роль сотрудника (аккаунт остаётся обычным пользователем, история не теряется). */
     @Delete("/support-accounts/:id")
     @Authorization(UserRole.ADMIN)
     @HttpCode(HttpStatus.OK)
     async revokeSupportAccount(@Param("id") id: string, @User("id") adminId: string) {
         const user = await this.userService.findById(id).catch(() => null);
-        if (!user || user.role !== UserRole.SUPPORT) throw new NotFoundException("errors.user_not_found");
+        if (!user || (user.role !== UserRole.SUPPORT && user.role !== UserRole.SMM)) throw new NotFoundException("errors.user_not_found");
         await this.userService.updateById(id, { role: UserRole.USER });
-        await this.logger.log("SYSTEM", `Админ ${adminId} снял роль поддержки с ${user.email}`, adminId);
+        await this.logger.log("SYSTEM", `Админ ${adminId} снял роль ${user.role} с ${user.email}`, adminId);
         return { ok: true };
     }
 
